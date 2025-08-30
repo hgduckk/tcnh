@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,6 +48,7 @@ export default function A80Page() {
   const [isLoading, setIsLoading] = useState(false);
   const [floatingNames, setFloatingNames] = useState<FloatingName[]>([]);
   const [selectedSection, setSelectedSection] = useState<'historical' | 'next-gen'>('historical');
+  const [isCanvasVisible, setIsCanvasVisible] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     studentId: '',
@@ -56,10 +58,13 @@ export default function A80Page() {
     content: '',
     isAnonymous: false
   });
+  
+  const isMobile = useIsMobile();
 
-  // Pagination state for next-gen submissions
+  // Pagination state for next-gen submissions - Limit to 20 latest
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 28;
+  const itemsPerPage = 5;
+  const maxDisplaySubmissions = 20;
 
   const flagCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
@@ -86,14 +91,14 @@ export default function A80Page() {
     };
   };
 
-  // Music management functions
+  // Music management functions - Disable on mobile for performance
   const getRandomMusic = () => {
     const randomIndex = Math.floor(Math.random() * musicFiles.length);
     return musicFiles[randomIndex];
   };
 
   const playRandomMusic = () => {
-    if (audioRef.current) {
+    if (audioRef.current && !isMobile) {
       const randomMusic = getRandomMusic();
       audioRef.current.src = randomMusic;
       audioRef.current.play().catch(console.error);
@@ -101,49 +106,69 @@ export default function A80Page() {
   };
 
   const initializeAudio = () => {
-    if (!audioRef.current) {
+    if (!audioRef.current && !isMobile) {
       audioRef.current = new Audio();
       audioRef.current.volume = 0.3;
       audioRef.current.addEventListener('ended', playRandomMusic);
+      playRandomMusic();
     }
-    playRandomMusic();
   };
   
 
   useEffect(() => {
     fetchSubmissions();
     
-    // Initialize music with user interaction
-    const handleFirstInteraction = () => {
-      initializeAudio();
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-    };
-    
-    document.addEventListener('click', handleFirstInteraction);
-    document.addEventListener('keydown', handleFirstInteraction);
-    
-    return () => {
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
+    // Initialize music with user interaction - Skip on mobile
+    if (!isMobile) {
+      const handleFirstInteraction = () => {
+        initializeAudio();
+        document.removeEventListener('click', handleFirstInteraction);
+        document.removeEventListener('keydown', handleFirstInteraction);
+      };
+      
+      document.addEventListener('click', handleFirstInteraction);
+      document.addEventListener('keydown', handleFirstInteraction);
+      
+      return () => {
+        document.removeEventListener('click', handleFirstInteraction);
+        document.removeEventListener('keydown', handleFirstInteraction);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+      };
+    }
+  }, [isMobile]);
 
   useEffect(() => {
-    setTimeout(() => {
-      drawVietnameseFlag();
-    }, 0);
+    if (!isMobile) {
+      setTimeout(() => {
+        drawVietnameseFlag();
+      }, 0);
+    }
   
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [submissions]);
+  }, [submissions, isMobile]);
+
+  // Intersection Observer for canvas visibility
+  useEffect(() => {
+    const canvas = flagCanvasRef.current;
+    if (!canvas) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsCanvasVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const img = new Image();
@@ -163,7 +188,7 @@ export default function A80Page() {
   useEffect(() => {
     const handleResize = () => {
       const canvas = flagCanvasRef.current;
-      if (canvas) {
+      if (canvas && !isMobile) {
         const parent = canvas.parentElement;
         if (parent) {
           canvas.width = parent.clientWidth;
@@ -173,15 +198,21 @@ export default function A80Page() {
       }
     };
   
-    window.addEventListener('resize', handleResize);
-    handleResize();
+    if (!isMobile) {
+      window.addEventListener('resize', handleResize);
+      handleResize();
+    }
   
-    return () => window.removeEventListener('resize', handleResize);
-  }, [submissions]);
+    return () => {
+      if (!isMobile) {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, [submissions, isMobile]);
 
   const fetchSubmissions = async () => {
     try {
-      const response = await fetch('/api/a80/submissions?include_total=true');
+      const response = await fetch('/api/a80/submissions?include_total=true&limit=20');
       if (!response.ok) {
         console.error('Failed to fetch submissions, status', response.status);
         return;
@@ -195,15 +226,15 @@ export default function A80Page() {
   
       // Check if response includes total count
       if (json && typeof json.total === 'number' && Array.isArray(json.submissions)) {
-        items = json.submissions;
+        items = json.submissions.slice(0, maxDisplaySubmissions);
         actualTotal = json.total;
         console.log('Found total in response:', actualTotal);
       } else if (json && typeof json.total === 'number' && Array.isArray(json.data)) {
-        items = json.data;
+        items = json.data.slice(0, maxDisplaySubmissions);
         actualTotal = json.total;
         console.log('Found total in response:', actualTotal);
       } else if (Array.isArray(json)) {
-        items = json;
+        items = json.slice(0, maxDisplaySubmissions);
         actualTotal = items.length; // fallback if no total provided
         console.warn('No total count provided, using array length:', actualTotal);
       } else {
@@ -242,9 +273,9 @@ export default function A80Page() {
     setFloatingNames(names);
   };
 
-  const animateFloatingNames = () => {
+  const animateFloatingNames = useCallback(() => {
     const canvas = flagCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !isCanvasVisible || isMobile) return;
 
     setFloatingNames(prevNames => 
       prevNames.map(name => ({
@@ -257,16 +288,20 @@ export default function A80Page() {
         } : {})
       }))
     );
-  };
+  }, [isCanvasVisible, isMobile]);
 
-  const startAnimation = () => {
+  const startAnimation = useCallback(() => {
+    if (isMobile || !isCanvasVisible) return;
+    
     const animate = () => {
       animateFloatingNames();
       drawVietnameseFlag();
-      animationFrameRef.current = requestAnimationFrame(animate);
+      if (isCanvasVisible && !isMobile) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
     };
     animate();
-  };
+  }, [animateFloatingNames, isMobile, isCanvasVisible]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -553,36 +588,38 @@ export default function A80Page() {
       className="min-h-screen relative overflow-hidden backdrop-blur-sm"
       style={{
         backgroundImage: "url('/images/background-a80.jpg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundSize: isMobile ? '100% auto' : 'cover',
+        backgroundPosition: isMobile ? 'top center' : 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed',
+        backgroundAttachment: 'scroll',
       }}
     >
     <div className="absolute inset-0  bg-black/30 backdrop-blur-sm z-[-1]"></div>
 
 
-      {/* Animated floating stars */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
-            }}
-          >
-            <div className="w-1 h-1 bg-yellow-400 rounded-full shadow-lg" 
-                 style={{
-                   boxShadow: '0 0 6px rgba(255,215,0,0.8), 0 0 12px rgba(255,215,0,0.4)'
-                 }}
-            />
-          </div>
-        ))}
-      </div>
+      {/* Animated floating stars - Reduce on mobile */}
+      {!isMobile && (
+        <div className="absolute inset-0 pointer-events-none z-0">
+          {[...Array(isMobile ? 5 : 20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute animate-pulse"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${2 + Math.random() * 3}s`
+              }}
+            >
+              <div className="w-1 h-1 bg-yellow-400 rounded-full shadow-lg" 
+                   style={{
+                     boxShadow: '0 0 6px rgba(255,215,0,0.8), 0 0 12px rgba(255,215,0,0.4)'
+                   }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
       
       
 
@@ -596,6 +633,8 @@ export default function A80Page() {
               src="/images/banner-a80.png" 
               alt="Banner A80" 
               className="w-full h-auto object-cover"
+              loading="eager"
+              decoding="async"
             />
           </div>
         </div>
@@ -607,6 +646,8 @@ export default function A80Page() {
                 src="/images/quocky.png" 
                 alt="Cờ Việt Nam" 
                 className="w-12 h-auto sm:w-20 md:w-32 object-contain rounded-xl"
+                loading="eager"
+                decoding="async"
               />
               <h1 className="text-4xl sm:text-9xl font-medium font-anton text-yellow-300 text-center">
               RẠNG RỠ VIỆT NAM
@@ -615,6 +656,8 @@ export default function A80Page() {
                 src="/images/quocky.png" 
                 alt="Cờ Việt Nam" 
                 className="w-12 h-auto sm:w-20 md:w-32 object-contain rounded-xl"
+                loading="eager"
+                decoding="async"
               />
           </div>
 
@@ -724,14 +767,32 @@ export default function A80Page() {
                 
                 {/* Flag Canvas - Responsive Size and Position */}
                 <div className="w-full lg:w-[65%] xl:w-[70%] order-1 lg:order-2">
-                <div className="relative rounded-lg shadow-xl overflow-hidden w-full max-w-[280px] sm:max-w-[400px] md:max-w-[500px] lg:max-w-[600px] xl:max-w-[900px] mx-auto aspect-[3/2] transform hover:scale-105 hover:-translate-y-2 transition-all duration-500  hover:shadow-red-300/0">
-                    <canvas
-                      ref={flagCanvasRef}
-                      width={1000}
-                      height={667}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  </div>
+                  {isMobile ? (
+                    // Static flag image for mobile
+                    <div className="relative rounded-lg shadow-xl overflow-hidden w-full max-w-[280px] sm:max-w-[400px] mx-auto aspect-[3/2]">
+                      <img 
+                        src="/images/quocky.png"
+                        alt="Cờ Việt Nam"
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="text-white text-center p-4">
+                          <div className="text-2xl font-bold mb-2">{totalCount ?? submissions.length}</div>
+                          <div className="text-sm">Lời chúc đã gửi</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative rounded-lg shadow-xl overflow-hidden w-full max-w-[280px] sm:max-w-[400px] md:max-w-[500px] lg:max-w-[600px] xl:max-w-[900px] mx-auto aspect-[3/2] transform hover:scale-105 hover:-translate-y-2 transition-all duration-500 hover:shadow-red-300/0">
+                      <canvas
+                        ref={flagCanvasRef}
+                        width={1000}
+                        height={667}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -749,7 +810,7 @@ export default function A80Page() {
           </div>
         </div>
 
-        <div className="bg-orange-100 py-6 md:py-10 px-4 md:px-8 text-center text-4xl md:text-9xl font-anton font-medium text-red-700 shadow-lg rounded-lg">
+        <div className="bg-orange-100 py-6 md:py-10 px-4 md:px-8 text-center text-2xl sm:text-4xl md:text-9xl font-anton font-medium text-red-700 shadow-lg rounded-lg">
           TỰ HÀO LÀ NGƯỜI VIỆT NAM
         </div>
 
@@ -822,6 +883,8 @@ export default function A80Page() {
                             src="/images/a80/1.jpg" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg pointer-events-none"></div>
                         </div>
@@ -841,6 +904,8 @@ export default function A80Page() {
                             src="/images/a80/2.jpg" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg pointer-events-none"></div>
                         </div>
@@ -886,6 +951,8 @@ export default function A80Page() {
                             src="/images/a80/3.png" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg pointer-events-none"></div>
                         </div>
@@ -905,6 +972,8 @@ export default function A80Page() {
                             src="/images/a80/4.webp" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg pointer-events-none"></div>
                         </div>
@@ -948,6 +1017,8 @@ export default function A80Page() {
                             src="/images/a80/5.jpg" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg pointer-events-none"></div>
                         </div>
@@ -980,10 +1051,11 @@ export default function A80Page() {
                       <div className="w-full md:w-1/2 order-2 md:order-2">
                         <div className="relative">
                           <video 
-                            autoPlay 
+                            autoPlay={!isMobile} 
                             loop 
                             muted 
                             playsInline 
+                            preload={isMobile ? "none" : "metadata"}
                             className="w-full h-auto object-cover rounded-lg shadow-lg"
                           >
                             <source src="/images/a80/6.mp4" type="video/mp4" />
@@ -1021,61 +1093,93 @@ export default function A80Page() {
                   </div>
                 ) : (
                   <>
-                  {(() => {
-                    const totalPages = Math.ceil(submissions.length / itemsPerPage);
-                    return (
-                      <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {[...submissions]
-                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                            .map((submission) => (
-                              <div key={submission.id} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-3 border border-gray-200 mb-4 break-inside-avoid transform hover:scale-105 transition-transform duration-200">
-                                <div className="mb-2">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <User className="w-4 h-4 text-red-600" />
-                                    <span className="font-semibold text-red-600 text-sm">{submission.name}</span>
+                  {isMobile ? (
+                    // Mobile: Paginated view with 5 per page
+                    (() => {
+                      const displaySubmissions = submissions.slice(0, maxDisplaySubmissions);
+                      const totalPages = Math.ceil(displaySubmissions.length / itemsPerPage);
+                      return (
+                        <>
+                          <div className="grid grid-cols-1 gap-4">
+                            {displaySubmissions
+                              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                              .map((submission) => (
+                                <div key={submission.id} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-3 border border-gray-200 mb-4 break-inside-avoid">
+                                  <div className="mb-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <User className="w-4 h-4 text-red-600" />
+                                      <span className="font-semibold text-red-600 text-sm">{submission.name}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-gray-700 text-sm mb-3 break-words text-justify">{submission.content}</p>
+                                  <div className="mt-2 relative">
+                                    <img 
+                                      src="/images/quocky.png"  
+                                      alt="Việt Nam" 
+                                      className="w-full h-auto object-cover aspect-[3/2] rounded-sm"
+                                      loading="lazy"
+                                      decoding="async"
+                                      style={{
+                                        filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.1))'
+                                      }}
+                                    />
                                   </div>
                                 </div>
-                                
-                                <p className="text-gray-700 text-sm mb-3 break-words text-justify">{submission.content}</p>
-
-                                {/* Vietnamese flag at the end of each comment */}
-                                <div className="mt-2 relative">
-                                  <img 
-                                    src="/images/quocky.png"  
-                                    alt="Việt Nam" 
-                                    className="w-full h-auto object-cover aspect-[3/2] rounded-sm"
-                                    style={{
-                                      filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.1))'
-                                    }}
-                                  />
-                                </div>
+                              ))}
+                          </div>
+                          <div className="flex justify-center items-center gap-4 mt-6">
+                            <Button
+                              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                              className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
+                            >
+                              ← Trang trước
+                            </Button>
+                            <span className="text-gray-700 font-medium">
+                              Trang {currentPage} / {totalPages}
+                            </span>
+                            <Button
+                              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                              className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
+                            >
+                              Trang sau →
+                            </Button>
+                          </div>
+                        </>
+                      );
+                    })()
+                  ) : (
+                    // Desktop: Show all submissions in 4 columns
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {submissions
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .map((submission) => (
+                          <div key={submission.id} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-3 border border-gray-200 mb-4 break-inside-avoid transform hover:scale-105 transition-transform duration-200">
+                            <div className="mb-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <User className="w-4 h-4 text-red-600" />
+                                <span className="font-semibold text-red-600 text-sm">{submission.name}</span>
                               </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-center items-center gap-4 mt-6">
-                          <Button
-                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
-                          >
-                            ← Trang trước
-                          </Button>
-                          <span className="text-gray-700 font-medium">
-                            Trang {currentPage} / {totalPages}
-                          </span>
-                          <Button
-                            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
-                          >
-                            Trang sau →
-                          </Button>
-                        </div>
-                      </>
-                    );
-                  })()}
+                            </div>
+                            <p className="text-gray-700 text-sm mb-3 break-words text-justify">{submission.content}</p>
+                            <div className="mt-2 relative">
+                              <img 
+                                src="/images/quocky.png"  
+                                alt="Việt Nam" 
+                                className="w-full h-auto object-cover aspect-[3/2] rounded-sm"
+                                loading="lazy"
+                                decoding="async"
+                                style={{
+                                  filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.1))'
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                   </>
                 )}
                   </CardContent>

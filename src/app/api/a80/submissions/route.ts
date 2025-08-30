@@ -6,14 +6,26 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// GET - Fetch all submissions
-export async function GET() {
+// GET - Fetch submissions with optional limit
+export async function GET(request: NextRequest) {
   try {
-    const { data: submissions, error, count } = await supabase
+    const url = new URL(request.url);
+    const limit = url.searchParams.get('limit');
+    const includeTotal = url.searchParams.get('include_total');
+
+    let query = supabase
       .from('submissions')
-      .select('*', { count: 'exact' })  // yêu cầu trả về total count
-      .order('created_at', { ascending: true })
-      .range(0, 4999); // có thể tăng giới hạn lên bao nhiêu tùy bạn
+      .select('*', { count: includeTotal ? 'exact' : 'estimated' })
+      .order('created_at', { ascending: false }); // Latest first for mobile
+
+    if (limit) {
+      const limitNum = parseInt(limit, 10);
+      query = query.limit(limitNum);
+    } else {
+      query = query.range(0, 4999);
+    }
+
+    const { data: submissions, error, count } = await query;
 
     if (error) {
       console.error('Error fetching submissions:', error);

@@ -319,4 +319,38 @@ body {
   .background-fixed {
     background-attachment: scroll !important;
   }
+  
+  /* Mobile performance optimizations */
+  * {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* Reduce blur effects on mobile */
+  .backdrop-blur-sm {
+    backdrop-filter: none !important;
+  }
+  
+  /* Simplify gradients on mobile */
+  .bg-gradient-to-b,
+  .bg-gradient-to-br,
+  .bg-gradient-to-r {
+    background-image: none !important;
+  }
+  
+  /* Disable complex animations on mobile */
+  .animate-pulse {
+    animation: none !important;
+  }
+  
+  /* Optimize text shadows */
+  [style*="textShadow"] {
+    text-shadow: none !important;
+  }
+  
+  /* Reduce box shadows */
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  }
 }
