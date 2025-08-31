@@ -61,10 +61,10 @@ export default function A80Page() {
   
   const isMobile = useIsMobile();
 
-  // Pagination state for next-gen submissions - Limit to 20 latest
+  // Pagination state for next-gen submissions - Load all wishes
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  const maxDisplaySubmissions = 20;
+  const itemsPerPageMobile = 5;
+  const itemsPerPageDesktop = 20;
 
   const flagCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
@@ -141,11 +141,9 @@ export default function A80Page() {
   }, [isMobile]);
 
   useEffect(() => {
-    if (!isMobile) {
-      setTimeout(() => {
-        drawVietnameseFlag();
-      }, 0);
-    }
+    setTimeout(() => {
+      drawVietnameseFlag();
+    }, 0);
   
     return () => {
       if (animationFrameRef.current) {
@@ -188,7 +186,7 @@ export default function A80Page() {
   useEffect(() => {
     const handleResize = () => {
       const canvas = flagCanvasRef.current;
-      if (canvas && !isMobile) {
+      if (canvas) {
         const parent = canvas.parentElement;
         if (parent) {
           canvas.width = parent.clientWidth;
@@ -198,21 +196,17 @@ export default function A80Page() {
       }
     };
   
-    if (!isMobile) {
-      window.addEventListener('resize', handleResize);
-      handleResize();
-    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
   
     return () => {
-      if (!isMobile) {
-        window.removeEventListener('resize', handleResize);
-      }
+      window.removeEventListener('resize', handleResize);
     };
   }, [submissions, isMobile]);
 
   const fetchSubmissions = async () => {
     try {
-      const response = await fetch('/api/a80/submissions?include_total=true&limit=20');
+      const response = await fetch('/api/a80/submissions?include_total=true');
       if (!response.ok) {
         console.error('Failed to fetch submissions, status', response.status);
         return;
@@ -226,15 +220,15 @@ export default function A80Page() {
   
       // Check if response includes total count
       if (json && typeof json.total === 'number' && Array.isArray(json.submissions)) {
-        items = json.submissions.slice(0, maxDisplaySubmissions);
+        items = json.submissions; // Load all submissions
         actualTotal = json.total;
         console.log('Found total in response:', actualTotal);
       } else if (json && typeof json.total === 'number' && Array.isArray(json.data)) {
-        items = json.data.slice(0, maxDisplaySubmissions);
+        items = json.data; // Load all submissions
         actualTotal = json.total;
         console.log('Found total in response:', actualTotal);
       } else if (Array.isArray(json)) {
-        items = json.slice(0, maxDisplaySubmissions);
+        items = json; // Load all submissions
         actualTotal = items.length; // fallback if no total provided
         console.warn('No total count provided, using array length:', actualTotal);
       } else {
@@ -587,11 +581,12 @@ export default function A80Page() {
     <div
       className="min-h-screen relative overflow-hidden backdrop-blur-sm"
       style={{
+        backgroundColor: '#250608',
         backgroundImage: "url('/images/background-a80.jpg')",
         backgroundSize: isMobile ? '100% auto' : 'cover',
         backgroundPosition: isMobile ? 'top center' : 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'scroll',
+        backgroundAttachment: isMobile ? 'scroll' : 'fixed',
       }}
     >
     <div className="absolute inset-0  bg-black/30 backdrop-blur-sm z-[-1]"></div>
@@ -768,20 +763,14 @@ export default function A80Page() {
                 {/* Flag Canvas - Responsive Size and Position */}
                 <div className="w-full lg:w-[65%] xl:w-[70%] order-1 lg:order-2">
                   {isMobile ? (
-                    // Static flag image for mobile
-                    <div className="relative rounded-lg shadow-xl overflow-hidden w-full max-w-[280px] sm:max-w-[400px] mx-auto aspect-[3/2]">
-                      <img 
-                        src="/images/quocky.png"
-                        alt="Cờ Việt Nam"
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                    // Pixelated flag for mobile - smaller size
+                    <div className="relative rounded-lg shadow-xl overflow-hidden w-full max-w-[280px] sm:max-w-[320px] mx-auto aspect-[3/2]">
+                      <canvas
+                        ref={flagCanvasRef}
+                        width={600}
+                        height={400}
+                        className="absolute inset-0 w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                        <div className="text-white text-center p-4">
-                          <div className="text-2xl font-bold mb-2">{totalCount ?? submissions.length}</div>
-                          <div className="text-sm">Lời chúc đã gửi</div>
-                        </div>
-                      </div>
                     </div>
                   ) : (
                     <div className="relative rounded-lg shadow-xl overflow-hidden w-full max-w-[280px] sm:max-w-[400px] md:max-w-[500px] lg:max-w-[600px] xl:max-w-[900px] mx-auto aspect-[3/2] transform hover:scale-105 hover:-translate-y-2 transition-all duration-500 hover:shadow-red-300/0">
@@ -1096,16 +1085,73 @@ export default function A80Page() {
                   {isMobile ? (
                     // Mobile: Paginated view with 5 per page
                     (() => {
-                      const displaySubmissions = submissions.slice(0, maxDisplaySubmissions);
-                      const totalPages = Math.ceil(displaySubmissions.length / itemsPerPage);
+                      const displaySubmissions = submissions; // Show all submissions
+                      const totalPages = Math.ceil(displaySubmissions.length / itemsPerPageMobile);
                       return (
                         <>
                           <div className="grid grid-cols-1 gap-4">
                             {displaySubmissions
                               .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                              .slice((currentPage - 1) * itemsPerPageMobile, currentPage * itemsPerPageMobile)
                               .map((submission) => (
                                 <div key={submission.id} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-3 border border-gray-200 mb-4 break-inside-avoid">
+                                  <div className="mb-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <User className="w-4 h-4 text-red-600" />
+                                      <span className="font-semibold text-red-600 text-sm">{submission.name}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-gray-700 text-sm mb-3 break-words text-justify">{submission.content}</p>
+                                  <div className="mt-2 relative">
+                                    <img 
+                                      src="/images/quocky.png"  
+                                      alt="Việt Nam" 
+                                      className="w-full h-auto object-cover aspect-[3/2] rounded-sm"
+                                      loading="lazy"
+                                      decoding="async"
+                                      style={{
+                                        filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.1))'
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                          <div className="flex justify-center items-center gap-4 mt-6">
+                            <Button
+                              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                              className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
+                            >
+                              ← Trang trước
+                            </Button>
+                            <span className="text-gray-700 font-normal">
+                              Trang {currentPage} / {totalPages}
+                            </span>
+                            <Button
+                              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                              className="px-4 py-2 bg-red-500 text-white rounded disabled:opacity-50"
+                            >
+                              Trang sau →
+                            </Button>
+                          </div>
+                        </>
+                      );
+                    })()
+                  ) : (
+                    // Desktop: Paginated view with 20 per page
+                    (() => {
+                      const displaySubmissions = submissions; // Show all submissions
+                      const totalPages = Math.ceil(displaySubmissions.length / itemsPerPageDesktop);
+                      return (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {displaySubmissions
+                              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                              .slice((currentPage - 1) * itemsPerPageDesktop, currentPage * itemsPerPageDesktop)
+                              .map((submission) => (
+                                <div key={submission.id} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-3 border border-gray-200 mb-4 break-inside-avoid transform hover:scale-105 transition-transform duration-200">
                                   <div className="mb-2">
                                     <div className="flex items-center gap-2 mb-1">
                                       <User className="w-4 h-4 text-red-600" />
@@ -1150,35 +1196,6 @@ export default function A80Page() {
                         </>
                       );
                     })()
-                  ) : (
-                    // Desktop: Show all submissions in 4 columns
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {submissions
-                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                        .map((submission) => (
-                          <div key={submission.id} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-3 border border-gray-200 mb-4 break-inside-avoid transform hover:scale-105 transition-transform duration-200">
-                            <div className="mb-2">
-                              <div className="flex items-center gap-2 mb-1">
-                                <User className="w-4 h-4 text-red-600" />
-                                <span className="font-semibold text-red-600 text-sm">{submission.name}</span>
-                              </div>
-                            </div>
-                            <p className="text-gray-700 text-sm mb-3 break-words text-justify">{submission.content}</p>
-                            <div className="mt-2 relative">
-                              <img 
-                                src="/images/quocky.png"  
-                                alt="Việt Nam" 
-                                className="w-full h-auto object-cover aspect-[3/2] rounded-sm"
-                                loading="lazy"
-                                decoding="async"
-                                style={{
-                                  filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.1))'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                    </div>
                   )}
                   </>
                 )}
