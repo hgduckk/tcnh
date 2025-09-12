@@ -40,7 +40,7 @@ export function ApplicationForm() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const startTime = new Date("2025-08-27T20:00:00+07:00").getTime();
-  const endTime = new Date("2025-09-13T23:59:59+07:00").getTime();
+  const endTime = new Date("2025-09-10T23:59:59+07:00").getTime();
 
   const [now, setNow] = useState<number | null>(null);
 
