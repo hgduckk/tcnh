@@ -3,11 +3,11 @@
 import { z } from 'zod';
 // import { moderateBlogComments } from '@/ai/flows/moderate-blog-comments';
 // import { analyzeApplication } from '@/ai/flows/analyze-application';
-import { ContactFormSchema, CommentFormSchema, ApplicationFormSchema, type ContactFormState, type CommentFormState, type ApplicationFormState } from '@/lib/definitions';
-import { appendApplicationToSheet, appendContactToSheet, appendCommentToSheet } from '@/lib/google-sheets';
-import { google } from "googleapis";
-import { Readable } from "stream";
+import { ContactFormSchema, CommentFormSchema, ApplicationFormSubmissionStrictSchema, type ContactFormState, type CommentFormState, type ApplicationFormState } from '@/lib/definitions';
+import { appendContactToSheet } from '@/lib/google-sheets';
 import { supabase } from "@/lib/supabaseClient";
+import { supabaseAdmin } from '@/lib/supabaseAdminClient';
+import { uploadFileToDrive } from '@/lib/google-drive';
 
 export async function submitContactForm(
   prevState: ContactFormState,
@@ -67,6 +67,14 @@ export async function submitComment(
   const { name, comment, parentId, isAnonymous } = validatedFields.data;
 
   try {
+    if (!supabase) {
+      return {
+        message: "Không thể lưu bình luận. Supabase chưa được cấu hình.",
+        isSafe: false,
+        reason: "Supabase client is null.",
+      };
+    }
+
     // AI content moderation disabled
     // const moderationResult = await moderateBlogComments({ comment });
 
@@ -114,41 +122,27 @@ export async function submitApplication(
   formData: FormData
 ): Promise<ApplicationFormState> {
   try {
-    // Debug log
-    console.log('FormData received:', {
-      fullName: formData.get('fullName'),
-      email: formData.get('email'),
-      phone: formData.get('phone'),
-      facebookLink: formData.get('facebookLink'),
-      portraitPhoto: formData.get('portraitPhoto'),
-      reason: formData.get('reason'),
-      expectation: formData.get('expectation'),
-      situation: formData.get('situation'),
-      department: formData.get('department'),
-    });
-
-    const validatedFields = ApplicationFormSchema.safeParse({
+    const validatedFields = ApplicationFormSubmissionStrictSchema.safeParse({
+      templateId: formData.get('templateId')?.toString() || '',
       fullName: formData.get('fullName')?.toString() || '',
       birthDate: formData.get('birthDate')?.toString() || '',
-      gender: formData.get('gender')?.toString() || '',
-      studentId: formData.get('studentId')?.toString() || '',
       className: formData.get('className')?.toString() || '',
-      schoolEmail: formData.get('schoolEmail')?.toString() || '',
-      phone: formData.get('phone')?.toString() || '',
-      facebookLink: formData.get('facebookLink')?.toString() || '',
-      currentAddress: formData.get('currentAddress')?.toString() || '',
-      transport: formData.get('transport')?.toString() || '',
-      healthIssues: formData.get('healthIssues')?.toString() || '',
-      strengthsWeaknesses: formData.get('strengthsWeaknesses')?.toString() || '',
-      specialSkills: formData.get('specialSkills')?.toString() || '',
-      portraitPhoto: formData.get('portraitPhoto') || null,
-      impression: formData.get('impression')?.toString() || '',
-      experience: formData.get('experience')?.toString() || '',
-      extrovert: formData.get('extrovert')?.toString() || '',
-      teamwork: formData.get('teamwork')?.toString() || '',
+      studentId: formData.get('studentId')?.toString() || '',
+      email: formData.get('email')?.toString() || '',
+      gender: formData.get('gender')?.toString() || '',
       department: formData.get('department')?.toString() || '',
-      deptQuestion1: formData.get('deptQuestion1')?.toString() || '',
-      deptQuestion2: formData.get('deptQuestion2')?.toString() || '',
+
+      photo: formData.get('photo'),
+
+      optionalPersonal1: formData.get('optionalPersonal1')?.toString() || '',
+      optionalPersonal2: formData.get('optionalPersonal2')?.toString() || '',
+      optionalPersonal3: formData.get('optionalPersonal3')?.toString() || '',
+      optionalPersonal4: formData.get('optionalPersonal4')?.toString() || '',
+      optionalPersonal5: formData.get('optionalPersonal5')?.toString() || '',
+
+      deptOptional1: formData.get('deptOptional1')?.toString() || '',
+      deptOptional2: formData.get('deptOptional2')?.toString() || '',
+      deptOptional3: formData.get('deptOptional3')?.toString() || '',
     });
 
     if (!validatedFields.success) {
@@ -170,52 +164,80 @@ export async function submitApplication(
       };
     }
 
-    const applicationData = {
-      ...validatedFields.data,
-      healthIssues: validatedFields.data.healthIssues || '',
-    };
-
-    // Ghi dữ liệu vào Google Sheet (có thể fail)
-    let sheetUrl: string | undefined = undefined;
-    let sheetWriteOk = true;
-    try {
-      const result = await appendApplicationToSheet(applicationData);
-      if (result?.sheetUrl) {
-        sheetUrl = result.sheetUrl;
-        console.log('Application saved to sheet:', sheetUrl);
-      }
-      if (!result?.success) {
-        sheetWriteOk = false;
-        console.error('Google Sheet write failed:', result?.message);
-      }
-    } catch (sheetError) {
-      console.error("Error writing to Google Sheet:", sheetError);
-      // Không fail form nếu Google Sheets fail
-      sheetWriteOk = false;
+    if (!supabaseAdmin) {
+      return {
+        message: "Hệ thống chưa cấu hình Supabase (missing SUPABASE_SERVICE_ROLE_KEY).",
+        issues: ["SUPABASE_SERVICE_ROLE_KEY is not set on the server."],
+      };
     }
 
-    // AI analysis disabled
-    // let analysis = '';
-    // try {
-    //   const analysisResult = await analyzeApplication({
-    //       reason: applicationData.impression,
-    //       expectation: applicationData.experience,
-    //       situation: applicationData.teamwork
-    //   });
-    //   analysis = analysisResult.analysis || '';
-    // } catch (analysisError) {
-    //   console.error("Error analyzing application:", analysisError);
-    //   analysis = 'Phân tích tạm thời không khả dụng.';
-    // }
-    const analysis = '';
+    const templateId = validatedFields.data.templateId;
+    const photoFile = validatedFields.data.photo as File;
 
-    return { 
-      message: sheetWriteOk
-        ? `Cảm ơn bạn ${applicationData.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`
-        : `Đơn đã nhận nhưng chưa ghi được vào Google Sheets. Vui lòng kiểm tra cấu hình và thử lại.`,
-      analysis: analysis,
-      sheetUrl,
-      issues: sheetWriteOk ? undefined : ['Không thể ghi vào Google Sheets. Kiểm tra GOOGLE_SHEET_ID, quyền share, và credentials.'],
+    // Load template to get the Drive folder id
+    const { data: template, error: templateError } = await supabaseAdmin
+      .from("application_form_templates")
+      .select("drive_folder_id")
+      .eq("id", templateId)
+      .single();
+
+    if (templateError || !template?.drive_folder_id) {
+      return {
+        message: "Không tìm thấy cấu hình form hợp lệ.",
+        issues: templateError ? [templateError.message] : ["Missing drive_folder_id in template."],
+      };
+    }
+
+    // Upload applicant photo to Google Drive
+    const buffer = Buffer.from(await photoFile.arrayBuffer());
+    const uploadRes = await uploadFileToDrive({
+      folderId: template.drive_folder_id,
+      filename: photoFile.name || "photo",
+      mimeType: photoFile.type || "image/jpeg",
+      buffer,
+    });
+
+    const optionalPersonalAnswers = [
+      validatedFields.data.optionalPersonal1 ?? "",
+      validatedFields.data.optionalPersonal2 ?? "",
+      validatedFields.data.optionalPersonal3 ?? "",
+      validatedFields.data.optionalPersonal4 ?? "",
+      validatedFields.data.optionalPersonal5 ?? "",
+    ];
+
+    const deptOptionalAnswers = [
+      validatedFields.data.deptOptional1 ?? "",
+      validatedFields.data.deptOptional2 ?? "",
+      validatedFields.data.deptOptional3 ?? "",
+    ];
+
+    // Save submission to Supabase (supportbase)
+    const { error: insertError } = await supabaseAdmin
+      .from("application_form_submissions")
+      .insert({
+        template_id: templateId,
+        full_name: validatedFields.data.fullName,
+        birth_date: validatedFields.data.birthDate,
+        class_name: validatedFields.data.className,
+        student_id: validatedFields.data.studentId,
+        email: validatedFields.data.email,
+        gender: validatedFields.data.gender,
+        photo_url: uploadRes.url,
+        department: validatedFields.data.department,
+        optional_personal_answers: optionalPersonalAnswers,
+        dept_optional_answers: deptOptionalAnswers,
+      });
+
+    if (insertError) {
+      return {
+        message: "Gửi đơn thất bại. Vui lòng thử lại sau.",
+        issues: [insertError.message],
+      };
+    }
+
+    return {
+      message: `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`,
+      issues: undefined,
     };
 
   } catch (error) {

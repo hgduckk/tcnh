@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFormState } from 'react-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { useToast } from "@/hooks/use-toast";
 import { submitContactForm } from '@/app/actions';
@@ -18,6 +18,17 @@ const initialState: ContactFormState = null;
 export function ContactForm() {
   const { toast } = useToast();
   const [state, formAction] = useFormState(submitContactForm, initialState);
+  const [settings, setSettings] = useState({
+    contactFormTitle: 'Liên hệ với chúng tôi',
+    contactFormSubtitle: 'Xin vui lòng cung cấp thông tin của bạn',
+  });
+
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then((res) => res.json())
+      .then((data) => setSettings((prev) => ({ ...prev, ...data })))
+      .catch((error) => console.error('Failed to load settings', error));
+  }, []);
 
   const form = useForm<z.infer<typeof ContactFormSchema>>({
     resolver: zodResolver(ContactFormSchema),
@@ -49,6 +60,10 @@ export function ContactForm() {
   return (
     <Form {...form}>
       <form action={formAction} className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold">{settings.contactFormTitle}</h2>
+          <p className="text-sm text-muted-foreground">{settings.contactFormSubtitle}</p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}

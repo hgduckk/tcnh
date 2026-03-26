@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEPARTMENTS, type Department } from './applicationForms';
 
 export const ContactFormSchema = z.object({
   name: z.string().min(2, { message: "Tên phải có ít nhất 2 ký tự." }),
@@ -50,52 +51,83 @@ export type SupabaseComment = {
   parent_id: string | null;
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const departmentEnum = z.enum(DEPARTMENTS as unknown as [string, string, string, string]);
+const genderEnum = z.enum(["Nam", "Nữ", "Khác"] as const);
 
+// Loose schema for client-side typing/build compatibility:
+// - Accepts BOTH legacy keys (current ApplicationForm) and new template-driven keys.
+// - Real validation happens in `ApplicationFormSubmissionStrictSchema`.
 export const ApplicationFormSchema = z.object({
-  // I. Thông tin chung
-  fullName: z.string().min(2, ""),
-  birthDate: z.string().min(1, ""),
-  gender: z.enum(["Nam", "Nữ", "Khác"], { errorMap: () => ({ message: "" }) }),
-  studentId: z.string().min(1, ""),
-  className: z.string().min(1, ""),
-  schoolEmail: z.string().email("Email trường không hợp lệ."),
-  phone: z.string().regex(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ."),
-  facebookLink: z.string().url("Link Facebook không hợp lệ."),
-  currentAddress: z.string().min(1, ""),
-  transport: z.string().min(1, ""),
+  // New template-driven keys
+  templateId: z.string().optional(),
+  fullName: z.string().min(2).optional(),
+  birthDate: z.string().optional(),
+  className: z.string().optional(),
+  studentId: z.string().optional(),
+  email: z.string().email().optional(),
+  gender: genderEnum.optional(),
+  department: departmentEnum.optional(),
+  photo: z.any().optional(),
+
+  optionalPersonal1: z.string().optional(),
+  optionalPersonal2: z.string().optional(),
+  optionalPersonal3: z.string().optional(),
+  optionalPersonal4: z.string().optional(),
+  optionalPersonal5: z.string().optional(),
+
+  deptOptional1: z.string().optional(),
+  deptOptional2: z.string().optional(),
+  deptOptional3: z.string().optional(),
+
+  // Legacy keys still present in the current UI (safe to keep optional)
+  schoolEmail: z.string().email().optional(),
+  phone: z.string().optional(),
+  facebookLink: z.string().url().optional(),
+  currentAddress: z.string().optional(),
+  transport: z.string().optional(),
   healthIssues: z.string().optional(),
-  strengthsWeaknesses: z.string().min(1, ""),
-  specialSkills: z.string().min(1, ""),
+  strengthsWeaknesses: z.string().optional(),
+  specialSkills: z.string().optional(),
   portraitPhoto: z.any().optional(),
+  impression: z.string().optional(),
+  experience: z.string().optional(),
+  extrovert: z.string().optional(),
+  teamwork: z.string().optional(),
+  deptQuestion1: z.string().optional(),
+  deptQuestion2: z.string().optional(),
+});
 
-  // II. Câu hỏi về Đoàn Khoa
-  impression: z.string().min(1, ""),
-  experience: z.string().min(1, ""),
-  extrovert: z.string().min(1, ""),
-  teamwork: z.string().min(1, ""),
+// Strict schema for the server action (only new template-driven submissions should pass).
+export const ApplicationFormSubmissionStrictSchema = z.object({
+  templateId: z.string().min(1, "Missing templateId"),
 
-  // III. Chọn ban
-  department: z.enum(
-    [
-      "Truyền thông - Kỹ thuật",
-      "Tuyên giáo - Sự kiện",
-      "Tổ chức - Xây dựng Đoàn",
-      "Phong trào - Tình nguyện",
-    ],
-    { errorMap: () => ({ message: "" }) }
-  ),
+  fullName: z.string().min(2, "Tên phải có ít nhất 2 ký tự."),
+  birthDate: z.string().min(1, "Ngày sinh không hợp lệ."),
+  className: z.string().min(1, "Lớp không hợp lệ."),
+  studentId: z.string().min(1, "MSSV không hợp lệ."),
+  email: z.string().email("Email không hợp lệ."),
+  gender: genderEnum,
+  department: departmentEnum,
 
-  // Câu hỏi chuyên môn theo ban (ẩn/hiện sau khi chọn ban)
-  deptQuestion1: z.string().min(1, ""),
-  deptQuestion2: z.string().min(1, ""),
+  // In Next.js server actions the uploaded value may be a File-like object
+  // that reliably supports `arrayBuffer()`, even if `instanceof File` is inconsistent.
+  photo: z.any().refine((v) => v && typeof (v as any).arrayBuffer === "function", {
+    message: "Photo is required.",
+  }),
+
+  optionalPersonal1: z.string().optional(),
+  optionalPersonal2: z.string().optional(),
+  optionalPersonal3: z.string().optional(),
+  optionalPersonal4: z.string().optional(),
+  optionalPersonal5: z.string().optional(),
+
+  deptOptional1: z.string().optional(),
+  deptOptional2: z.string().optional(),
+  deptOptional3: z.string().optional(),
 });
 
 export type ApplicationFormState = {
-    message: string;
-    issues?: string[];
-    fields?: Record<string, string>;
-    analysis?: string;
-    sheetUrl?: string;
+  message: string;
+  issues?: string[];
+  fields?: Record<string, string>;
 } | null;

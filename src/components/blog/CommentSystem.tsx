@@ -10,10 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Reply, Clock, User, UserX } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 interface Comment {
   id: string;
@@ -35,6 +37,12 @@ export function CommentSystem() {
   useEffect(() => {
     fetchComments();
     
+    if (!supabase) {
+      console.warn('Supabase not configured; comments feature disabled.');
+      setIsLoading(false);
+      return;
+    }
+
     // Set up real-time subscription
     const channel = supabase
       .channel('comments')
@@ -52,6 +60,11 @@ export function CommentSystem() {
   }, []);
 
   const fetchComments = async () => {
+    if (!supabase) {
+      console.warn('Supabase not configured; cannot fetch comments.');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -123,6 +136,12 @@ export function CommentSystem() {
       }
 
       setIsSubmitting(true);
+
+      if (!supabase) {
+        alert('Supabase chưa cấu hình. Bình luận không gửi được.');
+        setIsSubmitting(false);
+        return;
+      }
 
       try {
         const { error } = await supabase

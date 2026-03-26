@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { readAdminSettings } from '@/lib/adminSettings';
 
 // Prefer credentials from BASE64 JSON when available to avoid newline/escaping issues
 function normalizePrivateKey(maybeKey?: string) {
@@ -11,6 +12,19 @@ function normalizePrivateKey(maybeKey?: string) {
   const withNewlines = stripped.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
   // Ensure it ends with a newline (some providers trim the trailing newline)
   return withNewlines.endsWith('\n') ? withNewlines : withNewlines + '\n';
+}
+
+async function getSheetConfig() {
+  const settings = await readAdminSettings();
+  const spreadsheetId = settings.googleSheetId || process.env.GOOGLE_SHEET_ID || '';
+  return {
+    spreadsheetId,
+    range: settings.googleSheetRange || process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A:J',
+    contactRange:
+      settings.googleSheetRangeContact || process.env.GOOGLE_SHEET_RANGE_CONTACT || 'Contact!A:D',
+    commentsRange:
+      settings.googleSheetRangeComments || process.env.GOOGLE_SHEET_RANGE_COMMENTS || 'Comments!A:F',
+  };
 }
 
 // Khởi tạo Google Sheets API client
@@ -88,16 +102,17 @@ if (!resolvedCreds) {
   }
 }
 
+let sheets: ReturnType<typeof google.sheets> | null = null;
+
 if (!resolvedCreds) {
-  throw new Error('No valid Google Sheets credentials found. Please set GOOGLE_SERVICE_ACCOUNT_KEY_JSON or other credential environment variables.');
+  console.warn('No valid Google Sheets credentials found. Google Sheets write/read operations will be disabled.');
+} else {
+  const auth = new google.auth.GoogleAuth({
+    credentials: resolvedCreds,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+  sheets = google.sheets({ version: 'v4', auth });
 }
-
-const auth = new google.auth.GoogleAuth({
-  credentials: resolvedCreds,
-  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-});
-
-const sheets = google.sheets({ version: 'v4', auth });
 
 export interface ApplicationData {
   fullName: string;
@@ -139,8 +154,9 @@ export interface CommentData {
 
 export async function appendApplicationToSheet(applicationData: ApplicationData) {
   try {
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-    const range = process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A:J'; // A:J cho 10 cột (bao gồm thông tin ảnh)
+    const config = await getSheetConfig();
+    const spreadsheetId = config.spreadsheetId;
+    const range = config.range;
 
     if (!spreadsheetId || spreadsheetId === 'demo_sheet_id_replace_with_real_one' || spreadsheetId === 'your_google_sheet_id_here') {
       console.warn('Google Sheets not configured properly. Data would be saved to:', applicationData);
@@ -175,6 +191,11 @@ export async function appendApplicationToSheet(applicationData: ApplicationData)
       ]
     ];
 
+    if (!sheets) {
+      console.warn('Google Sheets client not initialized.');
+      return { success: false, message: 'Google Sheets client not initialized' };
+    }
+
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
@@ -196,8 +217,9 @@ export async function appendApplicationToSheet(applicationData: ApplicationData)
 
 export async function appendContactToSheet(contactData: ContactData) {
   try {
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-    const range = process.env.GOOGLE_SHEET_RANGE_CONTACT || 'Contact!A:D'; // A:D cho 4 cột
+    const config = await getSheetConfig();
+    const spreadsheetId = config.spreadsheetId;
+    const range = config.contactRange;
 
     if (!spreadsheetId || spreadsheetId === 'demo_sheet_id_replace_with_real_one' || spreadsheetId === 'your_google_sheet_id_here') {
       console.warn('Google Sheets not configured properly. Data would be saved to:', contactData);
@@ -213,6 +235,11 @@ export async function appendContactToSheet(contactData: ContactData) {
         contactData.message,
       ]
     ];
+
+    if (!sheets) {
+      console.warn('Google Sheets client not initialized.');
+      return { success: false, message: 'Google Sheets client not initialized' };
+    }
 
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId,
@@ -233,10 +260,11 @@ export async function appendContactToSheet(contactData: ContactData) {
   }
 }
 
-export async function getSheetData() {
+export async function getSheetData(limit: number = 500) {
   try {
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-    const range = process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A:I';
+    const config = await getSheetConfig();
+    const spreadsheetId = config.spreadsheetId;
+    const range = config.range;
 
     if (!spreadsheetId || spreadsheetId === 'demo_sheet_id_replace_with_real_one') {
       console.warn('Google Sheets not configured properly. Returning demo data.');
@@ -246,9 +274,21 @@ export async function getSheetData() {
       ];
     }
 
+    if (!sheets) {
+      console.warn('Google Sheets client not initialized. Returning demo data.');
+      return [
+        ['Timestamp', 'Họ và Tên', 'Email', 'Phone', 'Facebook', 'Lý do', 'Kỳ vọng', 'Tình huống', 'Ban'],
+        ['2024-01-01T00:00:00.000Z', 'Demo User', 'demo@example.com', '0123456789', 'https://facebook.com/demo', 'Demo reason', 'Demo expectation', 'Demo situation', 'Demo department']
+      ];
+    }
+
+    // Apply row limit to prevent memory exhaustion: fetch with limit (header + data rows)
+    // E.g., limit=500 means header + 499 data rows
+    const rangeWithLimit = `${range.split('!')[0]}!A1:Z${limit}`;
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range,
+      range: rangeWithLimit,
     });
 
     return response.data.values || [];
@@ -260,8 +300,9 @@ export async function getSheetData() {
 
 export async function appendCommentToSheet(commentData: CommentData) {
   try {
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-    const range = process.env.GOOGLE_SHEET_RANGE_COMMENTS || 'Comments!A:F';
+    const config = await getSheetConfig();
+    const spreadsheetId = config.spreadsheetId;
+    const range = config.commentsRange;
 
     if (!spreadsheetId || spreadsheetId === 'demo_sheet_id_replace_with_real_one' || spreadsheetId === 'your_google_sheet_id_here') {
       console.warn('Google Sheets not configured properly. Data would be saved to:', commentData);
@@ -278,6 +319,11 @@ export async function appendCommentToSheet(commentData: CommentData) {
         commentData.name,
       ]
     ];
+
+    if (!sheets) {
+      console.warn('Google Sheets client not initialized.');
+      return { success: false, message: 'Google Sheets client not initialized' };
+    }
 
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId,
@@ -300,11 +346,17 @@ export async function appendCommentToSheet(commentData: CommentData) {
 
 export async function getCommentsFromSheet(): Promise<CommentData[]> {
   try {
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-    const range = process.env.GOOGLE_SHEET_RANGE_COMMENTS || 'Comments!A:F';
+    const config = await getSheetConfig();
+    const spreadsheetId = config.spreadsheetId;
+    const range = config.commentsRange;
 
     if (!spreadsheetId || spreadsheetId === 'demo_sheet_id_replace_with_real_one') {
       console.warn('Google Sheets not configured properly. Returning demo data.');
+      return [];
+    }
+
+    if (!sheets) {
+      console.warn('Google Sheets client not initialized. Returning demo data.');
       return [];
     }
 

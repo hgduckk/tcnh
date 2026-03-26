@@ -10,34 +10,84 @@ import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { Footer } from '@/components/layout/Footer';
 import { useEffect, useRef, useState } from "react";
 
+interface SiteConfig {
+  frontendUrl: string;
+  adminPageUrl: string;
+  showAdminLink: boolean;
+  adminLinkLabel: string;
+}
+
 export default function Home() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+  const [videoInView, setVideoInView] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
+  const [settings, setSettings] = useState({
+    youtubeVideoId: 'gAAYHpoEwyY',
+    homepageTitle: 'Đoàn Khoa Tài chính - Ngân hàng',
+    contactFormTitle: 'Liên hệ với chúng tôi',
+    contactFormSubtitle: 'Xin vui lòng cung cấp thông tin',
+  });
+
+  const parseYouTubeId = (value: string) => {
+    const urlMatch = value.match(/(?:youtube\.com\/.*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (urlMatch) return urlMatch[1];
+    if (value.includes('?')) return value.split('?')[0];
+    return value;
+  };
+
+  const videoId = parseYouTubeId(settings.youtubeVideoId || 'gAAYHpoEwyY');
+  const youtubeEmbedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&rel=0&modestbranding=1`;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => setIsVisible(entry.isIntersecting));
+        entries.forEach((entry) => setVideoInView(entry.isIntersecting));
       },
-      { threshold: 0.5 } // 50% video hiển thị mới tính
+      { threshold: 0.5 }
     );
 
-    if (videoRef.current) observer.observe(videoRef.current);
+    if (videoSectionRef.current) observer.observe(videoSectionRef.current);
 
     return () => {
-      if (videoRef.current) observer.unobserve(videoRef.current);
+      if (videoSectionRef.current) observer.unobserve(videoSectionRef.current);
+      observer.disconnect();
     };
   }, []);
 
   useEffect(() => {
-    if (videoRef.current) {
-      if (isVisible) {
-        videoRef.current.play().catch(() => {});
-      } else {
-        videoRef.current.pause();
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/admin/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setSettings((prev) => ({ ...prev, ...data }));
+        }
+      } catch (error) {
+        console.error('Could not load admin settings:', error);
+      }
+
+      try {
+        await fetch('/api/admin/visits', { method: 'POST' });
+      } catch {
+        // ignore
       }
     }
-  }, [isVisible]);
+    loadSettings();
+
+    async function loadSiteConfig() {
+      try {
+        const res = await fetch('/api/site-config');
+        if (res.ok) {
+          setSiteConfig(await res.json());
+        }
+      } catch (error) {
+        console.warn('Could not load site config:', error);
+      }
+    }
+
+    loadSiteConfig();
+  }, []);
 
   const carouselItems = [
     {
@@ -88,6 +138,17 @@ export default function Home() {
     <div className="flex flex-col">
       {/* Banner Section */}
       <section className="relative w-full text-center">
+        {siteConfig?.showAdminLink && (
+          <div className="absolute right-4 top-4 z-20">
+            <Link
+              href={siteConfig.adminPageUrl || '/admin'}
+              target="_blank"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+            >
+              {siteConfig.adminLinkLabel || 'Admin Dashboard'}
+            </Link>
+          </div>
+        )}
         <div className="relative">
           <Image
             src="/images/backkipu.jpg"
@@ -119,9 +180,8 @@ export default function Home() {
               <div className="flex flex-col md:flex-row items-center gap-12 ">
                 <div className="md:w-1/2 space-y-4 text-center">
                   <h2 className="text-3xl md:text-4xl font-anton font-medium text-primary">
-                    <span className="block md:inline">ĐOÀN KHOA</span>{' '}
-                    <span className="block md:inline mt-3">TÀI CHÍNH - NGÂN HÀNG</span>
-                  </h2>
+                    <span className="block md:inline">{settings.homepageTitle || 'Đoàn Khoa'}</span>{' '}
+                  </h2> 
                   <p className="font-nunito text-muted-foreground text-lg text-justify">
                     Đoàn Khoa Tài chính - Ngân hàng tự hào là lực lượng tiên phong trong công tác Đoàn và phong trào thanh niên tại Trường Đại học Kinh tế - Luật. Dưới sự dẫn dắt của Đoàn Trường và Chi ủy - Ban Chủ nhiệm Khoa, Đoàn Khoa Tài chính - Ngân hàng luôn đem đến những hoạt động năng động, nhiệt huyết, với sự tham gia và cống hiến của đông đảo sinh viên.
                   </p>
@@ -183,24 +243,30 @@ export default function Home() {
       
       <h2 className="text-center text-2xl md:text-5xl font-anton font-medium text-primary mt-0">LÀ MỘT TÂN SINH VIÊN, BẠN SẼ CHỌN GÌ?</h2>
       {/* Video Section */}
-      <section className="py-8 md:py-16">
+      <section className="py-8 md:py-16" ref={videoSectionRef}>
         <div className="container mx-auto px-4">
           <div className="relative max-w-5xl mx-auto overflow-hidden rounded-xl shadow-2xl aspect-video">
-            <video
-              ref={videoRef}
-              className="w-full h-full rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
-              src="/videos/video.mp4"
-              controls
-              muted={false} // có tiếng
-              onEnded={() => {
-                const section = document.getElementById("explore-section");
-                if (section) {
-                  section.scrollIntoView({ behavior: "smooth" });
-                }
-              }}
-            >
-              Trình duyệt của bạn không hỗ trợ video.
-            </video>
+            <div className="absolute right-3 top-3 z-20">
+              <button
+                onClick={() => setIsMuted((prev) => !prev)}
+                className="rounded-md bg-black/60 px-3 py-1 text-sm text-white hover:bg-black"
+              >
+                {isMuted ? 'Unmute' : 'Mute'}
+              </button>
+            </div>
+            {videoInView ? (
+              <iframe
+                className="w-full h-full rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+                src={youtubeEmbedUrl}
+                title="Home YouTube video"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <div className="w-full h-full rounded-xl bg-black flex items-center justify-center text-white">
+                Cuộn xuống để phát video.
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -254,26 +320,7 @@ export default function Home() {
             <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 transform -translate-x-1/2" />
             <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 transform translate-x-1/2" />
           </Carousel>
-
-          <h2 style={{ color: "#45973c" }} className="text-3xl md:text-5xl font-anton font-medium text-primary mt-10 md:mt-20">TUYỂN CỘNG TÁC VIÊN</h2>
-          {/* <p className="text-muted-foreground font-nunito font-semibold text-1xl md:text-3xl mx-auto mb-0 mt-5">
-              Các hoạt động, chương trình, sự kiện, thành tích nổi bật của Đoàn Khoa mình nè
-            </p> */}
-          <Image
-            src="/images/back-bia.jpg"
-            alt="Extra illustration"
-            width={800}
-            height={400}
-            className="mt-6 md:mt-10 w-auto h-auto rounded-xl shadow-2xl object-cover mx-auto"
-          />
-          <div className="mt-6">
-            <Link href="/apply">
-              <Button className="bg-[#45973c] hover:bg-[#357a2e] text-white px-6 py-6 text-lg font-semibold">
-                ỨNG TUYỂN NGAY
-              </Button>
-            </Link>
-          </div>
-
+          
         </div>
       </section>
       <Footer />

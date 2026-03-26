@@ -1,5 +1,5 @@
 import { PageBanner } from '@/components/shared/PageBanner';
-import { ApplicationForm } from '@/components/apply/ApplicationForm';
+import { TemplateDrivenApplicationForm } from '@/components/apply/TemplateDrivenApplicationForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { Footer } from '@/components/layout/Footer';
@@ -33,7 +33,7 @@ export default function ApplyPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ApplicationForm />
+                <TemplateDrivenApplicationForm />
               </CardContent>
             </Card>
           </ScrollReveal>
