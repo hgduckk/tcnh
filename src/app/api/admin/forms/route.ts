@@ -26,7 +26,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabaseAdmin
       .from("application_form_templates")
-      .select("id, name, open_at, close_at")
+      .select("id, name, open_at, close_at, optional_personal_questions, department_questions")
       .order("created_at", { ascending: false });
 
     if (error) throw error;

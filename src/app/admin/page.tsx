@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,7 @@ import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
   ImagePlus, Video, PlusCircle, Database, Bot, FileSpreadsheet, ShieldCheck,
-  LogOut, Eye, ClipboardList, ArrowRight,
+  LogOut, Eye, ClipboardList,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -45,13 +46,26 @@ interface FormSubmission {
   photo_url: string;
   optional_personal_answers: string[];
   dept_optional_answers: string[];
+  status?: string;
+  standing_committee_comment?: string;
+  board_comment?: string;
 }
+
+const CANDIDATE_STATUS = {
+  not_selected: { label: 'Chưa chọn',   circleColor: 'bg-gray-400',   textColor: 'text-gray-500',   btnActive: 'border-gray-400 bg-gray-50 ring-gray-300'   },
+  accepted:     { label: 'Nhận',         circleColor: 'bg-green-500',  textColor: 'text-green-600',  btnActive: 'border-green-400 bg-green-50 ring-green-300'  },
+  undecided:    { label: 'Chưa quyết định', circleColor: 'bg-yellow-400', textColor: 'text-yellow-600', btnActive: 'border-yellow-400 bg-yellow-50 ring-yellow-300' },
+  rejected:     { label: 'Loại',         circleColor: 'bg-red-500',    textColor: 'text-red-600',    btnActive: 'border-red-400 bg-red-50 ring-red-300'     },
+} as const;
+type CandidateStatus = keyof typeof CANDIDATE_STATUS;
 
 interface FormTemplateSummary {
   id: string;
   name: string;
   open_at: string;
   close_at: string;
+  optional_personal_questions?: string[];
+  department_questions?: Record<string, string[]>;
 }
 
 type AdminTab =
@@ -117,6 +131,7 @@ export default function AdminPage() {
   const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplateSummary[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
+  const [loadingData, setLoadingData] = useState(false);
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [categoryOpen, setCategoryOpen] = useState(true);
@@ -149,13 +164,13 @@ export default function AdminPage() {
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    (async () => {
+  const reloadData = async (headers: Record<string, string>) => {
+    setLoadingData(true);
+    try {
       const [metricsRes, subsRes, formsRes] = await Promise.all([
-        fetch('/api/admin/visits', { headers: authHeaders }),
-        fetch('/api/admin/application-form-submissions?page=1&pageSize=500', { headers: authHeaders }),
-        fetch('/api/admin/forms', { headers: authHeaders }),
+        fetch('/api/admin/visits', { headers }),
+        fetch('/api/admin/application-form-submissions?includeAll=true', { headers }),
+        fetch('/api/admin/forms', { headers }),
       ]);
       if (metricsRes.ok) setMetrics(await metricsRes.json());
       if (subsRes.ok) {
@@ -167,8 +182,16 @@ export default function AdminPage() {
         const payload = await formsRes.json();
         setFormTemplates(Array.isArray(payload?.data) ? payload.data : []);
       }
-    })();
-  }, [isAuthenticated, authHeaders]);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    reloadData(authHeaders);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetch('/api/site-config')
@@ -320,6 +343,9 @@ export default function AdminPage() {
                 submissions={formSubmissions}
                 templates={formTemplates}
                 onNavigate={setActiveTab}
+                authHeaders={authHeaders}
+                onReload={() => reloadData(authHeaders)}
+                loadingData={loadingData}
               />
             )}
             {activeTab === 'function' && (
@@ -349,19 +375,37 @@ function OverviewPanel({
   submissions,
   templates,
   onNavigate,
+  authHeaders,
+  onReload,
+  loadingData,
 }: {
   metrics: VisitMetrics | null;
   totalSubmissions: number;
   submissions: FormSubmission[];
   templates: FormTemplateSummary[];
   onNavigate: (tab: AdminTab) => void;
+  authHeaders: Record<string, string>;
+  onReload: () => void;
+  loadingData: boolean;
 }) {
-  const [activeOverviewSection, setActiveOverviewSection] = useState<'none' | 'forms-results'>('none');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all');
-  const [deptSortOrder, setDeptSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [tableSortBy, setTableSortBy] = useState<'submitted_at' | 'department' | 'class_name'>('submitted_at');
+  const [tableSortBy, setTableSortBy] = useState<'submitted_at' | 'full_name' | 'department' | 'class_name' | 'student_id' | 'email'>('submitted_at');
   const [tableSortOrder, setTableSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [tableSearch, setTableSearch] = useState('');
+  const [tableDepartmentFilter, setTableDepartmentFilter] = useState('all');
+  const [tableClassFilter, setTableClassFilter] = useState('all');
   const [detailSubmission, setDetailSubmission] = useState<FormSubmission | null>(null);
+
+  // ── Inline submission updates (status + comments) ──────────────────────────
+  const [submissionUpdates, setSubmissionUpdates] = useState<Record<string, { status: CandidateStatus; standingComment: string; boardComment: string }>>({});
+  const [dialogStatus, setDialogStatus] = useState<CandidateStatus>('not_selected');
+  const [dialogStandingComment, setDialogStandingComment] = useState('');
+  const [dialogBoardComment, setDialogBoardComment] = useState('');
+  const [savingDetail, setSavingDetail] = useState(false);
+  const [saveDetailError, setSaveDetailError] = useState<string | null>(null);
+  const [saveDetailSuccess, setSaveDetailSuccess] = useState(false);
+  const [detailTemplate, setDetailTemplate] = useState<FormTemplateSummary | null>(null);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
 
   const selectedTemplate = useMemo(
     () => templates.find(t => t.id === selectedTemplateId) || null,
@@ -399,31 +443,6 @@ function OverviewPanel({
     }));
   }, [filteredSubmissions]);
 
-  const rankedDepartments = useMemo(() => {
-    const sorted = [...departmentStats].sort((a, b) =>
-      deptSortOrder === 'desc' ? b.count - a.count : a.count - b.count
-    );
-    return sorted.map((item, idx) => ({ ...item, rank: idx + 1 }));
-  }, [departmentStats, deptSortOrder]);
-
-  const submissionTrend = useMemo(() => {
-    const byDate = new Map<string, number>();
-    for (const item of filteredSubmissions) {
-      const date = new Date(item.submitted_at);
-      if (Number.isNaN(date.getTime())) continue;
-      const key = date.toISOString().slice(0, 10);
-      byDate.set(key, (byDate.get(key) || 0) + 1);
-    }
-
-    return Array.from(byDate.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-7)
-      .map(([date, count]) => ({
-        date: date.slice(5),
-        count,
-      }));
-  }, [filteredSubmissions]);
-
   const sortedRows = useMemo(() => {
     const rows = [...filteredSubmissions];
     rows.sort((a, b) => {
@@ -443,16 +462,122 @@ function OverviewPanel({
     return rows;
   }, [filteredSubmissions, tableSortBy, tableSortOrder]);
 
-  const verificationRows = useMemo(
-    () => sortedRows.slice(0, 8),
-    [sortedRows]
-  );
+  const departmentFilterOptions = useMemo(() => {
+    return Array.from(
+      new Set(filteredSubmissions.map((item) => (item.department || 'Unknown').trim() || 'Unknown'))
+    ).sort((a, b) => a.localeCompare(b));
+  }, [filteredSubmissions]);
 
-  const formsChartConfig = {
-    count: {
-      label: 'Forms',
-      color: '#2563eb',
-    },
+  const classFilterOptions = useMemo(() => {
+    return Array.from(
+      new Set(filteredSubmissions.map((item) => (item.class_name || 'N/A').trim() || 'N/A'))
+    ).sort((a, b) => a.localeCompare(b));
+  }, [filteredSubmissions]);
+
+  const excelRows = useMemo(() => {
+    const search = tableSearch.trim().toLowerCase();
+    return sortedRows.filter((row) => {
+      const department = (row.department || 'Unknown').trim() || 'Unknown';
+      const className = (row.class_name || 'N/A').trim() || 'N/A';
+
+      if (tableDepartmentFilter !== 'all' && department !== tableDepartmentFilter) {
+        return false;
+      }
+
+      if (tableClassFilter !== 'all' && className !== tableClassFilter) {
+        return false;
+      }
+
+      if (!search) return true;
+
+      const haystack = [
+        row.full_name,
+        row.department,
+        row.class_name,
+        row.student_id,
+        row.email,
+      ]
+        .map((v) => String(v || '').toLowerCase())
+        .join(' ');
+
+      return haystack.includes(search);
+    });
+  }, [sortedRows, tableSearch, tableDepartmentFilter, tableClassFilter]);
+
+  const onHeaderSort = (column: 'submitted_at' | 'full_name' | 'department' | 'class_name' | 'student_id' | 'email') => {
+    if (tableSortBy === column) {
+      setTableSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setTableSortBy(column);
+    setTableSortOrder(column === 'submitted_at' ? 'desc' : 'asc');
+  };
+
+  const getEffectiveStatus = (row: FormSubmission): CandidateStatus => {
+    const update = submissionUpdates[row.id];
+    if (update) return update.status;
+    const raw = row.status ?? 'not_selected';
+    return (raw in CANDIDATE_STATUS ? raw : 'not_selected') as CandidateStatus;
+  };
+
+  const openDetail = async (row: FormSubmission) => {
+    const update = submissionUpdates[row.id];
+    setDialogStatus(update?.status ?? (row.status as CandidateStatus | undefined) ?? 'not_selected');
+    setDialogStandingComment(update?.standingComment ?? row.standing_committee_comment ?? '');
+    setDialogBoardComment(update?.boardComment ?? row.board_comment ?? '');
+    setSaveDetailError(null);
+    setSaveDetailSuccess(false);
+    setDetailTemplate(templates.find(t => t.id === row.template_id) ?? null);
+    setDetailSubmission(row);
+    // Fetch full template (including question data) in background
+    if (row.template_id) {
+      setLoadingTemplate(true);
+      try {
+        const res = await fetch(`/api/admin/forms/${row.template_id}`, { headers: authHeaders });
+        if (res.ok) {
+          const payload = await res.json();
+          if (payload?.data) setDetailTemplate(payload.data);
+        }
+      } catch { /* ignore */ } finally {
+        setLoadingTemplate(false);
+      }
+    }
+  };
+
+  const saveDetailChanges = async () => {
+    if (!detailSubmission) return;
+    setSavingDetail(true);
+    setSaveDetailError(null);
+    setSaveDetailSuccess(false);
+    try {
+      const res = await fetch(`/api/admin/application-form-submissions/${detailSubmission.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          status: dialogStatus,
+          standing_committee_comment: dialogStandingComment,
+          board_comment: dialogBoardComment,
+        }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.message || `Lỗi ${res.status}`);
+      }
+      setSubmissionUpdates(prev => ({
+        ...prev,
+        [detailSubmission.id]: {
+          status: dialogStatus,
+          standingComment: dialogStandingComment,
+          boardComment: dialogBoardComment,
+        },
+      }));
+      setSaveDetailSuccess(true);
+    } catch (e) {
+      setSaveDetailError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setSavingDetail(false);
+    }
   };
 
   const quickLinks = [
@@ -464,9 +589,16 @@ function OverviewPanel({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Tổng quan</h1>
-        <p className="text-sm text-slate-500 mt-1">Thống kê và tổng hợp dữ liệu website</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Tổng quan</h1>
+          <p className="text-sm text-slate-500 mt-1">Thống kê và tổng hợp dữ liệu website</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onReload} disabled={loadingData} className="shrink-0 mt-1">
+          {loadingData
+            ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang tải…</>
+            : <><svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Làm mới dữ liệu</>}
+        </Button>
       </div>
 
       {/* Stat cards */}
@@ -535,57 +667,24 @@ function OverviewPanel({
         ))}
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <button
-          onClick={() => {
-            setActiveOverviewSection('forms-results');
-            setTimeout(() => {
-              document.getElementById('forms-analytics-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 80);
-          }}
-          className="text-left bg-white rounded-xl border p-5 hover:border-blue-300 hover:shadow-sm transition-all"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Form Answer Results</p>
-              <p className="text-xs text-slate-500 mt-1">Open form analytics, ranking, full table, and answer details.</p>
-            </div>
-            <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <ArrowRight className="w-4 h-4" />
-            </div>
-          </div>
-        </button>
-
-        <div className="bg-white rounded-xl border p-5">
-          <p className="text-sm font-semibold text-slate-800">Overview Summary</p>
-          <p className="text-xs text-slate-500 mt-1">Forms loaded: {templates.length} | Answers loaded: {submissions.length}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Badge variant="outline">Templates: {templates.length}</Badge>
-            <Badge variant="outline">Submissions: {submissions.length}</Badge>
-          </div>
-        </div>
-      </div>
-
       <div id="forms-analytics-section" className="mt-8">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
-            <h2 className="text-base font-semibold text-slate-700">Forms Analytics</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Department performance, ranking, and recent verification snapshots</p>
+            <h2 className="text-base font-semibold text-slate-700">Dữ liệu đơn đăng ký</h2>
           </div>
-          <Badge variant="outline" className="text-xs">Sample size: {filteredSubmissions.length}</Badge>
         </div>
 
         <Card className="mb-4">
           <CardContent className="pt-5">
-            <div className="grid md:grid-cols-[1.6fr_1fr_1fr] gap-3">
+            <div className="grid md:grid-cols-[1.2fr_1fr_1fr] gap-3">
               <div>
-                <label className="text-xs text-slate-500">Forms List</label>
+                <label className="text-xs text-slate-500">Đơn đăng ký</label>
                 <select
                   value={selectedTemplateId}
                   onChange={(e) => setSelectedTemplateId(e.target.value)}
                   className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="all">All forms</option>
+                  <option value="all">Chọn form...</option>
                   {templates.map((template) => (
                     <option key={template.id} value={template.id}>{template.name}</option>
                   ))}
@@ -593,240 +692,163 @@ function OverviewPanel({
               </div>
 
               <div>
-                <label className="text-xs text-slate-500">Table sort field</label>
+                <label className="text-xs text-slate-500">Sắp xếp theo</label>
                 <select
                   value={tableSortBy}
-                  onChange={(e) => setTableSortBy(e.target.value as 'submitted_at' | 'department' | 'class_name')}
+                  onChange={(e) => setTableSortBy(e.target.value as 'submitted_at' | 'full_name' | 'department' | 'class_name' | 'student_id' | 'email')}
                   className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="submitted_at">Submitted time</option>
-                  <option value="department">Department</option>
-                  <option value="class_name">Class</option>
+                  <option value="submitted_at">Thời gian</option>
+                  <option value="full_name">Tên</option>
+                  <option value="department">Ban</option>
+                  <option value="class_name">Lớp</option>
+                  <option value="student_id">MSSV</option>
+                  <option value="email">Email</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-xs text-slate-500">Sort order</label>
+                <label className="text-xs text-slate-500">Thứ tự</label>
                 <select
                   value={tableSortOrder}
                   onChange={(e) => setTableSortOrder(e.target.value as 'asc' | 'desc')}
                   className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="desc">Descending</option>
-                  <option value="asc">Ascending</option>
+                  <option value="desc">Giảm dần</option>
+                  <option value="asc">Tăng dần</option>
                 </select>
               </div>
             </div>
 
             {selectedTemplate && (
               <div className="mt-3 text-xs text-slate-500">
-                Selected form: <span className="font-medium text-slate-700">{selectedTemplate.name}</span>
+                Đơn đăng ký đã chọn: <span className="font-medium text-slate-700">{selectedTemplate.name}</span>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {activeOverviewSection !== 'forms-results' && (
+        {selectedTemplateId === 'all' && (
           <Card className="mb-4">
             <CardContent className="py-10 text-center text-slate-500">
-              Click <span className="font-medium text-slate-700">Form Answer Results</span> above to open the visualization section.
+              Chọn một template form để hiển thị <span className="font-medium text-slate-700">Danh sách câu trả lời</span>.
             </CardContent>
           </Card>
         )}
 
-        {activeOverviewSection === 'forms-results' && (
+        {selectedTemplateId !== 'all' && (
           <>
-
-        <div className="grid gap-4 lg:grid-cols-2 mb-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Forms by Department</CardTitle>
-              <CardDescription>Distribution of completed forms per department</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={formsChartConfig} className="h-[280px] w-full">
-                <BarChart data={rankedDepartments} margin={{ left: -8, right: 12, top: 8 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="department"
-                    tickLine={false}
-                    axisLine={false}
-                    angle={-20}
-                    textAnchor="end"
-                    height={60}
-                    interval={0}
-                  />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={26} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">7-Day Submission Trend</CardTitle>
-              <CardDescription>Recent completion trend over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={formsChartConfig} className="h-[280px] w-full">
-                <LineChart data={submissionTrend} margin={{ left: -8, right: 12, top: 8 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={26} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={2.5} dot={{ r: 3 }} />
-                </LineChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-[1.1fr_1.9fr]">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base">Department Ranking</CardTitle>
-                  <CardDescription>Sort by completion volume</CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDeptSortOrder(order => (order === 'desc' ? 'asc' : 'desc'))}
-                >
-                  Sort: {deptSortOrder === 'desc' ? 'High to Low' : 'Low to High'}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">#</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead className="text-right">Forms</TableHead>
-                    <TableHead className="text-right">Avg %</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rankedDepartments.length > 0 ? rankedDepartments.map((item) => (
-                    <TableRow key={item.department}>
-                      <TableCell className="font-medium">{item.rank}</TableCell>
-                      <TableCell>{item.department}</TableCell>
-                      <TableCell className="text-right tabular-nums">{item.count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{item.avgCompletion}%</TableCell>
-                    </TableRow>
-                  )) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-slate-500 py-8">No submissions available</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Verification Preview</CardTitle>
-              <CardDescription>Latest applicant records with image and answer summary</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Applicant</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Answer Summary</TableHead>
-                    <TableHead className="text-right">Completion</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {verificationRows.length > 0 ? verificationRows.map((item) => {
-                    const personalAnswers = Array.isArray(item.optional_personal_answers)
-                      ? item.optional_personal_answers.filter(a => String(a || '').trim())
-                      : [];
-                    const deptAnswers = Array.isArray(item.dept_optional_answers)
-                      ? item.dept_optional_answers.filter(a => String(a || '').trim())
-                      : [];
-                    const completion = Math.round(((personalAnswers.length + deptAnswers.length) / 8) * 100);
-
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3 min-w-[220px]">
-                            <img
-                              src={item.photo_url || 'https://placehold.co/48x48?text=N/A'}
-                              alt={item.full_name || 'Applicant'}
-                              className="w-10 h-10 rounded-lg object-cover border bg-slate-100"
-                            />
-                            <div className="min-w-0">
-                              <p className="font-medium text-slate-800 truncate">{item.full_name || 'Unknown'}</p>
-                              <p className="text-xs text-slate-500">{new Date(item.submitted_at).toLocaleString()}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.department || 'Unknown'}</TableCell>
-                        <TableCell className="max-w-[280px]">
-                          <p className="text-xs text-slate-700 truncate">
-                            {personalAnswers[0] || deptAnswers[0] || 'No answer preview'}
-                          </p>
-                          <p className="text-[11px] text-slate-500 mt-1">
-                            Personal: {personalAnswers.length}/5 | Department: {deptAnswers.length}/3
-                          </p>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline" className="tabular-nums">{completion}%</Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-slate-500 py-8">No submissions available</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-
         <Card className="mt-4">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Full Answer Dataset</CardTitle>
-            <CardDescription>Excel-style answer table with sorting and a details action per row</CardDescription>
+            <CardTitle className="text-base">Danh sách câu trả lời</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="grid gap-3 mb-4 md:grid-cols-[1.5fr_1fr_1fr_auto]">
+              <Input
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                placeholder="Tìm theo tên, ban, lớp, MSSV, email..."
+              />
+
+              <select
+                value={tableDepartmentFilter}
+                onChange={(e) => setTableDepartmentFilter(e.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="all">Ban</option>
+                {departmentFilterOptions.map((department) => (
+                  <option key={department} value={department}>{department}</option>
+                ))}
+              </select>
+
+              <select
+                value={tableClassFilter}
+                onChange={(e) => setTableClassFilter(e.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="all">Lớp</option>
+                {classFilterOptions.map((className) => (
+                  <option key={className} value={className}>{className}</option>
+                ))}
+              </select>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTableSearch('');
+                  setTableDepartmentFilter('all');
+                  setTableClassFilter('all');
+                }}
+              >
+                Xóa
+              </Button>
+            </div>
+
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Applicant</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Student ID</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="text-right">Details</TableHead>
+                  <TableHead className="text-center">
+                    <button type="button" className="w-full text-center" onClick={() => onHeaderSort('submitted_at')}>
+                      Thời gian {tableSortBy === 'submitted_at' ? (tableSortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <button type="button" className="w-full text-center" onClick={() => onHeaderSort('full_name')}>
+                      Tên {tableSortBy === 'full_name' ? (tableSortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <button type="button" className="w-full text-center" onClick={() => onHeaderSort('department')}>
+                      Ban {tableSortBy === 'department' ? (tableSortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <button type="button" className="w-full text-center" onClick={() => onHeaderSort('class_name')}>
+                      Lớp {tableSortBy === 'class_name' ? (tableSortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <button type="button" className="w-full text-center" onClick={() => onHeaderSort('student_id')}>
+                      MSSV {tableSortBy === 'student_id' ? (tableSortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <button type="button" className="w-full text-center" onClick={() => onHeaderSort('email')}>
+                      Email {tableSortBy === 'email' ? (tableSortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-center">Trạng thái</TableHead>
+                  <TableHead className="text-center"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedRows.length > 0 ? sortedRows.map((row) => (
+                {excelRows.length > 0 ? excelRows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="text-xs text-slate-600">{new Date(row.submitted_at).toLocaleString()}</TableCell>
-                    <TableCell className="font-medium">{row.full_name || 'Unknown'}</TableCell>
-                    <TableCell>{row.department || 'Unknown'}</TableCell>
-                    <TableCell>{row.class_name || 'N/A'}</TableCell>
-                    <TableCell>{row.student_id || 'N/A'}</TableCell>
+                    <TableCell className="text-xs text-slate-600 text-center">{new Date(row.submitted_at).toLocaleString()}</TableCell>
+                    <TableCell className="font-medium ">{row.full_name || 'Unknown'}</TableCell>
+                    <TableCell className="text-center">{row.department || 'Unknown'}</TableCell>
+                    <TableCell className="text-center">{row.class_name || 'N/A'}</TableCell>
+                    <TableCell className="text-center">{row.student_id || 'N/A'}</TableCell>
                     <TableCell className="max-w-[180px] truncate">{row.email || 'N/A'}</TableCell>
+                    <TableCell className="text-center">
+                      {(() => {
+                        const effectiveStatus = getEffectiveStatus(row);
+                        const cfg = CANDIDATE_STATUS[effectiveStatus];
+                        return (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.circleColor}`} />
+                            <span className={`text-xs ${cfg.textColor}`}>{cfg.label}</span>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => setDetailSubmission(row)}>View detail</Button>
+                      <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Chi tiết</Button>
                     </TableCell>
                   </TableRow>
                 )) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-slate-500 py-8">No submission data for current filter</TableCell>
+                    <TableCell colSpan={8} className="text-center text-slate-500 py-8">No submission data for current filter</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -837,17 +859,21 @@ function OverviewPanel({
         )}
       </div>
 
-      <Dialog open={!!detailSubmission} onOpenChange={(open) => !open && setDetailSubmission(null)}>
-        <DialogContent className="max-w-3xl">
+      <Dialog open={!!detailSubmission} onOpenChange={(open) => { if (!open) { setDetailSubmission(null); setDetailTemplate(null); } }}>
+        <DialogContent className="inset-0 left-0 top-0 translate-x-0 translate-y-0 m-auto w-[calc(100%-2rem)] max-w-5xl h-fit max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Candidate Answer Detail</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              THÔNG TIN CÁ NHÂN
+              {loadingTemplate && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+            </DialogTitle>
             <DialogDescription>
-              General detail template: image, profile information, and full question answers.
+              Thông tin hồ sơ, câu trả lời, đánh giá và nhận xét.
             </DialogDescription>
           </DialogHeader>
 
           {detailSubmission && (
             <div className="space-y-5">
+              {/* ── Profile header ── */}
               <div className="grid md:grid-cols-[180px_1fr] gap-4">
                 <div>
                   <img
@@ -856,46 +882,138 @@ function OverviewPanel({
                     className="w-full h-[220px] rounded-lg object-cover border bg-slate-100"
                   />
                 </div>
-                <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-slate-500">Name:</span> <span className="font-medium">{detailSubmission.full_name || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Gender:</span> <span className="font-medium">{detailSubmission.gender || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Birth date:</span> <span className="font-medium">{detailSubmission.birth_date || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Department:</span> <span className="font-medium">{detailSubmission.department || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Class:</span> <span className="font-medium">{detailSubmission.class_name || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Student ID:</span> <span className="font-medium">{detailSubmission.student_id || 'N/A'}</span></div>
+                <div className="grid sm:grid-cols-2 gap-2 text-sm mt-4">
+                  <div><span className="text-slate-500">Họ tên:</span> <span className="font-medium">{detailSubmission.full_name || 'N/A'}</span></div>
+                  <div><span className="text-slate-500">Giới tính:</span> <span className="font-medium">{detailSubmission.gender || 'N/A'}</span></div>
+                  <div><span className="text-slate-500">Ngày sinh:</span> <span className="font-medium">{detailSubmission.birth_date || 'N/A'}</span></div>
+                  <div><span className="text-slate-500">Ban:</span> <span className="font-medium">{detailSubmission.department || 'N/A'}</span></div>
+                  <div><span className="text-slate-500">Lớp:</span> <span className="font-medium">{detailSubmission.class_name || 'N/A'}</span></div>
+                  <div><span className="text-slate-500">MSSV:</span> <span className="font-medium">{detailSubmission.student_id || 'N/A'}</span></div>
                   <div className="sm:col-span-2"><span className="text-slate-500">Email:</span> <span className="font-medium">{detailSubmission.email || 'N/A'}</span></div>
-                  <div className="sm:col-span-2"><span className="text-slate-500">Submitted at:</span> <span className="font-medium">{new Date(detailSubmission.submitted_at).toLocaleString()}</span></div>
+                  <div className="sm:col-span-2"><span className="text-slate-500">Thời gian nộp:</span> <span className="font-medium">{new Date(detailSubmission.submitted_at).toLocaleString()}</span></div>
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Personal Answers (5)</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={`p-${i}`} className="text-sm">
-                        <p className="text-xs text-slate-500">Q{i + 1}</p>
-                        <p className="rounded-md bg-slate-50 border px-2.5 py-2">{detailSubmission.optional_personal_answers?.[i] || 'No answer'}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+              {/* ── Answers ── */}
+              {(() => {
+                const tmpl = detailTemplate;
+                const personalQs: string[] = Array.isArray(tmpl?.optional_personal_questions)
+                  ? (tmpl!.optional_personal_questions as string[]).filter((q: string) => q?.trim())
+                  : [];
+                const deptQs: string[] = Array.isArray(tmpl?.department_questions?.[detailSubmission.department])
+                  ? (tmpl!.department_questions![detailSubmission.department] as string[]).filter((q: string) => q?.trim())
+                  : [];
+                const personalCount = personalQs.length || detailSubmission.optional_personal_answers?.length || 0;
+                const deptCount = deptQs.length || detailSubmission.dept_optional_answers?.length || 0;
+                return (
+                  <>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Câu hỏi cá nhân ({personalCount} câu)</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {Array.from({ length: personalCount }).map((_, i) => (
+                          <div key={`p-${i}`} className="text-sm">
+                            {personalQs[i] && (
+                              <p className="text-xs font-medium text-slate-600 mb-1">Câu {i + 1}: {personalQs[i]}</p>
+                            )}
+                            {!personalQs[i] && (
+                              <p className="text-xs text-slate-400 mb-1">Câu {i + 1}</p>
+                            )}
+                            <p className="rounded-md bg-slate-50 border px-2.5 py-2 text-slate-700">{detailSubmission.optional_personal_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
+                          </div>
+                        ))}
+                        {personalCount === 0 && <p className="text-xs text-slate-400 italic">Không có câu hỏi cá nhân</p>}
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Câu hỏi ban — {detailSubmission.department} ({deptCount} câu)</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {Array.from({ length: deptCount }).map((_, i) => (
+                          <div key={`d-${i}`} className="text-sm">
+                            {deptQs[i] && (
+                              <p className="text-xs font-medium text-slate-600 mb-1">Câu {i + 1}: {deptQs[i]}</p>
+                            )}
+                            {!deptQs[i] && (
+                              <p className="text-xs text-slate-400 mb-1">Câu {i + 1}</p>
+                            )}
+                            <p className="rounded-md bg-slate-50 border px-2.5 py-2 text-slate-700">{detailSubmission.dept_optional_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
+                          </div>
+                        ))}
+                        {deptCount === 0 && <p className="text-xs text-slate-400 italic">Không có câu hỏi ban</p>}
+                      </CardContent>
+                    </Card>
+                  </>
+                );
+              })()}
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Department Answers (3)</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={`d-${i}`} className="text-sm">
-                        <p className="text-xs text-slate-500">Q{i + 1}</p>
-                        <p className="rounded-md bg-slate-50 border px-2.5 py-2">{detailSubmission.dept_optional_answers?.[i] || 'No answer'}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+              {/* ── Standing Committee comment ── */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Nhận xét Ban Thường Vụ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={dialogStandingComment}
+                    onChange={(e) => setDialogStandingComment(e.target.value)}
+                    placeholder="Nhập nhận xét của Ban Thường Vụ sau khi phỏng vấn..."
+                    rows={3}
+                    className="resize-none"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* ── Board comment ── */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Nhận xét Ban Chuyên môn</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={dialogBoardComment}
+                    onChange={(e) => setDialogBoardComment(e.target.value)}
+                    placeholder="Nhập nhận xét của Ban Chuyên môn sau khi phỏng vấn..."
+                    rows={3}
+                    className="resize-none"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* ── Status picker ── */}
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-2">Trạng thái ứng viên</h4>
+                <div className="flex gap-2 flex-wrap">
+                  {(Object.entries(CANDIDATE_STATUS) as [CandidateStatus, typeof CANDIDATE_STATUS[CandidateStatus]][]).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setDialogStatus(key)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                        dialogStatus === key
+                          ? `${cfg.btnActive} ring-2 ring-offset-1`
+                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className={`w-2.5 h-2.5 rounded-full ${cfg.circleColor}`} />
+                      {cfg.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Save area ── */}
+              {saveDetailError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{saveDetailError}</p>
+              )}
+              {saveDetailSuccess && (
+                <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">Đã lưu thành công!</p>
+              )}
+              <div className="flex justify-end">
+                <Button onClick={saveDetailChanges} disabled={savingDetail}>
+                  {savingDetail ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang lưu…</> : 'Lưu thay đổi'}
+                </Button>
               </div>
             </div>
           )}

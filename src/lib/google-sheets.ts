@@ -15,9 +15,25 @@ function normalizePrivateKey(maybeKey?: string) {
   return withNewlines.endsWith('\n') ? withNewlines : withNewlines + '\n';
 }
 
+function normalizeSpreadsheetId(maybeSpreadsheetId?: string) {
+  const trimmed = (maybeSpreadsheetId || '').trim();
+  if (!trimmed) return '';
+
+  const urlMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (urlMatch?.[1]) {
+    return urlMatch[1];
+  }
+
+  return trimmed;
+}
+
+function getRangeSheetName(range: string) {
+  return range.includes('!') ? range.split('!')[0] : range;
+}
+
 async function getSheetConfig() {
   const settings = await readAdminSettings();
-  const spreadsheetId = settings.googleSheetId || process.env.GOOGLE_SHEET_ID || '';
+  const spreadsheetId = normalizeSpreadsheetId(settings.googleSheetId || process.env.GOOGLE_SHEET_ID || '');
   return {
     spreadsheetId,
     range: settings.googleSheetRange || process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A:J',
@@ -39,6 +55,13 @@ type ServiceAccountCreds = {
   private_key: string;
 };
 
+type ResolvedCredsMeta = {
+  source: 'GOOGLE_SERVICE_ACCOUNT_KEY_JSON' | 'GOOGLE_SERVICE_ACCOUNT_JSON_BASE64' | 'GOOGLE_SERVICE_ACCOUNT_KEY_FILE' | 'GOOGLE_CLIENT_EMAIL/GOOGLE_PRIVATE_KEY';
+  projectId?: string;
+};
+
+let resolvedCredsMeta: ResolvedCredsMeta | undefined;
+
 let resolvedCreds: ServiceAccountCreds | undefined;
 
 // 1) Direct JSON
@@ -50,6 +73,10 @@ if (directJson) {
       resolvedCreds = {
         client_email: String(parsed.client_email),
         private_key: normalizePrivateKey(String(parsed.private_key)) as string,
+      };
+      resolvedCredsMeta = {
+        source: 'GOOGLE_SERVICE_ACCOUNT_KEY_JSON',
+        projectId: parsed.project_id ? String(parsed.project_id) : undefined,
       };
       console.log('Using Google Sheets credentials from GOOGLE_SERVICE_ACCOUNT_KEY_JSON.');
     }
@@ -70,6 +97,10 @@ if (!resolvedCreds) {
           client_email: String(parsed.client_email),
           private_key: normalizePrivateKey(String(parsed.private_key)) as string,
         };
+        resolvedCredsMeta = {
+          source: 'GOOGLE_SERVICE_ACCOUNT_JSON_BASE64',
+          projectId: parsed.project_id ? String(parsed.project_id) : undefined,
+        };
         console.log('Using Google Sheets credentials from GOOGLE_SERVICE_ACCOUNT_JSON_BASE64.');
       }
     } catch (e) {
@@ -89,6 +120,10 @@ if (!resolvedCreds) {
         resolvedCreds = {
           client_email: String(parsed.client_email),
           private_key: normalizePrivateKey(String(parsed.private_key)) as string,
+        };
+        resolvedCredsMeta = {
+          source: 'GOOGLE_SERVICE_ACCOUNT_KEY_FILE',
+          projectId: parsed.project_id ? String(parsed.project_id) : undefined,
         };
         console.log('Using Google Sheets credentials from GOOGLE_SERVICE_ACCOUNT_KEY_FILE.');
       }
@@ -118,6 +153,9 @@ if (!resolvedCreds) {
         client_email: clientEmail as string,
         private_key: normalizedPrivateKey as string,
       };
+      resolvedCredsMeta = {
+        source: 'GOOGLE_CLIENT_EMAIL/GOOGLE_PRIVATE_KEY',
+      };
       console.log('Using Google Sheets credentials from environment variables.');
     }
   }
@@ -128,11 +166,60 @@ let sheets: ReturnType<typeof google.sheets> | null = null;
 if (!resolvedCreds) {
   console.warn('No valid Google Sheets credentials found. Google Sheets write/read operations will be disabled.');
 } else {
+  const metaMsg = `${resolvedCredsMeta?.source || 'unknown-source'}${resolvedCredsMeta?.projectId ? ` (project_id=${resolvedCredsMeta.projectId})` : ''}`;
+  console.log(`Google Sheets credential source resolved: ${metaMsg}`);
   const auth = new google.auth.GoogleAuth({
     credentials: resolvedCreds,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
   sheets = google.sheets({ version: 'v4', auth });
+}
+
+function formatGoogleSheetsReadError(
+  error: unknown,
+  context?: {
+    spreadsheetId?: string;
+    range?: string;
+  }
+): Error {
+  const err = error as any;
+  const code = err?.code ?? err?.status;
+  const rawMessage = String(err?.message || err || 'Unknown Google Sheets error');
+
+  const apiDisabledMatch = rawMessage.match(/project\s+(\d+)/i);
+  const disabledProjectNumber = apiDisabledMatch?.[1];
+  const looksLikeApiDisabled =
+    code === 403 &&
+    (/has not been used in project/i.test(rawMessage) || /is disabled/i.test(rawMessage));
+
+  if (looksLikeApiDisabled) {
+    const projectHint = disabledProjectNumber
+      ? `project number ${disabledProjectNumber}`
+      : 'the active Google Cloud project';
+    const sourceHint = resolvedCredsMeta
+      ? `Credential source: ${resolvedCredsMeta.source}${resolvedCredsMeta.projectId ? ` (project_id=${resolvedCredsMeta.projectId})` : ''}.`
+      : 'Credential source could not be determined.';
+
+    return new Error(
+      `Google Sheets API is disabled for ${projectHint}. Enable sheets.googleapis.com in Google Cloud Console and retry in a few minutes. ${sourceHint}`
+    );
+  }
+
+  if (code === 404 || /Requested entity was not found/i.test(rawMessage)) {
+    const rangeHint = context?.range ? ` Range: ${context.range}.` : '';
+    const spreadsheetHint = context?.spreadsheetId
+      ? ` Spreadsheet ID: ${context.spreadsheetId}.`
+      : '';
+    const sheetNameHint = context?.range
+      ? ` Expected tab: ${getRangeSheetName(context.range)}.`
+      : '';
+
+    return new Error(
+      `Google Sheet not found or not accessible.${spreadsheetHint}${rangeHint}${sheetNameHint} Check that the spreadsheet ID is correct, the service account has been shared on that spreadsheet, and the tab name in the range exists exactly.`
+    );
+  }
+
+  return new Error(`Failed to read from Google Sheet: ${rawMessage}`);
 }
 
 export interface ApplicationData {
@@ -315,7 +402,7 @@ export async function getSheetData(limit: number = 500) {
     return response.data.values || [];
   } catch (error) {
     console.error('Error reading from Google Sheet:', error);
-    throw new Error(`Failed to read from Google Sheet: ${error}`);
+    throw formatGoogleSheetsReadError(error, { spreadsheetId, range: rangeWithLimit });
   }
 }
 

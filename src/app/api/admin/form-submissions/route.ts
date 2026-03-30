@@ -40,14 +40,16 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to read form submissions:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    const isApiDisabled = /Google Sheets API is disabled/i.test(message);
     return NextResponse.json({ 
       success: false, 
-      message: String(error), 
+      message,
       data: [],
       total: 0,
       page: 1,
       pageSize: 50,
       totalPages: 0
-    }, { status: 500 });
+    }, { status: isApiDisabled ? 503 : 500 });
   }
 }
