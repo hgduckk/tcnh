@@ -172,30 +172,44 @@ export async function submitApplication(
     }
 
     const templateId = validatedFields.data.templateId;
-    const photoFile = validatedFields.data.photo as File;
+    const photoFile = validatedFields.data.photo as File | undefined;
 
-    // Load template to get the Drive folder id
+    // Template must exist; Drive folder is optional when photo upload is skipped/fails.
     const { data: template, error: templateError } = await supabaseAdmin
       .from("application_form_templates")
-      .select("drive_folder_id")
+      .select("id, drive_folder_id")
       .eq("id", templateId)
       .single();
 
-    if (templateError || !template?.drive_folder_id) {
+    if (templateError || !template?.id) {
       return {
         message: "Không tìm thấy cấu hình form hợp lệ.",
-        issues: templateError ? [templateError.message] : ["Missing drive_folder_id in template."],
+        issues: templateError ? [templateError.message] : ["Missing template."],
       };
     }
 
-    // Upload applicant photo to Google Drive
-    const buffer = Buffer.from(await photoFile.arrayBuffer());
-    const uploadRes = await uploadFileToDrive({
-      folderId: template.drive_folder_id,
-      filename: photoFile.name || "photo",
-      mimeType: photoFile.type || "image/jpeg",
-      buffer,
-    });
+    let photoUrl = "";
+    let photoUploadWarning: string | null = null;
+
+    if (photoFile && typeof (photoFile as any).arrayBuffer === "function") {
+      if (!template.drive_folder_id) {
+        photoUploadWarning = "Không có thư mục Drive cho form, ảnh tạm thời chưa được lưu.";
+      } else {
+        try {
+          const buffer = Buffer.from(await photoFile.arrayBuffer());
+          const uploadRes = await uploadFileToDrive({
+            folderId: template.drive_folder_id,
+            filename: photoFile.name || "photo",
+            mimeType: photoFile.type || "image/jpeg",
+            buffer,
+          });
+          photoUrl = uploadRes.url || "";
+        } catch (uploadError) {
+          console.error("Photo upload failed, continue without photo:", uploadError);
+          photoUploadWarning = "Ảnh tạm thời chưa tải lên được, dữ liệu đơn vẫn đã được lưu.";
+        }
+      }
+    }
 
     const optionalPersonalAnswers = [
       validatedFields.data.optionalPersonal1 ?? "",
@@ -221,7 +235,7 @@ export async function submitApplication(
       email: validatedFields.data.email,
       gender: validatedFields.data.gender,
       department: validatedFields.data.department,
-      photoUrl: uploadRes.url,
+      photoUrl,
       optionalPersonalAnswers: optionalPersonalAnswers,
       deptOptionalAnswers: deptOptionalAnswers,
     });
@@ -237,7 +251,7 @@ export async function submitApplication(
         student_id: validatedFields.data.studentId,
         email: validatedFields.data.email,
         gender: validatedFields.data.gender,
-        photo_url: uploadRes.url,
+        photo_url: photoUrl,
         department: validatedFields.data.department,
         optional_personal_answers: optionalPersonalAnswers,
         dept_optional_answers: deptOptionalAnswers,
@@ -253,7 +267,9 @@ export async function submitApplication(
     }
 
     return {
-      message: `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`,
+      message: photoUploadWarning
+        ? `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn đã được gửi thành công. ${photoUploadWarning}`
+        : `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`,
       issues: undefined,
     };
 

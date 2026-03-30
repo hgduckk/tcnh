@@ -1,5 +1,6 @@
 import { google, drive_v3 } from "googleapis";
 import fs from "fs";
+import { Readable } from "stream";
 
 type ServiceAccountCreds = {
   client_email: string;
@@ -134,32 +135,73 @@ export async function uploadFileToDrive(params: {
 }): Promise<{ url: string; driveFileId: string }> {
   const { folderId, filename, mimeType, buffer } = params;
   const client = await getDriveClient();
+  const stream = Readable.from(buffer);
 
-  const createRes = await client.files.create({
-    requestBody: {
-      name: filename,
-      parents: [folderId],
-    },
-    media: {
-      mimeType,
-      body: buffer,
-    },
-    fields: "id,webViewLink",
-  });
-
-  const driveFileId = String(createRes.data.id);
-  const url = createRes.data.webViewLink || "";
-
-  // Best-effort: make it readable (admin may need to share the folder with service account too).
   try {
-    await client.permissions.create({
-      fileId: driveFileId,
-      requestBody: { role: "reader", type: "anyone" },
+    // Shared Drive compatibility: verify the folder can be reached by service account.
+    const folderMeta = await client.files.get({
+      fileId: folderId,
+      fields: "id,name,driveId,capabilities(canAddChildren,canEdit)",
+      supportsAllDrives: true,
     });
-  } catch {
-    // If permission fails (common), we still return webViewLink; your folder/file must be publicly accessible.
-  }
 
-  return { url, driveFileId };
+    if (!folderMeta.data.driveId) {
+      throw new Error(
+        "Target folder is not in a Shared Drive. Service accounts cannot upload reliably to personal My Drive due to storage quota limits."
+      );
+    }
+
+    const createRes = await client.files.create({
+      requestBody: {
+        name: filename,
+        parents: [folderId],
+      },
+      media: {
+        mimeType,
+        body: stream,
+      },
+      fields: "id,webViewLink",
+      supportsAllDrives: true,
+    });
+
+    const driveFileId = String(createRes.data.id);
+    const url = createRes.data.webViewLink || `https://drive.google.com/file/d/${driveFileId}/view`;
+
+    // Best-effort: make it readable (admin may need to share the folder with service account too).
+    try {
+      await client.permissions.create({
+        fileId: driveFileId,
+        requestBody: { role: "reader", type: "anyone" },
+        supportsAllDrives: true,
+      });
+    } catch {
+      // If permission fails (common), we still return webViewLink; your folder/file must be publicly accessible.
+    }
+
+    return { url, driveFileId };
+  } catch (e: any) {
+    const message = String(e?.message || e);
+    const code = e?.code;
+
+    if (code === 403 && message.toLowerCase().includes("storage quota")) {
+      throw new Error(
+        "Google Drive upload blocked: service-account storage quota is unavailable. Use a Shared Drive folder and ensure the folder itself belongs to the Shared Drive, then grant the service account access."
+      );
+    }
+
+    throw e;
+  }
+}
+
+export async function checkGoogleDriveConnection(): Promise<{ ok: boolean; message: string }> {
+  try {
+    const client = await getDriveClient();
+    const about = await client.about.get({ fields: "user(emailAddress,displayName)" });
+    const email = about.data.user?.emailAddress || "service-account";
+    return { ok: true, message: `Google Drive connected (${email})` };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { ok: false, message };
+  }
 }
 

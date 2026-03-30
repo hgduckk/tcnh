@@ -181,6 +181,22 @@ export function TemplateDrivenApplicationForm() {
     return qs;
   }, [template, selectedDepartment]);
 
+  const visiblePersonalQuestions = useMemo(
+    () =>
+      optionalPersonalKeys
+        .map((key, i) => ({ key, label: String(template?.optional_personal_questions?.[i] ?? "").trim() }))
+        .filter((q) => q.label.length > 0),
+    [template]
+  );
+
+  const visibleDeptQuestions = useMemo(
+    () =>
+      deptOptionalKeys
+        .map((key, i) => ({ key, label: String(deptQuestions?.[i] ?? "").trim() }))
+        .filter((q) => q.label.length > 0),
+    [deptQuestions]
+  );
+
   const heroIllustrations = useMemo(() => {
     if (!template) return [];
     return (template.illustrations || []).filter((i: any) => i.slot === "hero");
@@ -207,7 +223,9 @@ export function TemplateDrivenApplicationForm() {
     formData.append("gender", data.gender);
     formData.append("department", data.department);
 
-    formData.append("photo", data.photo as File);
+    if (data.photo && typeof (data.photo as any).arrayBuffer === "function") {
+      formData.append("photo", data.photo as File);
+    }
 
     formData.append("optionalPersonal1", data.optionalPersonal1 || "");
     formData.append("optionalPersonal2", data.optionalPersonal2 || "");
@@ -374,7 +392,7 @@ export function TemplateDrivenApplicationForm() {
                       name="photo"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Ảnh cá nhân * </FormLabel>
+                          <FormLabel>Ảnh cá nhân (tùy chọn)</FormLabel>
                           <FormControl>
                             <Input
                               type="file"
@@ -389,12 +407,11 @@ export function TemplateDrivenApplicationForm() {
                     />
                   </div>
 
+                  {visiblePersonalQuestions.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Các câu hỏi cá nhân (tùy chọn)</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {Array.from({ length: 5 }).map((_, i) => {
-                        const label = template.optional_personal_questions?.[i] || `Câu hỏi ${i + 1}`;
-                        const key = optionalPersonalKeys[i];
+                      {visiblePersonalQuestions.map(({ key, label }) => {
                         return (
                           <FormField
                             key={key}
@@ -402,7 +419,7 @@ export function TemplateDrivenApplicationForm() {
                             name={key}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{label || `Câu hỏi ${i + 1}`}</FormLabel>
+                                <FormLabel>{label}</FormLabel>
                                 <FormControl>
                                   <Textarea
                                     rows={3}
@@ -418,6 +435,7 @@ export function TemplateDrivenApplicationForm() {
                       })}
                     </div>
                   </div>
+                  )}
 
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Chọn ban *</h3>
@@ -452,14 +470,12 @@ export function TemplateDrivenApplicationForm() {
                     />
                   </div>
 
-                  {selectedDepartment && deptQuestions && (
+                  {selectedDepartment && deptQuestions && visibleDeptQuestions.length > 0 && (
                     <div className="space-y-4">
                       {deptIllustrations.length > 0 && <IllustrationList illustrations={deptIllustrations} />}
                       <h3 className="text-lg font-semibold">Câu hỏi theo ban (tùy chọn)</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Array.from({ length: 3 }).map((_, i) => {
-                          const label = deptQuestions?.[i] || `Câu hỏi theo ban ${i + 1}`;
-                          const key = deptOptionalKeys[i];
+                        {visibleDeptQuestions.map(({ key, label }) => {
                           return (
                             <FormField
                               key={key}
@@ -467,7 +483,7 @@ export function TemplateDrivenApplicationForm() {
                               name={key}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>{label || `Câu hỏi ${i + 1}`}</FormLabel>
+                                  <FormLabel>{label}</FormLabel>
                                   <FormControl>
                                     <Textarea
                                       rows={3}

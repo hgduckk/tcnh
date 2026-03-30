@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import fs from 'fs';
 import { readAdminSettings } from '@/lib/adminSettings';
 
 // Prefer credentials from BASE64 JSON when available to avoid newline/escaping issues
@@ -77,7 +78,27 @@ if (!resolvedCreds) {
   }
 }
 
-// 3) Raw env pair
+// 3) Key file
+if (!resolvedCreds) {
+  const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
+  if (keyFile) {
+    try {
+      const raw = fs.readFileSync(keyFile, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed.client_email && parsed.private_key) {
+        resolvedCreds = {
+          client_email: String(parsed.client_email),
+          private_key: normalizePrivateKey(String(parsed.private_key)) as string,
+        };
+        console.log('Using Google Sheets credentials from GOOGLE_SERVICE_ACCOUNT_KEY_FILE.');
+      }
+    } catch (e) {
+      console.warn('Failed to read GOOGLE_SERVICE_ACCOUNT_KEY_FILE. Will try other credential sources.');
+    }
+  }
+}
+
+// 4) Raw env pair
 if (!resolvedCreds) {
   const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
   const normalizedPrivateKey = normalizePrivateKey(process.env.GOOGLE_PRIVATE_KEY);

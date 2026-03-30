@@ -109,11 +109,13 @@ export const ApplicationFormSubmissionStrictSchema = z.object({
   gender: genderEnum,
   department: departmentEnum,
 
-  // In Next.js server actions the uploaded value may be a File-like object
-  // that reliably supports `arrayBuffer()`, even if `instanceof File` is inconsistent.
-  photo: z.any().refine((v) => v && typeof (v as any).arrayBuffer === "function", {
-    message: "Photo is required.",
-  }),
+  // Photo is optional. If provided, it must be a File-like object with arrayBuffer().
+  photo: z
+    .any()
+    .optional()
+    .refine((v) => v == null || typeof (v as any).arrayBuffer === "function", {
+      message: "Invalid photo file.",
+    }),
 
   optionalPersonal1: z.string().optional(),
   optionalPersonal2: z.string().optional(),

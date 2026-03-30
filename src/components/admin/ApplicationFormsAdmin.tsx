@@ -215,7 +215,7 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Danh sách Forms</CardTitle>
+            <CardTitle>Danh sách forms</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
@@ -228,8 +228,10 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
                   <div key={t.id} className="border rounded-lg p-3">
                     <p className="font-semibold">{t.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(t.open_at).toLocaleString("vi-VN")} →{" "}
-                      {new Date(t.close_at).toLocaleString("vi-VN")}
+                      Thời gian mở: {new Date(t.open_at).toLocaleString("vi-VN")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Thời gian đóng: {new Date(t.close_at).toLocaleString("vi-VN")}
                     </p>
                     <Button
                       type="button"

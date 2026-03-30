@@ -15,7 +15,7 @@ function normalizeDepartmentQuestions(input: any): Record<Department, string[]> 
   return out;
 }
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authError = assertAdminRequest(req);
     if (authError) return authError;
@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 });
 
     const { data, error } = await supabaseAdmin
@@ -40,7 +40,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authError = assertAdminRequest(req);
     if (authError) return authError;
@@ -49,7 +49,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 });
 
     const body = await req.json();
@@ -107,7 +107,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authError = assertAdminRequest(req);
     if (authError) return authError;
@@ -116,7 +116,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!id) return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 });
 
     const { error } = await supabaseAdmin.from("application_form_templates").delete().eq("id", id);
