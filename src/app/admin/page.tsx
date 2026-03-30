@@ -1,496 +1,706 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin Page — redesigned with Overview / Function / Category structure
+// ─────────────────────────────────────────────────────────────────────────────
 "use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Footer } from '@/components/layout/Footer';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert } from '@/components/ui/alert';
-import { Trash2, Download, RefreshCw, Eye, EyeOff, TestTube, RotateCcw, ArrowRight } from 'lucide-react';
+import { Footer } from '@/components/layout/Footer';
 import { ApplicationFormsAdmin } from '@/components/admin/ApplicationFormsAdmin';
+import {
+  LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
+  ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
+  ImagePlus, Video, PlusCircle, Database, Bot, FileSpreadsheet, ShieldCheck,
+  LogOut, Eye, ClipboardList,
+} from 'lucide-react';
 
-interface AdminSettings {
-  youtubeVideoId: string;
-  homepageTitle: string;
-  homepageDescription: string;
-  contactFormTitle: string;
-  contactFormSubtitle: string;
-  googleSheetId: string;
-  googleSheetRange: string;
-  googleSheetRangeContact: string;
-  googleSheetRangeComments: string;
-  lastUpdated?: string;
-}
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface VisitMetrics {
-  visits: number;
-  lastUpdated: string;
-}
-
+interface VisitMetrics { visits: number; lastUpdated: string; }
 interface SiteConfig {
-  title: string;
   frontendUrl: string;
-  adminPageUrl: string;
   showAdminLink: boolean;
   adminLinkLabel: string;
 }
 
+type AdminTab =
+  | 'overview'
+  | 'function'
+  | 'category-home'
+  | 'category-achievements'
+  | 'category-activities'
+  | 'category-apply';
+
+type ServiceStatus = 'idle' | 'loading' | 'ok' | 'error';
+
+// ── Sidebar button ─────────────────────────────────────────────────────────────
+
+function SidebarBtn({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+        active
+          ? 'bg-blue-50 text-blue-700 font-medium'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+      }`}
+    >
+      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-blue-600' : ''}`} />
+      {label}
+    </button>
+  );
+}
+
+// ── Status badge ───────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: ServiceStatus }) {
+  if (status === 'idle')
+    return <Badge variant="outline" className="text-xs">Chưa kiểm tra</Badge>;
+  if (status === 'loading')
+    return <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">Đang kiểm tra…</Badge>;
+  if (status === 'ok')
+    return <Badge className="text-xs bg-green-100 text-green-700 border border-green-200 hover:bg-green-100">Successful</Badge>;
+  return <Badge className="text-xs bg-red-100 text-red-700 border border-red-200 hover:bg-red-100">Unsuccessful</Badge>;
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
 export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [authenticating, setAuthenticating] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
   const [metrics, setMetrics] = useState<VisitMetrics | null>(null);
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [totalSubmissions, setTotalSubmissions] = useState(0);
-  const [activeTab, setActiveTab] = useState<"forms" | "settings" | "submissions">("forms");
+  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
 
-  const ADMIN_PASSWORD = 'maiyeuquangan'; // Change this to a secure password
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [categoryOpen, setCategoryOpen] = useState(true);
 
-  const handleLogin = () => {
-    if (password === ADMIN_PASSWORD) {
+  const authHeaders = useMemo(() => ({ 'x-admin-password': password }), [password]);
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  const handleLogin = async () => {
+    setLoginError(null);
+    setAuthenticating(true);
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        setLoginError(payload?.message || 'Mật khẩu sai, vui lòng nhập lại!');
+        return;
+      }
       setIsAuthenticated(true);
-    } else {
-      alert('Mật khẩu sai, vui lòng nhập lại!');
+    } catch {
+      setLoginError('Không thể xác thực admin. Vui lòng thử lại.');
+    } finally {
+      setAuthenticating(false);
     }
   };
+
+  // ── Data loading ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    async function loadData() {
-      const [settingsRes, metricsRes, subsRes] = await Promise.all([
-        fetch('/api/admin/settings'),
-        fetch('/api/admin/visits'),
-        fetch(`/api/admin/application-form-submissions?page=${currentPage}&pageSize=50`),
+    (async () => {
+      const [metricsRes, subsRes] = await Promise.all([
+        fetch('/api/admin/visits', { headers: authHeaders }),
+        fetch('/api/admin/application-form-submissions?page=1&pageSize=1', { headers: authHeaders }),
       ]);
-
-      if (settingsRes.ok) setSettings(await settingsRes.json());
       if (metricsRes.ok) setMetrics(await metricsRes.json());
-      if (subsRes.ok) {
-        const data = await subsRes.json();
-        setSubmissions(data?.data || []);
-        setTotalSubmissions(data?.total || 0);
-        setTotalPages(data?.totalPages || 1);
-      }
-    }
-
-    loadData();
-  }, [isAuthenticated, currentPage]);
+      if (subsRes.ok) setTotalSubmissions((await subsRes.json())?.total ?? 0);
+    })();
+  }, [isAuthenticated, authHeaders]);
 
   useEffect(() => {
-    async function loadSiteConfig() {
-      try {
-        const res = await fetch('/api/site-config');
-        if (res.ok) {
-          const data = await res.json();
-          setSiteConfig(data);
-        }
-      } catch (error) {
-        console.warn('Could not fetch site configuration from Sanity:', error);
-      }
-    }
-
-    loadSiteConfig();
+    fetch('/api/site-config')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setSiteConfig(d))
+      .catch(() => null);
   }, []);
 
-  const updateSettings = (field: string, value: string) => {
-    if (!settings) return;
-    setSettings({ ...settings, [field]: value });
-  };
-
-  const saveSettings = async () => {
-    if (!settings) return;
-    setSaving(true);
-
-    const res = await fetch('/api/admin/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
-    });
-
-    if (res.ok) {
-      const fresh = await res.json();
-      setSettings(fresh);
-      alert('Lưu cài đặt thành công');
-    } else {
-      alert('Lỗi khi lưu cài đặt');
-    }
-
-    setSaving(false);
-  };
-
-  const testGoogleSheets = async () => {
-    setTesting(true);
-    setTestResult(null);
-
-    try {
-      const res = await fetch('/api/admin/form-submissions');
-      if (res.ok) {
-        setTestResult('Kết nối Google Sheets thành công!');
-      } else {
-        setTestResult('Lỗi kết nối Google Sheets: ' + res.statusText);
-      }
-    } catch (error) {
-      setTestResult('Lỗi: ' + String(error));
-    }
-
-    setTesting(false);
-  };
-
-  const exportSettings = () => {
-    if (!settings) return;
-    const dataStr = JSON.stringify(settings, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = 'admin-settings.json';
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
-
-  const resetToDefaults = async () => {
-    if (!confirm('Bạn có chắc muốn reset về mặc định?')) return;
-
-    const defaults: Partial<AdminSettings> = {
-      youtubeVideoId: 'dQw4w9WgXcQ',
-      homepageTitle: 'Đoàn Khoa Tài chính - Ngân hàng',
-      homepageDescription: 'Cùng nhau xây dựng hành trình thanh xuân rực rỡ',
-      contactFormTitle: 'Liên hệ với chúng tôi',
-      contactFormSubtitle: 'Xin vui lòng cung cấp thông tin của bạn',
-      googleSheetId: process.env.GOOGLE_SHEET_ID || 'your_google_sheet_id_here',
-      googleSheetRange: 'Sheet1!A:Z',
-      googleSheetRangeContact: 'Contact!A:D',
-      googleSheetRangeComments: 'Comments!A:F',
-    };
-
-    const res = await fetch('/api/admin/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(defaults),
-    });
-
-    if (res.ok) {
-      const fresh = await res.json();
-      setSettings(fresh);
-      alert('Đã reset về mặc định');
-    } else {
-      alert('Lỗi khi reset');
-    }
-  };
-
-  const deleteSubmission = async (id: string) => {
-    if (!confirm('Xóa submission này?')) return;
-
-    // Note: This would require a delete API, but for now, just remove from local state
-    setSubmissions(prev => prev.filter(s => s.id !== id));
-    alert('Đã xóa (chỉ local, cần API để xóa thật)');
-  };
+  // ── Login screen ──────────────────────────────────────────────────────────
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Admin Login</CardTitle>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm shadow-2xl">
+          <CardHeader className="text-center pb-2">
+            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <ShieldCheck className="w-6 h-6 text-white" />
+            </div>
+            <CardTitle className="text-xl">Đăng nhập Admin</CardTitle>
+            <CardDescription className="text-sm mt-1">Nhập mật khẩu để truy cập bảng điều khiển</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <Input
               type="password"
-              placeholder="Nhập mật khẩu"
+              placeholder="Mật khẩu"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              className="mb-3"
             />
-            <Button onClick={handleLogin} className="mt-4 w-full">Đăng nhập</Button>
+            {loginError && <p className="text-sm text-red-600 mb-3">{loginError}</p>}
+            <Button onClick={handleLogin} disabled={authenticating} className="w-full">
+              {authenticating
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang xác thực…</>
+                : 'Đăng nhập'}
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // ── Authenticated layout ──────────────────────────────────────────────────
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="flex">
-        <aside className="w-64 bg-white border-r p-4">
-          <h2 className="text-lg font-bold mb-4">Quản trị</h2>
-          <div className="space-y-2">
-            <Button
-              type="button"
-              variant={activeTab === "forms" ? "default" : "outline"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("forms")}
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="flex flex-1 overflow-hidden" style={{ minHeight: 'calc(100vh - 4rem)' }}>
+
+        {/* ── Sidebar ────────────────────────────────────────────────────── */}
+        <aside className="w-60 bg-white border-r flex flex-col shrink-0">
+          <div className="p-4 border-b">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin Panel</p>
+            <h2 className="text-base font-bold text-slate-800 mt-0.5">Bảng điều khiển</h2>
+          </div>
+
+          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+            {/* Overview */}
+            <SidebarBtn
+              icon={LayoutDashboard}
+              label="Tổng quan"
+              active={activeTab === 'overview'}
+              onClick={() => setActiveTab('overview')}
+            />
+
+            {/* Function */}
+            <SidebarBtn
+              icon={Wrench}
+              label="Kiểm thử kết nối"
+              active={activeTab === 'function'}
+              onClick={() => setActiveTab('function')}
+            />
+
+            {/* Category — collapsible */}
+            <div className="pt-3">
+              <button
+                onClick={() => setCategoryOpen(o => !o)}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors rounded-lg hover:bg-slate-50"
+              >
+                <span className="flex items-center gap-1.5">
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  Danh mục trang
+                </span>
+                {categoryOpen
+                  ? <ChevronDown className="w-3.5 h-3.5" />
+                  : <ChevronRight className="w-3.5 h-3.5" />}
+              </button>
+
+              {categoryOpen && (
+                <div className="mt-1 space-y-0.5 pl-2">
+                  <SidebarBtn
+                    icon={Home}
+                    label="Trang chủ"
+                    active={activeTab === 'category-home'}
+                    onClick={() => setActiveTab('category-home')}
+                  />
+                  <SidebarBtn
+                    icon={Trophy}
+                    label="Thành tích"
+                    active={activeTab === 'category-achievements'}
+                    onClick={() => setActiveTab('category-achievements')}
+                  />
+                  <SidebarBtn
+                    icon={Activity}
+                    label="Hoạt động"
+                    active={activeTab === 'category-activities'}
+                    onClick={() => setActiveTab('category-activities')}
+                  />
+                  <SidebarBtn
+                    icon={FileText}
+                    label="Đơn đăng ký"
+                    active={activeTab === 'category-apply'}
+                    onClick={() => setActiveTab('category-apply')}
+                  />
+                </div>
+              )}
+            </div>
+          </nav>
+
+          {/* Sidebar footer */}
+          <div className="p-3 border-t space-y-0.5">
+            {siteConfig?.showAdminLink && (
+              <a
+                href={siteConfig.frontendUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Xem website
+              </a>
+            )}
+            <button
+              onClick={() => { setIsAuthenticated(false); setPassword(''); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
-              Forms
-            </Button>
-            <Button
-              type="button"
-              variant={activeTab === "settings" ? "default" : "outline"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("settings")}
-            >
-              Settings
-            </Button>
-            <Button
-              type="button"
-              variant={activeTab === "submissions" ? "default" : "outline"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("submissions")}
-            >
-              Submissions
-            </Button>
+              <LogOut className="w-4 h-4" />
+              Đăng xuất
+            </button>
           </div>
         </aside>
 
-        <div className="flex-1 container mx-auto p-6">
-          {activeTab === "forms" ? (
-            <ApplicationFormsAdmin adminPassword={password} />
-          ) : (
-            <>
-              <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold">Bảng Quản trị</h1>
-                <div className="flex gap-2">
-                  {siteConfig?.showAdminLink && (
-                    <Link href={siteConfig.frontendUrl} target="_blank" className="inline-flex">
-                      <Button variant="secondary" className="flex items-center gap-1">
-                        {siteConfig.adminLinkLabel || "Open Website"}
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    </Link>
+        {/* ── Main content ────────────────────────────────────────────────── */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 max-w-5xl mx-auto">
+            {activeTab === 'overview' && (
+              <OverviewPanel
+                metrics={metrics}
+                totalSubmissions={totalSubmissions}
+                onNavigate={setActiveTab}
+              />
+            )}
+            {activeTab === 'function' && (
+              <FunctionPanel authHeaders={authHeaders} />
+            )}
+            {activeTab === 'category-home' && <CategoryHomePanel />}
+            {activeTab === 'category-achievements' && <CategoryAchievementsPanel />}
+            {activeTab === 'category-activities' && <CategoryActivitiesPanel />}
+            {activeTab === 'category-apply' && (
+              <ApplicationFormsAdmin adminPassword={password} />
+            )}
+          </div>
+        </main>
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Overview
+// ─────────────────────────────────────────────────────────────────────────────
+
+function OverviewPanel({
+  metrics,
+  totalSubmissions,
+  onNavigate,
+}: {
+  metrics: VisitMetrics | null;
+  totalSubmissions: number;
+  onNavigate: (tab: AdminTab) => void;
+}) {
+  const quickLinks = [
+    { icon: Home,     label: 'Trang chủ',   desc: 'Hình ảnh & video',  tab: 'category-home'          as AdminTab, color: 'bg-orange-50 text-orange-600' },
+    { icon: Trophy,   label: 'Thành tích',  desc: 'Thêm / chỉnh sửa', tab: 'category-achievements'  as AdminTab, color: 'bg-yellow-50 text-yellow-600' },
+    { icon: Activity, label: 'Hoạt động',   desc: 'Thêm / chỉnh sửa', tab: 'category-activities'    as AdminTab, color: 'bg-green-50 text-green-600'  },
+    { icon: FileText, label: 'Đơn đăng ký', desc: 'Quản lý forms',     tab: 'category-apply'         as AdminTab, color: 'bg-blue-50 text-blue-600'   },
+  ];
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">Tổng quan</h1>
+        <p className="text-sm text-slate-500 mt-1">Thống kê và tổng hợp dữ liệu website</p>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Lượt truy cập</p>
+                <p className="text-3xl font-bold text-slate-800 mt-1">{metrics?.visits ?? '—'}</p>
+                <p className="text-xs text-slate-400 mt-1">Cập nhật: {metrics?.lastUpdated ?? 'N/A'}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                <Eye className="w-6 h-6 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Đơn đã nộp</p>
+                <p className="text-3xl font-bold text-slate-800 mt-1">{totalSubmissions}</p>
+                <p className="text-xs text-slate-400 mt-1">Tổng số đơn đăng ký</p>
+              </div>
+              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                <ClipboardList className="w-6 h-6 text-purple-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Trạng thái hệ thống</p>
+                <p className="text-lg font-semibold text-green-600 mt-1">Hoạt động</p>
+                <p className="text-xs text-slate-400 mt-1">Các dịch vụ bình thường</p>
+              </div>
+              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-green-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick navigation */}
+      <h2 className="text-base font-semibold text-slate-700 mb-3">Truy cập nhanh</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {quickLinks.map(({ icon: Icon, label, desc, tab, color }) => (
+          <button
+            key={tab}
+            onClick={() => onNavigate(tab)}
+            className="p-4 bg-white rounded-xl border hover:border-blue-200 hover:shadow-sm transition-all text-left group"
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${color}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <p className="text-sm font-medium text-slate-700 group-hover:text-blue-700">{label}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Function — API connection testing
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> }) {
+  const [statuses, setStatuses] = useState<Record<string, ServiceStatus>>({
+    supabase: 'idle', sheets: 'idle', ai: 'idle', admin: 'idle',
+  });
+  const [messages, setMessages] = useState<Record<string, string>>({});
+
+  const runTest = async (
+    key: string,
+    fn: () => Promise<{ ok: boolean; msg: string }>,
+  ) => {
+    setStatuses(s => ({ ...s, [key]: 'loading' }));
+    try {
+      const result = await fn();
+      setStatuses(s => ({ ...s, [key]: result.ok ? 'ok' : 'error' }));
+      setMessages(m => ({ ...m, [key]: result.msg }));
+    } catch (e) {
+      setStatuses(s => ({ ...s, [key]: 'error' }));
+      setMessages(m => ({ ...m, [key]: String(e) }));
+    }
+  };
+
+  const getErrorMessage = async (res: Response): Promise<string> => {
+    try {
+      const payload = await res.json();
+      const detail = payload?.message || payload?.error || payload?.details;
+      return detail ? `Lỗi HTTP ${res.status}: ${detail}` : `Lỗi HTTP ${res.status}`;
+    } catch {
+      return `Lỗi HTTP ${res.status}`;
+    }
+  };
+
+  const services: {
+    key: string;
+    icon: LucideIcon;
+    label: string;
+    desc: string;
+    bgColor: string;
+    iconColor: string;
+    onTest: () => Promise<{ ok: boolean; msg: string }>;
+  }[] = [
+    {
+      key: 'supabase',
+      icon: Database,
+      label: 'Database',
+      desc: 'Kiểm tra kết nối cơ sở dữ liệu Supabase',
+      bgColor: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+      onTest: async () => {
+        const res = await fetch('/api/admin/application-form-submissions?page=1&pageSize=1', { headers: authHeaders });
+        return {
+          ok: res.ok,
+          msg: res.ok ? 'Kết nối Supabase thành công' : await getErrorMessage(res),
+        };
+      },
+    },
+    {
+      key: 'sheets',
+      icon: FileSpreadsheet,
+      label: 'Google Sheets',
+      desc: 'Kiểm tra kết nối Google Sheets API',
+      bgColor: 'bg-green-50',
+      iconColor: 'text-green-600',
+      onTest: async () => {
+        const res = await fetch('/api/admin/form-submissions', { headers: authHeaders });
+        return {
+          ok: res.ok,
+          msg: res.ok ? 'Kết nối Google Sheets thành công' : await getErrorMessage(res),
+        };
+      },
+    },
+    {
+      key: 'ai',
+      icon: Bot,
+      label: 'AI Api',
+      desc: 'Kiểm tra kết nối dịch vụ AI Gemini',
+      bgColor: 'bg-violet-50',
+      iconColor: 'text-violet-600',
+      onTest: async () => {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'ping' }),
+        });
+        return {
+          ok: res.ok,
+          msg: res.ok ? 'AI đang hoạt động bình thường' : await getErrorMessage(res),
+        };
+      },
+    },
+    {
+      key: 'admin',
+      icon: ShieldCheck,
+      label: 'Admin API',
+      desc: 'Kiểm tra xác thực Admin API',
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      onTest: async () => {
+        const res = await fetch('/api/admin/settings', { headers: authHeaders });
+        return {
+          ok: res.ok,
+          msg: res.ok ? 'Admin API xác thực thành công' : await getErrorMessage(res),
+        };
+      },
+    },
+  ];
+
+  const testAll = () => services.forEach(svc => runTest(svc.key, svc.onTest));
+
+  return (
+    <div>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Kiểm thử kết nối</h1>
+          <p className="text-sm text-slate-500 mt-1">Kiểm tra trạng thái các dịch vụ backend</p>
+        </div>
+        <Button onClick={testAll} variant="outline" size="sm">
+          <Wrench className="w-4 h-4 mr-2" />
+          Test tất cả
+        </Button>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        {services.map(({ key, icon: Icon, label, desc, bgColor, iconColor, onTest }) => (
+          <Card key={key}>
+            <CardContent className="pt-5">
+              <div className="flex items-start gap-4">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${bgColor}`}>
+                  <Icon className={`w-5 h-5 ${iconColor}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="font-medium text-slate-800">{label}</p>
+                    <StatusBadge status={statuses[key] as ServiceStatus} />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                  {messages[key] && (
+                    <p className={`text-xs mt-2 ${statuses[key] === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+                      {messages[key]}
+                    </p>
                   )}
-                  <Button onClick={exportSettings} variant="outline">
-                    <Download className="w-4 h-4 mr-2" />
-                    Xuất Settings
-                  </Button>
-                  <Button onClick={resetToDefaults} variant="outline">
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Reset Defaults
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-3"
+                    disabled={statuses[key] === 'loading'}
+                    onClick={() => runTest(key, onTest)}
+                  >
+                    {statuses[key] === 'loading'
+                      ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang kiểm tra…</>
+                      : 'Kiểm tra'}
                   </Button>
                 </div>
               </div>
-              <p className="mb-6 text-sm text-muted-foreground">Quản lý nội dung homepage và Google Sheets</p>
-
-              <div className="grid gap-6 lg:grid-cols-3 mb-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Thống kê truy cập</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p>
-                      Visit count: <strong>{metrics?.visits ?? 0}</strong>
-                    </p>
-                    <p>
-                      Updated: <strong>{metrics?.lastUpdated ?? "N/A"}</strong>
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Form submissions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p>
-                      Tổng: <strong>{totalSubmissions}</strong>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Hiển thị trang {currentPage}/{totalPages}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Sheet hiện tại</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p>
-                      ID: <strong>{settings?.googleSheetId || "Chưa cấu hình"}</strong>
-                    </p>
-                    <p>
-                      Dòng: <strong>{settings?.googleSheetRange || "Sheet1!A:Z"}</strong>
-                    </p>
-                    <Button onClick={testGoogleSheets} disabled={testing} size="sm" className="mt-2">
-                      <TestTube className="w-4 h-4 mr-2" />
-                      {testing ? "Đang test..." : "Test Connection"}
-                    </Button>
-                    {testResult && (
-                      <Alert className="mt-2">
-                        <div className="text-sm">{testResult}</div>
-                      </Alert>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Cài đặt Homepage</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {settings ? (
-                    <>
-                      <div className="grid gap-3">
-                        <label className="font-semibold">YouTube ID / URL</label>
-                        <Input
-                          value={settings.youtubeVideoId}
-                          onChange={(e) => updateSettings("youtubeVideoId", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="grid gap-3">
-                        <label className="font-semibold">Tiêu đề trang chủ</label>
-                        <Input
-                          value={settings.homepageTitle}
-                          onChange={(e) => updateSettings("homepageTitle", e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-3">
-                        <label className="font-semibold">Mô tả trang chủ</label>
-                        <Input
-                          value={settings.homepageDescription}
-                          onChange={(e) => updateSettings("homepageDescription", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="grid gap-3">
-                        <label className="font-semibold">Tiêu đề form liên hệ</label>
-                        <Input
-                          value={settings.contactFormTitle}
-                          onChange={(e) => updateSettings("contactFormTitle", e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-3">
-                        <label className="font-semibold">Tiêu đề phụ form liên hệ</label>
-                        <Input
-                          value={settings.contactFormSubtitle}
-                          onChange={(e) => updateSettings("contactFormSubtitle", e.target.value)}
-                        />
-                      </div>
-
-                      <h3 className="text-lg font-semibold mt-4">Cấu hình Google Sheets</h3>
-                      <div className="grid gap-3">
-                        <label className="font-semibold">GOOGLE_SHEET_ID</label>
-                        <Input
-                          value={settings.googleSheetId}
-                          onChange={(e) => updateSettings("googleSheetId", e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-3">
-                        <label className="font-semibold">GOOGLE_SHEET_RANGE</label>
-                        <Input
-                          value={settings.googleSheetRange}
-                          onChange={(e) => updateSettings("googleSheetRange", e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-3">
-                        <label className="font-semibold">GOOGLE_SHEET_RANGE_CONTACT</label>
-                        <Input
-                          value={settings.googleSheetRangeContact}
-                          onChange={(e) => updateSettings("googleSheetRangeContact", e.target.value)}
-                        />
-                      </div>
-                      <div className="grid gap-3">
-                        <label className="font-semibold">GOOGLE_SHEET_RANGE_COMMENTS</label>
-                        <Input
-                          value={settings.googleSheetRangeComments}
-                          onChange={(e) => updateSettings("googleSheetRangeComments", e.target.value)}
-                        />
-                      </div>
-
-                      <Button onClick={saveSettings} disabled={saving} className="mt-3">
-                        {saving ? "Đang lưu..." : "Lưu cài đặt"}
-                      </Button>
-                    </>
-                  ) : (
-                    <p>Đang tải cài đặt...</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Danh sách nộp form</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {submissions.length === 0 ? (
-                    <p>Không có dữ liệu.</p>
-                  ) : (
-                    <>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-left text-sm">
-                          <thead>
-                            <tr>
-                              {Object.keys(submissions[0]).slice(0, 8).map((col) => (
-                                <th key={col} className="px-2 py-1 border">
-                                  {col}
-                                </th>
-                              ))}
-                              <th className="px-2 py-1 border">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {submissions.map((row, idx) => (
-                              <tr key={idx} className="border-t">
-                                {Object.values(row).slice(0, 8).map((cell, i) => (
-                                  <td key={i} className="px-2 py-1 border">
-                                    {String(cell || "")}
-                                  </td>
-                                ))}
-                                <td className="px-2 py-1 border">
-                                  <Button
-                                    onClick={() => deleteSubmission(row.id || idx)}
-                                    size="sm"
-                                    variant="destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <div className="flex justify-between items-center mt-4">
-                        <p className="text-sm text-muted-foreground">
-                          Trang {currentPage} / {totalPages} ({totalSubmissions} tổng cộng)
-                        </p>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                            disabled={currentPage === 1}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Trước
-                          </Button>
-                          <Button
-                            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                            disabled={currentPage === totalPages}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Sau
-                          </Button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <Footer />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Breadcrumb helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+function Breadcrumb({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-sm text-slate-400 mb-1">
+      <FolderOpen className="w-3.5 h-3.5" />
+      <span>Danh mục trang</span>
+      <ChevronRight className="w-3 h-3" />
+      <span className="text-slate-600 font-medium">{label}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category — Home
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryHomePanel() {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Trang chủ" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Trang chủ</h1>
+        <p className="text-sm text-slate-500 mt-1">Chỉnh sửa nội dung hiển thị trên trang chủ website</p>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        {/* Banner image */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-orange-50 rounded-lg flex items-center justify-center">
+                <ImagePlus className="w-4 h-4 text-orange-500" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Hình ảnh Banner</CardTitle>
+                <CardDescription className="text-xs mt-0.5">Ảnh nền và carousel trang chủ</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 h-28 flex flex-col items-center justify-center mb-3">
+              <ImagePlus className="w-7 h-7 text-slate-300 mb-1.5" />
+              <p className="text-xs text-slate-400">Chức năng đang phát triển</p>
+            </div>
+            <Button variant="outline" size="sm" className="w-full" disabled>
+              <ImagePlus className="w-4 h-4 mr-2" />
+              Chỉnh sửa hình ảnh
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Featured video */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center">
+                <Video className="w-4 h-4 text-red-500" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Video nổi bật</CardTitle>
+                <CardDescription className="text-xs mt-0.5">Video YouTube hiển thị trên trang chủ</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 h-28 flex flex-col items-center justify-center mb-3">
+              <Video className="w-7 h-7 text-slate-300 mb-1.5" />
+              <p className="text-xs text-slate-400">Chức năng đang phát triển</p>
+            </div>
+            <Button variant="outline" size="sm" className="w-full" disabled>
+              <Video className="w-4 h-4 mr-2" />
+              Chỉnh sửa video
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category — Achievements
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryAchievementsPanel() {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Thành tích" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Thành tích</h1>
+        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các thành tích của đoàn</p>
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <Button disabled>
+          <PlusCircle className="w-4 h-4 mr-2" />
+          Thêm thành tích mới
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="py-16 text-center">
+          <Trophy className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">Chức năng đang phát triển</p>
+          <p className="text-sm text-slate-400 mt-1">Danh sách thành tích sẽ hiển thị ở đây</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category — Activities
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryActivitiesPanel() {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Hoạt động" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Hoạt động</h1>
+        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các chương trình hoạt động</p>
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <Button disabled>
+          <PlusCircle className="w-4 h-4 mr-2" />
+          Thêm hoạt động mới
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="py-16 text-center">
+          <Activity className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">Chức năng đang phát triển</p>
+          <p className="text-sm text-slate-400 mt-1">Danh sách hoạt động sẽ hiển thị ở đây</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

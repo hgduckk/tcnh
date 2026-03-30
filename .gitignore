@@ -2,8 +2,9 @@
 /dist
 /node_modules
 /.next
-service-account-key.json
+service-account-key*.json
 .DS_Store
+*.pid
 
 # Logs
 logs
@@ -39,3 +40,4 @@ yarn.lock
 
 # env
 .env.local
+.env.memory-optimization

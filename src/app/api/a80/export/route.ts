@@ -4,16 +4,18 @@ import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with optional handling
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabasePublishableKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const supabase = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey)
+const supabase = (supabaseUrl && supabasePublishableKey)
+  ? createClient(supabaseUrl, supabasePublishableKey)
   : null;
 
 export async function GET() {
   if (!supabase) {
     return NextResponse.json(
-      { error: 'Supabase config is missing (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)' },
+      { error: 'Supabase config is missing (NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY)' },
       { status: 501 }
     );
   }

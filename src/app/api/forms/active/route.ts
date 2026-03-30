@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
+import { serializeError } from "@/lib/utils";
 
 export async function GET() {
   try {
@@ -88,7 +89,7 @@ export async function GET() {
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: String(error) },
+      { success: false, message: serializeError(error) },
       { status: 500 }
     );
   }

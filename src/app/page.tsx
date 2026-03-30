@@ -138,17 +138,7 @@ export default function Home() {
     <div className="flex flex-col">
       {/* Banner Section */}
       <section className="relative w-full text-center">
-        {siteConfig?.showAdminLink && (
-          <div className="absolute right-4 top-4 z-20">
-            <Link
-              href={siteConfig.adminPageUrl || '/admin'}
-              target="_blank"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-            >
-              {siteConfig.adminLinkLabel || 'Admin Dashboard'}
-            </Link>
-          </div>
-        )}
+        
         <div className="relative">
           <Image
             src="/images/backkipu.jpg"

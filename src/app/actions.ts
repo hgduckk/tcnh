@@ -4,7 +4,7 @@ import { z } from 'zod';
 // import { moderateBlogComments } from '@/ai/flows/moderate-blog-comments';
 // import { analyzeApplication } from '@/ai/flows/analyze-application';
 import { ContactFormSchema, CommentFormSchema, ApplicationFormSubmissionStrictSchema, type ContactFormState, type CommentFormState, type ApplicationFormState } from '@/lib/definitions';
-import { appendContactToSheet } from '@/lib/google-sheets';
+import { appendContactToSheet, appendSubmissionToSheet } from '@/lib/google-sheets';
 import { supabase } from "@/lib/supabaseClient";
 import { supabaseAdmin } from '@/lib/supabaseAdminClient';
 import { uploadFileToDrive } from '@/lib/google-drive';
@@ -211,7 +211,22 @@ export async function submitApplication(
       validatedFields.data.deptOptional3 ?? "",
     ];
 
-    // Save submission to Supabase (supportbase)
+    // -- Primary: write to Google Sheets --
+    const sheetResult = await appendSubmissionToSheet({
+      templateId,
+      fullName: validatedFields.data.fullName,
+      birthDate: validatedFields.data.birthDate,
+      className: validatedFields.data.className,
+      studentId: validatedFields.data.studentId,
+      email: validatedFields.data.email,
+      gender: validatedFields.data.gender,
+      department: validatedFields.data.department,
+      photoUrl: uploadRes.url,
+      optionalPersonalAnswers: optionalPersonalAnswers,
+      deptOptionalAnswers: deptOptionalAnswers,
+    });
+
+    // -- Backup: save to Supabase regardless of Sheets result --
     const { error: insertError } = await supabaseAdmin
       .from("application_form_submissions")
       .insert({
@@ -226,6 +241,8 @@ export async function submitApplication(
         department: validatedFields.data.department,
         optional_personal_answers: optionalPersonalAnswers,
         dept_optional_answers: deptOptionalAnswers,
+        sheet_write_ok: sheetResult.success,
+        sheet_error: sheetResult.success ? null : sheetResult.message,
       });
 
     if (insertError) {

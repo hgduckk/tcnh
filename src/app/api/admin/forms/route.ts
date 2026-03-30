@@ -2,12 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { extractDriveFolderId } from "@/lib/google-drive";
 import { DEPARTMENTS, type Department } from "@/lib/applicationForms";
-
-function checkAdmin(req: Request) {
-  const headerPassword = req.headers.get("x-admin-password") || "";
-  const expected = process.env.ADMIN_PASSWORD || "maiyeuquangan";
-  return headerPassword === expected;
-}
+import { assertAdminRequest } from "@/lib/adminAuth";
+import { serializeError } from "@/lib/utils";
 
 function normalizeDepartmentQuestions(input: any): Record<Department, string[]> {
   const out = {} as Record<Department, string[]>;
@@ -21,11 +17,11 @@ function normalizeDepartmentQuestions(input: any): Record<Department, string[]> 
 
 export async function GET(req: Request) {
   try {
+    const authError = assertAdminRequest(req);
+    if (authError) return authError;
+
     if (!supabaseAdmin) {
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
-    }
-    if (!checkAdmin(req)) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
     const { data, error } = await supabaseAdmin
@@ -37,17 +33,17 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, data: data || [] });
   } catch (e) {
-    return NextResponse.json({ success: false, message: String(e) }, { status: 500 });
+    return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
+    const authError = assertAdminRequest(req);
+    if (authError) return authError;
+
     if (!supabaseAdmin) {
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
-    }
-    if (!checkAdmin(req)) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -108,6 +104,15 @@ export async function POST(req: Request) {
         .single();
 
       if (error) throw error;
+
+      // Record history snapshot (fire-and-forget; never block the response)
+      supabaseAdmin
+        .from("application_form_template_history")
+        .insert({ template_id: data.id, action: "updated", snapshot: data })
+        .then(({ error: histErr }) => {
+          if (histErr) console.warn("History insert failed:", histErr.message);
+        });
+
       return NextResponse.json({ success: true, data });
     }
 
@@ -127,9 +132,18 @@ export async function POST(req: Request) {
       .single();
 
     if (error) throw error;
+
+    // Record history snapshot (fire-and-forget; never block the response)
+    supabaseAdmin
+      .from("application_form_template_history")
+      .insert({ template_id: data.id, action: "created", snapshot: data })
+      .then(({ error: histErr }) => {
+        if (histErr) console.warn("History insert failed:", histErr.message);
+      });
+
     return NextResponse.json({ success: true, data });
   } catch (e) {
-    return NextResponse.json({ success: false, message: String(e) }, { status: 500 });
+    return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }
 }
 

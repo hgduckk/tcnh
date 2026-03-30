@@ -1,7 +1,11 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getSheetData } from '@/lib/google-sheets';
+import { assertAdminRequest } from '@/lib/adminAuth';
 
 export async function GET(req: NextRequest) {
+  const authError = assertAdminRequest(req);
+  if (authError) return authError;
+
   try {
     const page = parseInt(req.nextUrl.searchParams.get('page') || '1');
     const pageSize = Math.min(parseInt(req.nextUrl.searchParams.get('pageSize') || '50'), 100); // Max 100 per page

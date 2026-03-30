@@ -20,8 +20,8 @@ export function PageBanner({
       <Image
         src={imageUrl}
         alt={title}
-        layout="fill"
-        objectFit="cover"
+        fill
+        style={{ objectFit: 'cover' }}
         className="absolute z-0"
         data-ai-hint={imageHint}
         priority

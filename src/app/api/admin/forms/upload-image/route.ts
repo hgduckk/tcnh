@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { extractDriveFolderId, uploadFileToDrive } from "@/lib/google-drive";
 import { type IllustrationSlot } from "@/lib/applicationForms";
-
-function checkAdmin(req: Request) {
-  const headerPassword = req.headers.get("x-admin-password") || "";
-  const expected = process.env.ADMIN_PASSWORD || "maiyeuquangan";
-  return headerPassword === expected;
-}
+import { assertAdminRequest } from "@/lib/adminAuth";
+import { serializeError } from "@/lib/utils";
 
 function normalizeSlot(input: string): IllustrationSlot {
   const v = (input || "").toLowerCase();
@@ -16,9 +12,8 @@ function normalizeSlot(input: string): IllustrationSlot {
 
 export async function POST(req: Request) {
   try {
-    if (!checkAdmin(req)) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-    }
+    const authError = assertAdminRequest(req);
+    if (authError) return authError;
 
     const formData = await req.formData();
     const file = formData.get("file");
@@ -60,7 +55,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (e) {
-    return NextResponse.json({ success: false, message: String(e) }, { status: 500 });
+    return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }
 }
 

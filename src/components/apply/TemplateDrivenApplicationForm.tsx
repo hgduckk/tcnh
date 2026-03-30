@@ -94,7 +94,8 @@ export function TemplateDrivenApplicationForm() {
 
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    // Only update every 5 seconds to reduce rerenders and memory pressure
+    const t = setInterval(() => setNowMs(Date.now()), 5000);
     return () => clearInterval(t);
   }, []);
 

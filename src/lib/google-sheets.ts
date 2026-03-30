@@ -381,3 +381,72 @@ export async function getCommentsFromSheet(): Promise<CommentData[]> {
     return [];
   }
 }
+
+// ------------------------------------------------------------------
+// Template-driven submission writer (primary storage for /apply forms)
+// Columns written: timestamp | templateId | fullName | birthDate |
+//   className | studentId | email | gender | department | photoUrl |
+//   personalAns1-5 | deptAns1-3
+// ------------------------------------------------------------------
+
+export interface TemplateSubmissionData {
+  templateId: string;
+  fullName: string;
+  birthDate: string;
+  className: string;
+  studentId: string;
+  email: string;
+  gender: string;
+  department: string;
+  photoUrl: string;
+  optionalPersonalAnswers: string[];
+  deptOptionalAnswers: string[];
+}
+
+export async function appendSubmissionToSheet(
+  data: TemplateSubmissionData
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const config = await getSheetConfig();
+    const { spreadsheetId } = config;
+
+    if (
+      !spreadsheetId ||
+      spreadsheetId === 'demo_sheet_id_replace_with_real_one' ||
+      spreadsheetId === 'your_google_sheet_id_here'
+    ) {
+      return { success: false, message: 'Google Sheets chưa được cấu hình: thiếu GOOGLE_SHEET_ID' };
+    }
+
+    if (!sheets) {
+      return { success: false, message: 'Google Sheets client not initialized' };
+    }
+
+    const row = [
+      new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      data.templateId,
+      data.fullName,
+      data.birthDate,
+      data.className,
+      data.studentId,
+      data.email,
+      data.gender,
+      data.department,
+      data.photoUrl,
+      ...Array.from({ length: 5 }, (_, i) => data.optionalPersonalAnswers[i] ?? ''),
+      ...Array.from({ length: 3 }, (_, i) => data.deptOptionalAnswers[i] ?? ''),
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: config.range,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [row] },
+    });
+
+    return { success: true, message: 'Đơn ứng tuyển đã được ghi vào Google Sheets' };
+  } catch (error) {
+    console.error('Error writing submission to Google Sheet:', error);
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+}

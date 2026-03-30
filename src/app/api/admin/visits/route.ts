@@ -1,40 +1,81 @@
-import fs from 'fs';
-import path from 'path';
 import { NextResponse } from 'next/server';
+import { assertAdminRequest } from '@/lib/adminAuth';
+import { supabaseAdmin } from '@/lib/supabaseAdminClient';
+import { serializeError } from '@/lib/utils';
 
-const VISITS_FILENAME = 'admin-visits.json';
+const VISITS_TABLE = 'admin_visits';
+const VISITS_ROW_ID = 1;
 
-const getVisitsPath = () => path.join(process.cwd(), VISITS_FILENAME);
+type VisitsRow = {
+  id: number;
+  visits: number;
+  last_updated: string;
+};
 
 async function readVisits() {
-  const filePath = getVisitsPath();
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not configured.');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from(VISITS_TABLE)
+    .select('id, visits, last_updated')
+    .eq('id', VISITS_ROW_ID)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    const initial: VisitsRow = { id: VISITS_ROW_ID, visits: 0, last_updated: new Date().toISOString() };
+    const { error: seedError } = await supabaseAdmin
+      .from(VISITS_TABLE)
+      .upsert(initial, { onConflict: 'id' });
+    if (seedError) throw seedError;
+    return { visits: initial.visits, lastUpdated: initial.last_updated };
+  }
+
+  return {
+    visits: data.visits || 0,
+    lastUpdated: data.last_updated,
+  };
+}
+
+export async function GET(request: Request) {
   try {
-    const json = await fs.promises.readFile(filePath, 'utf8');
-    return JSON.parse(json);
+    const authError = assertAdminRequest(request);
+    if (authError) return authError;
+
+    const data = await readVisits();
+    return NextResponse.json(data);
   } catch (error) {
-    if ((error as any).code === 'ENOENT') {
-      const initial = { visits: 0, lastUpdated: new Date().toISOString() };
-      await fs.promises.writeFile(filePath, JSON.stringify(initial, null, 2), 'utf8');
-      return initial;
-    }
-    throw error;
+    return NextResponse.json({ success: false, message: serializeError(error) }, { status: 500 });
   }
 }
 
-async function writeVisits(data: any) {
-  const filePath = getVisitsPath();
-  await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-}
+export async function POST(request: Request) {
+  try {
+    const authError = assertAdminRequest(request);
+    if (authError) return authError;
 
-export async function GET() {
-  const data = await readVisits();
-  return NextResponse.json(data);
-}
+    if (!supabaseAdmin) {
+      return NextResponse.json({ success: false, message: 'Supabase admin client not configured.' }, { status: 500 });
+    }
 
-export async function POST() {
-  const data = await readVisits();
-  data.visits = (data.visits || 0) + 1;
-  data.lastUpdated = new Date().toISOString();
-  await writeVisits(data);
-  return NextResponse.json(data);
+    const current = await readVisits();
+    const next = {
+      id: VISITS_ROW_ID,
+      visits: (current.visits || 0) + 1,
+      last_updated: new Date().toISOString(),
+    };
+
+    const { error } = await supabaseAdmin
+      .from(VISITS_TABLE)
+      .upsert(next, { onConflict: 'id' });
+
+    if (error) throw error;
+
+    return NextResponse.json({ visits: next.visits, lastUpdated: next.last_updated });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: serializeError(error) }, { status: 500 });
+  }
 }

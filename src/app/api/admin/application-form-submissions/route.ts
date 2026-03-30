@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
+import { assertAdminRequest } from "@/lib/adminAuth";
+import { serializeError } from "@/lib/utils";
 
 export async function GET(req: Request) {
   try {
+    const authError = assertAdminRequest(req);
+    if (authError) return authError;
+
     if (!supabaseAdmin) {
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
     }
@@ -37,7 +42,7 @@ export async function GET(req: Request) {
       totalPages,
     });
   } catch (e) {
-    return NextResponse.json({ success: false, message: String(e) }, { status: 500 });
+    return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }
 }
 

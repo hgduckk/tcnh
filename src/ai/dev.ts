@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/moderate-blog-comments.ts';
-import '@/ai/flows/analyze-application.ts';
-import '@/ai/flows/personal-advisor-chat.ts';
+// Lazy load flows only when needed to reduce memory usage
+// Flows are imported on demand in their respective routes

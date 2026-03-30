@@ -1,12 +1,23 @@
 import { NextResponse } from 'next/server';
 import { readAdminSettings, saveAdminSettings } from '@/lib/adminSettings';
+import { assertAdminRequest } from '@/lib/adminAuth';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = assertAdminRequest(request);
+  if (authError) return authError;
+
   const settings = await readAdminSettings();
-  return NextResponse.json(settings);
+  return NextResponse.json(settings, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+    },
+  });
 }
 
 export async function POST(request: Request) {
+  const authError = assertAdminRequest(request);
+  if (authError) return authError;
+
   try {
     const payload = await request.json();
     const allowedKeys = [

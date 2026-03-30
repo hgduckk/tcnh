@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:9002'),
   title: 'ĐK-TCNH',
   description: 'Trang web của Đoàn khoa Tài chính - Ngân hàng',
   openGraph: {
