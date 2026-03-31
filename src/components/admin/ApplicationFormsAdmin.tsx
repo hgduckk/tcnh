@@ -60,6 +60,8 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
   );
   const [illustrations, setIllustrations] = useState<ApplicationFormIllustration[]>([]);
 
+  const [classOptions, setClassOptions] = useState<string[]>([]);
+  const [classOptionInput, setClassOptionInput] = useState("");
   const [uploadSlot, setUploadSlot] = useState<IllustrationSlot>("hero");
   const [uploading, setUploading] = useState(false);
 
@@ -122,6 +124,7 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
             }))
           : []
       );
+      setClassOptions(Array.isArray(t.class_options) ? (t.class_options as unknown[]).map(String).filter(Boolean) : []);
     } catch (e) {
       setError(String(e));
     }
@@ -136,6 +139,8 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
     setOptionalPersonalQuestions(defaultOptionalPersonalQuestions());
     setDepartmentQuestions(defaultDepartmentQuestions());
     setIllustrations([]);
+    setClassOptions([]);
+    setClassOptionInput("");
   };
 
   const saveTemplate = async () => {
@@ -154,6 +159,7 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
       optionalPersonalQuestions,
       departmentQuestions,
       illustrations,
+      classOptions,
     };
 
     try {
@@ -277,6 +283,60 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
             <div className="grid gap-3">
               <label className="font-semibold">Drive folder link để lưu ảnh</label>
               <Input value={driveFolderUrl} onChange={(e) => setDriveFolderUrl(e.target.value)} placeholder="https://drive.google.com/drive/folders/..." />
+            </div>
+
+            {/* Class options */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">Danh sách lớp (dropdown cho ứng viên)</h3>
+              <p className="text-sm text-muted-foreground">Nhập từng lớp rồi nhấn Enter hoặc nút &ldquo;+&rdquo; để thêm. Nếu để trống, ứng viên sẽ tự điền tay.</p>
+              <div className="flex gap-2">
+                <Input
+                  value={classOptionInput}
+                  onChange={(e) => setClassOptionInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const val = classOptionInput.trim();
+                      if (val && !classOptions.includes(val)) {
+                        setClassOptions((prev) => [...prev, val]);
+                      }
+                      setClassOptionInput("");
+                    }
+                  }}
+                  placeholder="Ví dụ: 24DT1"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const val = classOptionInput.trim();
+                    if (val && !classOptions.includes(val)) {
+                      setClassOptions((prev) => [...prev, val]);
+                    }
+                    setClassOptionInput("");
+                  }}
+                >
+                  +
+                </Button>
+              </div>
+              {classOptions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {classOptions.map((cls) => (
+                    <div key={cls} className="flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-full px-3 py-1 text-sm">
+                      <span>{cls}</span>
+                      <button
+                        type="button"
+                        onClick={() => setClassOptions((prev) => prev.filter((c) => c !== cls))}
+                        className="ml-1 text-blue-400 hover:text-red-500 transition-colors font-bold leading-none"
+                        aria-label={`Xóa ${cls}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">

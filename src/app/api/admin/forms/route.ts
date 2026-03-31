@@ -56,6 +56,7 @@ export async function POST(req: Request) {
       optionalPersonalQuestions,
       departmentQuestions,
       illustrations,
+      classOptions,
     } = body || {};
 
     if (!name || !openAt || !closeAt || !driveFolderUrl) {
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
 
     const optionalQs = Array.from({ length: 5 }).map((_, i) => String(optionalPersonalQuestions?.[i] ?? ""));
     const deptQs = normalizeDepartmentQuestions(departmentQuestions);
+    const classOpts = Array.isArray(classOptions) ? (classOptions as unknown[]).map(String).filter(Boolean) : [];
 
     const openIso = new Date(String(openAt)).toISOString();
     const closeIso = new Date(String(closeAt)).toISOString();
@@ -83,6 +85,7 @@ export async function POST(req: Request) {
       optional_personal_questions: optionalQs,
       department_questions: deptQs,
       illustrations: Array.isArray(illustrations) ? illustrations : [],
+      class_options: classOpts,
     };
 
     // Upsert by id when provided (client uses same endpoint for create/edit)
@@ -98,6 +101,7 @@ export async function POST(req: Request) {
           optional_personal_questions: payload.optional_personal_questions,
           department_questions: payload.department_questions,
           illustrations: payload.illustrations,
+          class_options: payload.class_options,
         })
         .eq("id", String(id))
         .select("*")
@@ -127,6 +131,7 @@ export async function POST(req: Request) {
         optional_personal_questions: payload.optional_personal_questions,
         department_questions: payload.department_questions,
         illustrations: payload.illustrations,
+        class_options: payload.class_options,
       })
       .select("*")
       .single();

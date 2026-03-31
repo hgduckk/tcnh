@@ -26,6 +26,7 @@ export type ApplicationFormTemplate = {
   optional_personal_questions: string[]; // length 5
   department_questions: Record<Department, string[]>; // each length 3
   illustrations: ApplicationFormIllustration[];
+  class_options: string[]; // predefined class list for dropdown
 };
 
 export function normalizeTemplateShape(input: any): ApplicationFormTemplate {
@@ -40,6 +41,10 @@ export function normalizeTemplateShape(input: any): ApplicationFormTemplate {
     const arr = Array.isArray((departmentQs as any)?.[dept]) ? (departmentQs as any)[dept] : [];
     deptFixed[dept] = Array.from({ length: 3 }).map((_, i) => String(arr[i] ?? ""));
   }
+
+  const classOptions = Array.isArray(input?.class_options)
+    ? (input.class_options as unknown[]).map(String).filter(Boolean)
+    : [];
 
   return {
     id: String(input?.id ?? ""),
@@ -56,6 +61,7 @@ export function normalizeTemplateShape(input: any): ApplicationFormTemplate {
       slot: (img?.slot as IllustrationSlot) ?? "hero",
       url: String(img?.url ?? ""),
     })),
+    class_options: classOptions,
   };
 }
 

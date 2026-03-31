@@ -53,7 +53,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!id) return NextResponse.json({ success: false, message: "Missing id" }, { status: 400 });
 
     const body = await req.json();
-    const { name, openAt, closeAt, optionalPersonalQuestions, departmentQuestions, illustrations, driveFolderUrl } =
+    const { name, openAt, closeAt, optionalPersonalQuestions, departmentQuestions, illustrations, driveFolderUrl, classOptions } =
       body || {};
 
     if (!name || !openAt || !closeAt) {
@@ -79,6 +79,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       optional_personal_questions: Array.from({ length: 5 }).map((_, i) => String(optionalPersonalQuestions?.[i] ?? "")),
       department_questions: normalizeDepartmentQuestions(departmentQuestions),
       illustrations: Array.isArray(illustrations) ? illustrations : [],
+      class_options: Array.isArray(classOptions) ? (classOptions as unknown[]).map(String).filter(Boolean) : [],
       ...(drive_folder_url
         ? { drive_folder_url, drive_folder_id }
         : {}),

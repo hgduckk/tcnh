@@ -336,6 +336,33 @@ export function TemplateDrivenApplicationForm() {
 
                     <FormField
                       control={form.control}
+                      name="className"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Lớp *</FormLabel>
+                          <FormControl>
+                            {Array.isArray((template as any)?.class_options) && (template as any).class_options.length > 0 ? (
+                              <select
+                                value={field.value ?? ""}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                className="w-full h-10 rounded-md border border-gray-300 bg-[#45973c]/10 focus:bg-[#45973c]/20 focus:border-[#45973c] px-3 text-sm focus:outline-none"
+                              >
+                                <option value="">-- Chọn lớp --</option>
+                                {((template as any).class_options as string[]).map((cls: string) => (
+                                  <option key={cls} value={cls}>{cls}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
                       name="studentId"
                       render={({ field }) => (
                         <FormItem>

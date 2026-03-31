@@ -61,6 +61,10 @@ CREATE TABLE application_form_templates (
   -- [{ "id": "...", "title": "...", "slot": "hero|personal|department", "url": "https://..." }]
   illustrations JSONB NOT NULL DEFAULT '[]'::jsonb,
 
+  -- Predefined list of class names for the Lớp dropdown in the application form
+  -- e.g. ["24DT1", "24DT2", "24KT1", "24KT2", "24TT1", "24TT2"]
+  class_options JSONB NOT NULL DEFAULT '[]'::jsonb,
+
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
