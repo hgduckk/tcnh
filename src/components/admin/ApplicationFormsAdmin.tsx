@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Trash2 } from "lucide-react";
+import { formatDateTime } from "@/lib/utils";
 
 import {
   DEPARTMENTS,
@@ -234,10 +235,10 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
                   <div key={t.id} className="border rounded-lg p-3">
                     <p className="font-semibold">{t.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Thời gian mở: {new Date(t.open_at).toLocaleString("vi-VN")}
+                      Thời gian mở: {formatDateTime(t.open_at)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Thời gian đóng: {new Date(t.close_at).toLocaleString("vi-VN")}
+                      Thời gian đóng: {formatDateTime(t.close_at)}
                     </p>
                     <Button
                       type="button"
@@ -281,14 +282,14 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
             </div>
 
             <div className="grid gap-3">
-              <label className="font-semibold">Drive folder link để lưu ảnh</label>
+              <label className="font-semibold">Link drive để lưu ảnh ứng viên</label>
               <Input value={driveFolderUrl} onChange={(e) => setDriveFolderUrl(e.target.value)} placeholder="https://drive.google.com/drive/folders/..." />
             </div>
 
             {/* Class options */}
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Danh sách lớp (dropdown cho ứng viên)</h3>
-              <p className="text-sm text-muted-foreground">Nhập từng lớp rồi nhấn Enter hoặc nút &ldquo;+&rdquo; để thêm. Nếu để trống, ứng viên sẽ tự điền tay.</p>
+              <h3 className="font-semibold">Lớp</h3>
+              <p className="text-sm text-muted-foreground">Nhập từng lớp rồi nhấn Enter hoặc nút &ldquo;+&rdquo; để thêm. Nếu để trống là điền text.</p>
               <div className="flex gap-2">
                 <Input
                   value={classOptionInput}
@@ -303,7 +304,7 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
                       setClassOptionInput("");
                     }
                   }}
-                  placeholder="Ví dụ: 24DT1"
+                  placeholder="Ví dụ: K22414"
                   className="flex-1"
                 />
                 <Button

@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Footer } from '@/components/layout/Footer';
 import { ApplicationFormsAdmin } from '@/components/admin/ApplicationFormsAdmin';
+import { AchievementsAdmin } from '@/components/admin/AchievementsAdmin';
+import { formatDateTime } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
@@ -450,7 +452,7 @@ export default function AdminPage() {
               <FunctionPanel authHeaders={authHeaders} />
             )}
             {activeTab === 'category-home' && <CategoryHomePanel />}
-            {activeTab === 'category-achievements' && <CategoryAchievementsPanel />}
+            {activeTab === 'category-achievements' && <CategoryAchievementsPanel adminPassword={password} />}
             {activeTab === 'category-activities' && <CategoryActivitiesPanel />}
             {activeTab === 'category-apply' && (
               <ApplicationFormsAdmin adminPassword={password} />
@@ -1220,7 +1222,7 @@ function OverviewPanel({
                         )}
                         {selectedAdditionalFields.includes('submitted_at') && (
                           <td style={{ width: `${getColumnWidth('submitted_at')}px`, minWidth: `${getColumnWidth('submitted_at')}px`, maxWidth: `${getColumnWidth('submitted_at')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {new Date(row.submitted_at).toLocaleString()}
+                            {formatDateTime(row.submitted_at)}
                           </td>
                         )}
                         <td style={{ width: `${getColumnWidth('details')}px`, minWidth: `${getColumnWidth('details')}px`, maxWidth: `${getColumnWidth('details')}px` }} className="sticky right-0 z-10 border-b border-l border-slate-100 bg-white px-2 py-3 text-center shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.35)]">
@@ -1482,7 +1484,7 @@ function OverviewPanel({
                   <div><span className="text-slate-500">Lớp:</span> <span className="font-medium">{detailSubmission.class_name || 'N/A'}</span></div>
                   <div><span className="text-slate-500">MSSV:</span> <span className="font-medium">{detailSubmission.student_id || 'N/A'}</span></div>
                   <div className="sm:col-span-2"><span className="text-slate-500">Email:</span> <span className="font-medium">{detailSubmission.email || 'N/A'}</span></div>
-                  <div className="sm:col-span-2"><span className="text-slate-500">Thời gian nộp:</span> <span className="font-medium">{new Date(detailSubmission.submitted_at).toLocaleString()}</span></div>
+                  <div className="sm:col-span-2"><span className="text-slate-500">Thời gian nộp:</span> <span className="font-medium">{formatDateTime(detailSubmission.submitted_at)}</span></div>
                 </div>
               </div>
 
@@ -1624,9 +1626,27 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
     supabase: 'idle', sheets: 'idle', drive: 'idle', ai: 'idle', admin: 'idle',
   });
   const [messages, setMessages] = useState<Record<string, string>>({});
+  const [pageStatuses, setPageStatuses] = useState<Record<string, ServiceStatus>>({
+    home: 'idle', achievements: 'idle', activities: 'idle', apply: 'idle',
+    blog: 'idle', structure: 'idle', a80: 'idle', aiPage: 'idle',
+  });
+  const [pageMessages, setPageMessages] = useState<Record<string, string>>({});
+  const [logs, setLogs] = useState<Array<{ id: string; label: string; ok: boolean; msg: string; at: string }>>([]);
+
+  const appendLog = (label: string, ok: boolean, msg: string) => {
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      label,
+      ok,
+      msg,
+      at: new Date().toISOString(),
+    };
+    setLogs((prev) => [entry, ...prev].slice(0, 50));
+  };
 
   const runTest = async (
     key: string,
+    label: string,
     fn: () => Promise<{ ok: boolean; msg: string }>,
   ) => {
     setStatuses(s => ({ ...s, [key]: 'loading' }));
@@ -1634,9 +1654,31 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
       const result = await fn();
       setStatuses(s => ({ ...s, [key]: result.ok ? 'ok' : 'error' }));
       setMessages(m => ({ ...m, [key]: result.msg }));
+      appendLog(label, result.ok, result.msg);
     } catch (e) {
       setStatuses(s => ({ ...s, [key]: 'error' }));
-      setMessages(m => ({ ...m, [key]: String(e) }));
+      const msg = String(e);
+      setMessages(m => ({ ...m, [key]: msg }));
+      appendLog(label, false, msg);
+    }
+  };
+
+  const runPageTest = async (
+    key: string,
+    label: string,
+    fn: () => Promise<{ ok: boolean; msg: string }>,
+  ) => {
+    setPageStatuses(s => ({ ...s, [key]: 'loading' }));
+    try {
+      const result = await fn();
+      setPageStatuses(s => ({ ...s, [key]: result.ok ? 'ok' : 'error' }));
+      setPageMessages(m => ({ ...m, [key]: result.msg }));
+      appendLog(label, result.ok, result.msg);
+    } catch (e) {
+      setPageStatuses(s => ({ ...s, [key]: 'error' }));
+      const msg = String(e);
+      setPageMessages(m => ({ ...m, [key]: msg }));
+      appendLog(label, false, msg);
     }
   };
 
@@ -1740,7 +1782,34 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
     },
   ];
 
-  const testAll = () => services.forEach(svc => runTest(svc.key, svc.onTest));
+  const pageChecks: {
+    key: string;
+    label: string;
+    desc: string;
+    path: string;
+  }[] = [
+    { key: 'home', label: 'Trang chủ', desc: 'Danh mục trang: Trang chủ', path: '/' },
+    { key: 'achievements', label: 'Thành tích', desc: 'Danh mục trang: Thành tích', path: '/achievements' },
+    { key: 'activities', label: 'Hoạt động', desc: 'Danh mục trang: Hoạt động', path: '/activities' },
+    { key: 'apply', label: 'Đơn đăng ký', desc: 'Danh mục trang: Đơn đăng ký', path: '/apply' },
+    { key: 'blog', label: 'Blog', desc: 'Trang khác: Blog', path: '/blog' },
+    { key: 'structure', label: 'Cơ cấu', desc: 'Trang khác: Cơ cấu', path: '/structure' },
+    { key: 'a80', label: 'A80', desc: 'Trang khác: A80', path: '/a80' },
+    { key: 'aiPage', label: 'AI', desc: 'Trang khác: AI', path: '/ai' },
+  ];
+
+  const testAll = () => {
+    services.forEach((svc) => runTest(svc.key, svc.label, svc.onTest));
+    pageChecks.forEach((page) =>
+      runPageTest(page.key, page.label, async () => {
+        const res = await fetch(page.path, { cache: 'no-store' });
+        return {
+          ok: res.ok,
+          msg: res.ok ? `Kết nối trang ${page.path} thành công` : await getErrorMessage(res),
+        };
+      })
+    );
+  };
 
   return (
     <div>
@@ -1749,10 +1818,15 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
           <h1 className="text-2xl font-bold text-slate-800">Kiểm thử kết nối</h1>
           <p className="text-sm text-slate-500 mt-1">Kiểm tra trạng thái các dịch vụ backend</p>
         </div>
-        <Button onClick={testAll} variant="outline" size="sm">
-          <Wrench className="w-4 h-4 mr-2" />
-          Test tất cả
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setLogs([])} variant="outline" size="sm" disabled={logs.length === 0}>
+            Xóa log
+          </Button>
+          <Button onClick={testAll} variant="outline" size="sm">
+            <Wrench className="w-4 h-4 mr-2" />
+            Test tất cả
+          </Button>
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
@@ -1779,7 +1853,7 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
                     variant="outline"
                     className="mt-3"
                     disabled={statuses[key] === 'loading'}
-                    onClick={() => runTest(key, onTest)}
+                    onClick={() => runTest(key, label, onTest)}
                   >
                     {statuses[key] === 'loading'
                       ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang kiểm tra…</>
@@ -1791,6 +1865,81 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
           </Card>
         ))}
       </div>
+
+      <div className="mt-6">
+        <h2 className="text-base font-semibold text-slate-700 mb-3">Kiểm tra kết nối theo trang</h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {pageChecks.map((page) => (
+            <Card key={page.key}>
+              <CardContent className="pt-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-100">
+                    <ExternalLink className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="font-medium text-slate-800">{page.label}</p>
+                      <StatusBadge status={pageStatuses[page.key] as ServiceStatus} />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">{page.desc}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{page.path}</p>
+                    {pageMessages[page.key] && (
+                      <p className={`text-xs mt-2 ${pageStatuses[page.key] === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+                        {pageMessages[page.key]}
+                      </p>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3"
+                      disabled={pageStatuses[page.key] === 'loading'}
+                      onClick={() =>
+                        runPageTest(page.key, page.label, async () => {
+                          const res = await fetch(page.path, { cache: 'no-store' });
+                          return {
+                            ok: res.ok,
+                            msg: res.ok ? `Kết nối trang ${page.path} thành công` : await getErrorMessage(res),
+                          };
+                        })
+                      }
+                    >
+                      {pageStatuses[page.key] === 'loading'
+                        ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang kiểm tra…</>
+                        : 'Kiểm tra'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Log kiểm thử kết nối</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {logs.length === 0 ? (
+            <p className="text-sm text-slate-500">Chưa có log. Hãy chạy kiểm tra để xem kết quả theo từng trang và dịch vụ.</p>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {logs.map((item) => (
+                <div key={item.id} className="rounded-lg border px-3 py-2 text-sm bg-slate-50">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-slate-800">{item.label}</p>
+                    <span className={item.ok ? 'text-green-600 text-xs font-semibold' : 'text-red-600 text-xs font-semibold'}>
+                      {item.ok ? 'SUCCESS' : 'ERROR'}
+                    </span>
+                  </div>
+                  <p className={item.ok ? 'text-green-700 text-xs mt-1' : 'text-red-700 text-xs mt-1'}>{item.msg}</p>
+                  <p className="text-[11px] text-slate-400 mt-1">{formatDateTime(item.at)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -1882,7 +2031,7 @@ function CategoryHomePanel() {
 // Panel: Category — Achievements
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CategoryAchievementsPanel() {
+function CategoryAchievementsPanel({ adminPassword }: { adminPassword: string }) {
   return (
     <div>
       <div className="mb-6">
@@ -1891,20 +2040,7 @@ function CategoryAchievementsPanel() {
         <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các thành tích của đoàn</p>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <Button disabled>
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Thêm thành tích mới
-        </Button>
-      </div>
-
-      <Card>
-        <CardContent className="py-16 text-center">
-          <Trophy className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">Chức năng đang phát triển</p>
-          <p className="text-sm text-slate-400 mt-1">Danh sách thành tích sẽ hiển thị ở đây</p>
-        </CardContent>
-      </Card>
+      <AchievementsAdmin adminPassword={adminPassword} />
     </div>
   );
 }

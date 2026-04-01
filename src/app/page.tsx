@@ -37,10 +37,10 @@ function HeroSection() {
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-4xl"
         >
-          <p className="mb-4 font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.32em] text-cyan-100/90 md:mb-5">
+          <p className="mb-4 font-['Space_Grotesk'] text-xs uppercase tracking-[0.32em] text-cyan-100/90 md:mb-5">
             UEL FINANCE AND BANKING YOUTH UNION
           </p>
-          <h1 className="font-[\"PT_Sans\"] text-4xl font-bold uppercase leading-[0.95] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] sm:text-5xl md:text-7xl lg:text-8xl">
+          <h1 className="font-['PT_Sans'] text-4xl font-bold uppercase leading-[0.95] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] sm:text-5xl md:text-7xl lg:text-8xl">
             Noi Khoi Dau
             <span className="block text-cyan-100">Nang Luc Tre</span>
           </h1>
@@ -51,13 +51,13 @@ function HeroSection() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/apply"
-              className="rounded-full border border-white/30 bg-white px-6 py-2.5 font-[\"Space_Grotesk\"] text-xs font-bold uppercase tracking-[0.2em] text-black transition-transform hover:-translate-y-0.5"
+              className="rounded-full border border-white/30 bg-white px-6 py-2.5 font-['Space_Grotesk'] text-xs font-bold uppercase tracking-[0.2em] text-black transition-transform hover:-translate-y-0.5"
             >
               Ung tuyen ngay
             </Link>
             <Link
               href="/activities"
-              className="rounded-full border border-white/35 bg-black/25 px-6 py-2.5 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-white hover:text-black"
+              className="rounded-full border border-white/35 bg-black/25 px-6 py-2.5 font-['Space_Grotesk'] text-xs font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-white hover:text-black"
             >
               Kham pha hanh trinh
             </Link>
@@ -94,10 +94,10 @@ function FeaturedSection() {
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.28em] text-[#2f6472]">
+          <p className="font-['Space_Grotesk'] text-xs uppercase tracking-[0.28em] text-[#2f6472]">
             Featured Story
           </p>
-          <h2 className="mt-4 font-[\"PT_Sans\"] text-3xl font-bold uppercase leading-tight md:text-5xl">
+          <h2 className="mt-4 font-['PT_Sans'] text-3xl font-bold uppercase leading-tight md:text-5xl">
             Dao tao ban linh
             <span className="block">tu nhung du an that</span>
           </h2>
@@ -108,13 +108,13 @@ function FeaturedSection() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/structure"
-              className="rounded-full border border-black/20 bg-black px-5 py-2.5 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#1e293b]"
+              className="rounded-full border border-black/20 bg-black px-5 py-2.5 font-['Space_Grotesk'] text-xs font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#1e293b]"
             >
               Xem co cau
             </Link>
             <Link
               href="/achievements"
-              className="rounded-full border border-black/20 px-5 py-2.5 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.2em] text-black transition-colors hover:bg-black hover:text-white"
+              className="rounded-full border border-black/20 px-5 py-2.5 font-['Space_Grotesk'] text-xs font-semibold uppercase tracking-[0.2em] text-black transition-colors hover:bg-black hover:text-white"
             >
               Thanh tich
             </Link>
@@ -149,8 +149,8 @@ function PromoSection() {
           transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-2xl text-right"
         >
-          <p className="font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.3em] text-cyan-100/85">Promo</p>
-          <h2 className="mt-3 font-[\"PT_Sans\"] text-4xl font-bold uppercase leading-[1.03] text-white md:text-6xl">
+          <p className="font-['Space_Grotesk'] text-xs uppercase tracking-[0.3em] text-cyan-100/85">Promo</p>
+          <h2 className="mt-3 font-['PT_Sans'] text-4xl font-bold uppercase leading-[1.03] text-white md:text-6xl">
             Khong chi la phong trao
             <span className="block">do la hanh trinh lon len</span>
           </h2>
@@ -196,8 +196,8 @@ function VisualGridSection() {
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
           className="mb-8 md:mb-10"
         >
-          <p className="font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.28em] text-cyan-100/80">Storyline</p>
-          <h2 className="mt-3 font-[\"PT_Sans\"] text-3xl font-bold uppercase leading-tight text-white md:text-5xl">
+          <p className="font-['Space_Grotesk'] text-xs uppercase tracking-[0.28em] text-cyan-100/80">Storyline</p>
+          <h2 className="mt-3 font-['PT_Sans'] text-3xl font-bold uppercase leading-tight text-white md:text-5xl">
             Nhung diem nhan
             <span className="block text-cyan-100">trong hanh trinh sinh vien</span>
           </h2>
@@ -222,11 +222,11 @@ function VisualGridSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/85" />
               <div className="absolute inset-x-0 bottom-0 p-5">
-                <h3 className="font-[\"PT_Sans\"] text-2xl font-bold uppercase text-white">{item.title}</h3>
+                <h3 className="font-['PT_Sans'] text-2xl font-bold uppercase text-white">{item.title}</h3>
                 <p className="mt-2 text-sm text-white/80">{item.desc}</p>
                 <Link
                   href={item.href}
-                  className="mt-4 inline-flex rounded-full border border-white/35 px-4 py-2 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.18em] text-white transition-colors hover:bg-white hover:text-black"
+                  className="mt-4 inline-flex rounded-full border border-white/35 px-4 py-2 font-['Space_Grotesk'] text-xs font-semibold uppercase tracking-[0.18em] text-white transition-colors hover:bg-white hover:text-black"
                 >
                   Xem them
                 </Link>

@@ -43,7 +43,7 @@ export async function GET() {
       'Ẩn danh': submission.is_anonymous ? 'Có' : 'Không',
       'Có hình ảnh': submission.image_url ? 'Có' : 'Không',
       'URL hình ảnh': submission.image_url || '',
-      'Thời gian tạo': new Date(submission.created_at).toLocaleString('vi-VN'),
+      'Thời gian tạo': new Date(submission.created_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }),
       'ID': submission.id
     }));
 

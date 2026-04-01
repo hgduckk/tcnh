@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Reply, Clock, User, UserX } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { formatDateTime } from '@/lib/utils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey =
@@ -114,9 +115,7 @@ export function CommentSystem() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('vi-VN');
-  };
+  const formatDate = formatDateTime;
 
   const CommentForm = ({ parentId, onCancel }: { parentId?: string; onCancel?: () => void }) => {
     const [name, setName] = useState('');

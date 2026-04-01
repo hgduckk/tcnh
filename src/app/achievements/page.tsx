@@ -6,19 +6,12 @@ import { Button } from '@/components/ui/button';
 import { PageBanner } from '@/components/shared/PageBanner';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Footer } from '@/components/layout/Footer';
+import type { AchievementRow } from '@/lib/achievements';
 
-export function FeaturedAchievement() {
-  const images = [
-    "/images/achievements/thaitran1.jpg",
-    "/images/achievements/thaitran2.jpg",
-    "/images/achievements/thaitran3.jpg",
-    "/images/achievements/thaitran4.jpg",
-    "/images/achievements/thaitran5.jpg",
-    "/images/achievements/thaitran6.jpg",
-
-  ];
+function FeaturedAchievement({ images }: { images: string[] }) {
+  if (images.length === 0) return null;
 
   const [current, setCurrent] = useState(0);
 
@@ -71,63 +64,35 @@ export function FeaturedAchievement() {
 }
 
 export default function AchievementsPage() {
-  const achievements = [
-    {
-      title: '04 năm liên tục hoàn thành xuất sắc nhiệm vụ trong công tác Đoàn và phong trào thanh niên Trường Đại học Kinh tế - Luật (2018 - 2019, 2019 - 2020, 2020 - 2021, 2021 - 2022). Trong đó Đoàn Khoa vinh dự nhận Lá cờ đầu năm học 2019 - 2020',
-      // description: 'Được công nhận vì đã quyên góp được số tiền cao nhất cho hoạt động từ thiện hàng năm của trường đại học.',
-      imageUrl: '/images/achievements/7.jpg',
-      imageHint: '7',
-    },
-    {
-      title: 'Giấy khen tập thể Đoàn khoa Tài chính - Ngân hàng Đoàn Trường ĐH Kinh tế - Luật "Đã có đóng góp tích cực trong Công tác Đoàn và phong trào thanh niên ĐHQG-HCM năm học 2024 - 2025" của Đoàn ĐHQG-HCM tại Hội nghị tổng kết Công tác Đoàn - Hội năm học',
-      // description: 'Được công nhận vì đã quyên góp được số tiền cao nhất cho hoạt động từ thiện hàng năm của trường đại học.',
-      imageUrl: '/images/achievements/1.jpg',
-      imageHint: '1',
-    },
-    {
-      title: 'Đạt thành tích tốt trong Tháng thanh niên Trường Đại học Kinh tế - Luật 2025. Chủ đề "Tuổi trẻ Kinh tế - Luật tự hào, vững tin theo Đảng"',
-      // description: 'Được vinh danh cho chuỗi hội thảo và dạy kèm của chúng tôi đã cải thiện đáng kể điểm số của sinh viên.',
-      imageUrl: '/images/achievements/2.jpeg',
-      imageHint: '2',
-    },
-    {
-      title: 'Hoàn thành xuất sắc nhiệm vụ Tháng thanh niên Trường Đại học Kinh tế - Luật 2021. Chủ đề: "Tự hào truyền thống Đoàn TNCS Hồ Chí Minh"',
-      // description: 'Được trao giải cho các sáng kiến tình nguyện thành công và quan hệ đối tác bền chặt của chúng tôi với các doanh nghiệp địa phương.',
-      imageUrl: '/images/achievements/3.jpg',
-      imageHint: '3',
-    },
-    {
-      title: 'Bằng khen Đoàn khoa Tài chính - Ngân hàng Đoàn Trường ĐH Kinh tế - Luật về Thực hiện tốt Chương trình hành động về “Tăng cường sự lãnh đạo của Đảng đối với công tác giáo dục lý tưởng cách mạng, đạo đức, lối sống văn hóa cho thế hệ trẻ giai đoạn 2015 - 2030" của BTV Thành đoàn TP. HCM',
-      // description: 'Được công nhận vì đã quyên góp được số tiền cao nhất cho hoạt động từ thiện hàng năm của trường đại học.',
-      imageUrl: '/images/achievements/4.jpg',
-      imageHint: '4',
-    },
-    {
-      title: 'Giấy khen tập thể Đoàn khoa Tài chính - Ngân hàng Đoàn Trường ĐH Kinh tế - Luật "Đã có đóng góp tích cực trong Công tác Đoàn và phong trào thanh niên ĐHQG-HCM" giai đoạn 2019 - 2022 của Ban Cán sự Đoàn ĐHQG-HCM',
-      // description: 'Được công nhận vì đã quyên góp được số tiền cao nhất cho hoạt động từ thiện hàng năm của trường đại học.',
-      imageUrl: '/images/achievements/5.jpg',
-      imageHint: '5',
-    },
-    {
-      title: 'Giấy khen tập thể Đoàn khoa Tài chính - Ngân hàng Đoàn Trường ĐH Kinh tế - Luật "Đã có thành tích xuất sắc trong Công tác Đoàn và phong trào thanh niên ĐHQG-HCM năm học 2020 - 2021" của Ban Cán sự Đoàn ĐHQG-HCM',
-      // description: 'Được công nhận vì đã quyên góp được số tiền cao nhất cho hoạt động từ thiện hàng năm của trường đại học.',
-      imageUrl: '/images/achievements/6.jpg',
-      imageHint: '6',
-    },
-    {
-      title: 'Đạt giải Nhất Vòng Chung khảo và Trao giải liên hoan các tiểu phẩm tuyên truyền “Tôi - Thanh niên Thành phố văn minh”',
-      // description: 'Được công nhận vì đã quyên góp được số tiền cao nhất cho hoạt động từ thiện hàng năm của trường đại học.',
-      imageUrl: '/images/achievements/8.jpg',
-      imageHint: '8',
-    },
-    {
-      title: 'Đạt giải Nhất môn Bóng đá, môn Cờ caro người; giải ba môn Kéo co và xếp hạng thứ Nhất toàn Đoàn tại Hội thao Cán bộ Đoàn - Hội 2024',
-      // description: 'Được công nhận vì đã quyên góp được số tiền cao nhất cho hoạt động từ thiện hàng năm của trường đại học.',
-      imageUrl: '/images/achievements/9.jpg',
-      imageHint: '9',
-    },
+  const [achievements, setAchievements] = useState<AchievementRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  ];
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/achievements', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to fetch achievements');
+        const json = await res.json();
+        if (!mounted) return;
+        setAchievements(Array.isArray(json?.data) ? json.data : []);
+      } catch {
+        if (!mounted) return;
+        setAchievements([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const featuredImages = useMemo(() => {
+    return achievements.slice(0, 6).map((x) => x.image_url);
+  }, [achievements]);
+
 
   return (
     <div>
@@ -140,9 +105,12 @@ export default function AchievementsPage() {
       />
 
       <main className="container mx-auto px-4 py-16 md:py-24">
-        <FeaturedAchievement/>
+        <FeaturedAchievement images={featuredImages} />
         <h2 className="text-4xl md:text-5xl font-anton font-medium text-primary mt-14 md:mt-20 text-center">THÀNH TÍCH TIÊU BIỂU</h2>
         <div className="mt-5 grid grid-cols-1 gap-8 place-items-center">
+          {!loading && achievements.length === 0 && (
+            <p className="text-sm text-muted-foreground">Chưa có thành tích nào để hiển thị.</p>
+          )}
           {achievements.map((achievement, index) => (
             <ScrollReveal key={index} delayMs={80 * index}>
               <Card className="w-full max-w-4xl overflow-hidden shadow-lg hover:shadow-3xl transition-all duration-300 group mt-10">
@@ -150,18 +118,17 @@ export default function AchievementsPage() {
                   <CardContent className="p-0 md:w-1/2 flex justify-center">
                     <div className="w-full max-w-[400px] h-[250px] md:h-[300px] overflow-hidden rounded-lg transition-transform duration-500 group-hover:scale-105">
                       <Image
-                        src={achievement.imageUrl}
+                        src={achievement.image_url}
                         alt={achievement.title}
                         width={600}
                         height={400}
                         className="object-cover w-full h-full"
-                        data-ai-hint={achievement.imageHint}
+                        data-ai-hint="achievement"
                       />
                     </div>
                   </CardContent>
                   <CardFooter className="p-6 md:w-1/2 flex flex-col justify-center bg-background">
-                    <h3 className=" font-nunito text-lg font-semibold text-primary text-justify">{achievement.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground text-justify"></p>
+                    <h3 className="font-nunito text-lg font-semibold text-primary text-justify">{achievement.title}</h3>
                   </CardFooter>
                 </div>
               </Card>

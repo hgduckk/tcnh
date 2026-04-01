@@ -18,6 +18,7 @@ import {
   Flag
 } from 'lucide-react';
 import { Footer } from '@/components/layout/Footer';
+import { formatDateTime } from '@/lib/utils';
 
 interface Submission {
   id: string;
@@ -126,9 +127,7 @@ export default function AdminA80Page() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('vi-VN');
-  };
+  const formatDate = formatDateTime;
 
   const getStats = () => {
     const total = submissions.length;

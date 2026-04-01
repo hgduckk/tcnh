@@ -274,7 +274,7 @@ export async function appendApplicationToSheet(applicationData: ApplicationData)
     // Chuẩn bị dữ liệu để ghi vào sheet
     const values = [
       [
-        new Date().toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }),
+        new Date().toLocaleString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: "Asia/Ho_Chi_Minh" }),
         applicationData.fullName,
         applicationData.birthDate,
         applicationData.gender,
@@ -531,7 +531,7 @@ export async function appendSubmissionToSheet(
     }
 
     const row = [
-      new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+      new Date().toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }),
       data.templateId,
       data.fullName,
       data.birthDate,

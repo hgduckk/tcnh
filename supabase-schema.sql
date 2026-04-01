@@ -199,3 +199,43 @@ ALTER TABLE application_form_template_history ENABLE ROW LEVEL SECURITY;
 -- CREATE TABLE IF NOT EXISTS application_form_template_history (
 --   ... (same as above)
 -- );
+
+-- ------------------------------------------------------------
+-- Achievements content (managed in /admin, rendered in /achievements)
+-- ------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS achievements (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  image_url TEXT NOT NULL,
+  image_alt TEXT NOT NULL DEFAULT '',
+  achieved_on DATE,
+  is_featured BOOLEAN NOT NULL DEFAULT false,
+  is_published BOOLEAN NOT NULL DEFAULT true,
+  display_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_achievements_published_order
+  ON achievements(is_published, display_order, created_at DESC);
+
+ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read published achievements" ON achievements
+  FOR SELECT USING (is_published = true);
+
+CREATE OR REPLACE FUNCTION set_achievements_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_achievements_updated_at ON achievements;
+CREATE TRIGGER trg_achievements_updated_at
+BEFORE UPDATE ON achievements
+FOR EACH ROW
+EXECUTE FUNCTION set_achievements_updated_at();
