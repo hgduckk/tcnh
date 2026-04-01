@@ -1,25 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
-import { nanoid } from "nanoid";
+import { assertAdminRequest } from "@/lib/adminAuth";
+import { isUuid } from "@/lib/achievements";
 import sharp from "sharp";
+import { serializeError } from "@/lib/utils";
+import { randomUUID } from "crypto";
 
 export const metadata = {
   name: "Upload Achievement Image",
   description: "Upload achievement image to Supabase Storage (converts to WebP)",
 };
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     // Check admin auth
-    const authHeader = request.headers.get("authorization") || "";
-    const token = authHeader.replace("Bearer ", "");
-
-    if (!token || token !== process.env.ADMIN_AUTH_TOKEN) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const authError = assertAdminRequest(request);
+    if (authError) return authError;
 
     if (!supabaseAdmin) {
       return NextResponse.json(
@@ -40,8 +36,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate or use provided achievement ID
-    const achievementId = providedId || nanoid();
+    // Ignore stale client IDs that are not valid UUIDs.
+    const achievementId = isUuid(providedId) ? providedId : randomUUID();
 
     // Read file as buffer
     const buffer = await file.arrayBuffer();
@@ -98,9 +94,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Upload failed",
-      },
+      { success: false, message: serializeError(error) },
       { status: 500 }
     );
   }

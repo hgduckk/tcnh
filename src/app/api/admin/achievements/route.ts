@@ -43,13 +43,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Missing title." }, { status: 400 });
     }
 
-    const payload = achievementInputToDb(normalized);
+    const payload = {
+      ...achievementInputToDb(normalized),
+      ...(normalized.id ? { id: normalized.id } : {}),
+    };
 
     if (normalized.id) {
       const { data, error } = await supabaseAdmin
         .from("achievements")
-        .update(payload)
-        .eq("id", normalized.id)
+        .upsert(payload, { onConflict: "id" })
         .select("id, title, image_url, is_published, display_order, created_at, updated_at")
         .single();
 

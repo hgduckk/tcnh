@@ -80,14 +80,15 @@ export function AchievementsAdmin({ adminPassword }: { adminPassword: string }) 
 
     setSaving(true);
     try {
+      let achievementId = editor.id;
       let finalImageUrl = editor.imageUrl;
 
       // Upload image if a new file is selected
       if (editor.imageFile) {
         const formData = new FormData();
         formData.append("file", editor.imageFile);
-        if (editor.id) {
-          formData.append("achievementId", editor.id);
+        if (achievementId) {
+          formData.append("achievementId", achievementId);
         }
 
         const uploadRes = await fetch("/api/admin/achievements/upload-image", {
@@ -99,13 +100,11 @@ export function AchievementsAdmin({ adminPassword }: { adminPassword: string }) 
         if (!uploadRes.ok) throw new Error(await uploadRes.text());
         const uploadJson = await uploadRes.json();
         finalImageUrl = uploadJson.data.imageUrl;
-        if (!editor.id) {
-          editor.id = uploadJson.data.achievementId;
-        }
+        achievementId = uploadJson.data.achievementId;
       }
 
       const payload = {
-        id: editor.id ?? undefined,
+        id: achievementId ?? undefined,
         title: editor.title,
         imageUrl: finalImageUrl,
         isPublished: editor.isPublished,

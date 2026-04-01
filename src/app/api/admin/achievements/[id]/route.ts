@@ -20,7 +20,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     // Delete image from Storage (ignore if doesn't exist)
     await supabaseAdmin.storage
       .from("achievements")
-      .remove([`${id}/image`])
+      .remove([`${id}/image.webp`])
       .catch(() => {
         // Silently ignore if file doesn't exist
       });

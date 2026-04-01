@@ -16,9 +16,15 @@ export type AchievementInput = {
   displayOrder?: number;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value.trim());
+}
+
 export function normalizeAchievementInput(input: any): AchievementInput {
   return {
-    id: input?.id ? String(input.id) : undefined,
+    id: isUuid(input?.id) ? String(input.id).trim() : undefined,
     title: String(input?.title ?? "").trim(),
     imageUrl: String(input?.imageUrl ?? "").trim(),
     isPublished: input?.isPublished === undefined ? true : Boolean(input.isPublished),

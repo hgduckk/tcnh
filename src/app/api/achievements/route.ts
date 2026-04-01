@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { serializeError } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    if (!supabase) {
+    const db = supabaseAdmin ?? supabase;
+
+    if (!db) {
       return NextResponse.json({ success: false, message: "Supabase not configured." }, { status: 500 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("achievements")
       .select("id, title, image_url, is_published, display_order, created_at, updated_at")
       .eq("is_published", true)
@@ -19,7 +25,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: data || [] }, {
       headers: {
-        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
       },
     });
   } catch (e) {
