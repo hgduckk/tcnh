@@ -11,6 +11,12 @@ interface ConditionalLayoutProps {
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
   const isA80Page = pathname === '/a80';
+  const isAdminPage = pathname === '/admin';
+
+  if (isAdminPage) {
+    // Admin page renders its own shell
+    return <>{children}</>;
+  }
 
   if (isA80Page) {
     // A80 page with header but no footer, full height minus header

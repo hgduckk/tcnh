@@ -7,6 +7,7 @@ import { PageBanner } from '@/components/shared/PageBanner';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { useState } from "react";
+import { Footer } from '@/components/layout/Footer';
 
 export function FeaturedAchievement() {
   const images = [
@@ -168,25 +169,7 @@ export default function AchievementsPage() {
           ))}
         </div>
       </main>
-
-      <div className="container mx-auto px-6 text-center">
-        <h2 style={{ color: "#45973c" }} className="text-3xl md:text-5xl font-anton font-medium text-primary mt-0 md:mt-0">TUYỂN CỘNG TÁC VIÊN</h2>
-          <Image
-            src="/images/back-bia.jpg"
-            alt="Extra illustration"
-            width={800}
-            height={400}
-            className="mt-6 md:mt-10 w-auto h-auto rounded-xl shadow-2xl object-cover mx-auto"
-          />
-          <div className="mt-6">
-            <Link href="/apply">
-              <Button className="bg-[#45973c] hover:bg-[#357a2e] text-white mb-20 px-6 py-6 text-lg font-semibold">
-                ỨNG TUYỂN NGAY
-              </Button>
-            </Link>
-          </div>
-      </div>
-
+      <Footer />
     </div>
   );
 }

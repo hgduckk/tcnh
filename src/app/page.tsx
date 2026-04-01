@@ -1,319 +1,281 @@
-"use client";  
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { ArrowRight } from 'lucide-react';
-import { ScrollReveal } from '@/components/shared/ScrollReveal';
-import { Footer } from '@/components/layout/Footer';
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { motion, useScroll, useTransform } from "framer-motion";
+import Lenis from "lenis";
 
-interface SiteConfig {
-  frontendUrl: string;
-  adminPageUrl: string;
-  showAdminLink: boolean;
-  adminLinkLabel: string;
+function HeroSection() {
+  const heroRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+
+  return (
+    <section ref={heroRef} className="relative h-screen overflow-hidden">
+      <motion.div className="absolute inset-0 z-0" style={{ y }}>
+        <Image
+          src="/images/backkipu.jpg"
+          alt="Doan khoa TCNH"
+          fill
+          priority
+          className="object-cover"
+        />
+      </motion.div>
+
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-[#08101a]/85 via-[#08101a]/35 to-[#08101a]/5" />
+      <div className="absolute -left-20 top-24 z-10 h-64 w-64 rounded-full bg-cyan-200/20 blur-3xl md:h-80 md:w-80" />
+      <div className="absolute -right-28 bottom-16 z-10 h-72 w-72 rounded-full bg-amber-200/20 blur-3xl md:h-96 md:w-96" />
+
+      <div className="relative z-20 mx-auto flex h-full w-full max-w-7xl items-end px-5 pb-20 md:items-center md:pb-0">
+        <motion.div
+          initial={{ opacity: 0, y: 36 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-4xl"
+        >
+          <p className="mb-4 font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.32em] text-cyan-100/90 md:mb-5">
+            UEL FINANCE AND BANKING YOUTH UNION
+          </p>
+          <h1 className="font-[\"PT_Sans\"] text-4xl font-bold uppercase leading-[0.95] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] sm:text-5xl md:text-7xl lg:text-8xl">
+            Noi Khoi Dau
+            <span className="block text-cyan-100">Nang Luc Tre</span>
+          </h1>
+          <p className="mt-5 max-w-2xl text-sm text-white/85 md:text-lg">
+            Khong gian ket noi, sang tao va hanh dong cua sinh vien TCNH voi nhung hanh trinh
+            phong trao day cam hung va gia tri cong dong ben vung.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              href="/apply"
+              className="rounded-full border border-white/30 bg-white px-6 py-2.5 font-[\"Space_Grotesk\"] text-xs font-bold uppercase tracking-[0.2em] text-black transition-transform hover:-translate-y-0.5"
+            >
+              Ung tuyen ngay
+            </Link>
+            <Link
+              href="/activities"
+              className="rounded-full border border-white/35 bg-black/25 px-6 py-2.5 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-white hover:text-black"
+            >
+              Kham pha hanh trinh
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
 }
 
-export default function Home() {
-  const videoSectionRef = useRef<HTMLDivElement>(null);
-  const [videoInView, setVideoInView] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [settings, setSettings] = useState({
-    youtubeVideoId: 'gAAYHpoEwyY',
-    homepageTitle: 'Đoàn Khoa Tài chính - Ngân hàng',
-    contactFormTitle: 'Liên hệ với chúng tôi',
-    contactFormSubtitle: 'Xin vui lòng cung cấp thông tin',
+function FeaturedSection() {
+  return (
+    <section className="relative bg-[#f2ede2] py-20 text-[#101116] md:py-28">
+      <div className="mx-auto grid w-full max-w-7xl gap-10 px-5 lg:grid-cols-[1.15fr_1fr] lg:items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="relative overflow-hidden rounded-[1.8rem] shadow-[0_30px_70px_rgba(17,24,39,0.18)]"
+        >
+          <Image
+            src="/images/doankhoa1.jpg"
+            alt="Sinh vien tham gia hoat dong"
+            width={1200}
+            height={900}
+            className="h-full w-full object-cover"
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <p className="font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.28em] text-[#2f6472]">
+            Featured Story
+          </p>
+          <h2 className="mt-4 font-[\"PT_Sans\"] text-3xl font-bold uppercase leading-tight md:text-5xl">
+            Dao tao ban linh
+            <span className="block">tu nhung du an that</span>
+          </h2>
+          <p className="mt-5 text-base leading-relaxed text-black/75 md:text-lg">
+            Moi chuong trinh la mot bai toan thuc te de sinh vien ren ky nang to chuc, truyen
+            thong, lanh dao va lam viec nhom trong boi canh da nhiem vu.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/structure"
+              className="rounded-full border border-black/20 bg-black px-5 py-2.5 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#1e293b]"
+            >
+              Xem co cau
+            </Link>
+            <Link
+              href="/achievements"
+              className="rounded-full border border-black/20 px-5 py-2.5 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.2em] text-black transition-colors hover:bg-black hover:text-white"
+            >
+              Thanh tich
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function PromoSection() {
+  const promoRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: promoRef,
+    offset: ["start end", "end start"],
   });
+  const y = useTransform(scrollYProgress, [0, 1], ["-20%", "20%"]);
 
-  const parseYouTubeId = (value: string) => {
-    const urlMatch = value.match(/(?:youtube\.com\/.*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if (urlMatch) return urlMatch[1];
-    if (value.includes('?')) return value.split('?')[0];
-    return value;
-  };
+  return (
+    <section ref={promoRef} className="relative h-screen overflow-hidden">
+      <motion.div className="absolute inset-0 z-0" style={{ y }}>
+        <Image src="/images/doankhoa2.jpg" alt="Khoanh khac thanh xuan" fill className="object-cover" />
+      </motion.div>
 
-  const videoId = parseYouTubeId(settings.youtubeVideoId || 'gAAYHpoEwyY');
-  const youtubeEmbedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&rel=0&modestbranding=1`;
+      <div className="absolute inset-0 z-10 bg-gradient-to-l from-black/85 via-black/45 to-transparent" />
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => setVideoInView(entry.isIntersecting));
-      },
-      { threshold: 0.5 }
-    );
+      <div className="relative z-20 mx-auto flex h-full w-full max-w-7xl items-center justify-end px-5">
+        <motion.div
+          initial={{ opacity: 0, x: 32 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-2xl text-right"
+        >
+          <p className="font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.3em] text-cyan-100/85">Promo</p>
+          <h2 className="mt-3 font-[\"PT_Sans\"] text-4xl font-bold uppercase leading-[1.03] text-white md:text-6xl">
+            Khong chi la phong trao
+            <span className="block">do la hanh trinh lon len</span>
+          </h2>
+          <p className="mt-5 ml-auto max-w-xl text-sm leading-relaxed text-white/80 md:text-base">
+            Moi chuong trinh la mot co hoi de ket noi, de phat trien va de luu giu nhung ky
+            niem dep nhat cua tuoi tre UEL.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 
-    if (videoSectionRef.current) observer.observe(videoSectionRef.current);
-
-    return () => {
-      if (videoSectionRef.current) observer.unobserve(videoSectionRef.current);
-      observer.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    async function loadSettings() {
-      try {
-        const res = await fetch('/api/admin/settings');
-        if (res.ok) {
-          const data = await res.json();
-          setSettings((prev) => ({ ...prev, ...data }));
-        }
-      } catch (error) {
-        console.error('Could not load admin settings:', error);
-      }
-
-      try {
-        await fetch('/api/admin/visits', { method: 'POST' });
-      } catch {
-        // ignore
-      }
-    }
-    loadSettings();
-
-    async function loadSiteConfig() {
-      try {
-        const res = await fetch('/api/site-config');
-        if (res.ok) {
-          setSiteConfig(await res.json());
-        }
-      } catch (error) {
-        console.warn('Could not load site config:', error);
-      }
-    }
-
-    loadSiteConfig();
-  }, []);
-
-  const carouselItems = [
+function VisualGridSection() {
+  const cards = [
     {
-      image: "/images/achievement.png",
-      hint: "achievement",
-      title: "Nhấn vào",
-      // description: "Nhấn để tìm hiểu thêm",
-      link: "/achievements"
+      title: "Hoat dong noi bat",
+      desc: "Cap nhat chuong trinh, su kien va khoanh khac dang nho cua nam hoc.",
+      href: "/activities",
+      image: "/images/sections/3/1.jpg",
     },
     {
-      image: "/images/activities.png",
-      hint: "activities",
-      title: "Nhấn vào",
-      // description: "Nhấn để tìm hiểu thêm",
-      link: "/activities"
+      title: "Thanh tich tap the",
+      desc: "Tong hop cot moc noi bat trong hoc tap, phong trao va cong dong.",
+      href: "/achievements",
+      image: "/images/achievements/2.jpg",
     },
     {
-      image: "/images/structure.png",
-      hint: "structure",
-      title: "Nhấn vào",
-      // description: "Nhấn để tìm hiểu thêm",
-      link: "/structure"
-    },
-    {
-      image: "/images/blog.png",
-      hint: "blog",
-      title: "Nhấn vào",
-      // description: "Nhấn để tìm hiểu thêm",
-      link: "/blog"
-    },
-    {
-      image: "/images/ai.png",
-      hint: "ai",
-      title: "Nhấn vào",
-      // description: "Nhấn để tìm hiểu thêm",
-      link: "/ai"
-    },
-    {
-      image: "/images/a80.png",
-      hint: "a80",
-      title: "Coming soon",
-      // description: "Nhấn để tìm hiểu thêm",
-      link: "/a80"
+      title: "Gia nhap cung chung toi",
+      desc: "Ung tuyen va bat dau hanh trinh phat trien cung Doan khoa TCNH.",
+      href: "/apply",
+      image: "/images/programn/4/2.jpg",
     },
   ];
 
   return (
-    <div className="flex flex-col">
-      {/* Banner Section */}
-      <section className="relative w-full text-center">
-        
-        <div className="relative">
-          <Image
-            src="/images/backkipu.jpg"
-            alt="Finance - Banking Faculty Union"
-            width={1920}
-            height={600}
-            className="w-full h-auto object-cover mt-0"
-            data-ai-hint="university campus"
-          />
-          {/* <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-4">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-headline font-bold mb-4 drop-shadow-lg">
-              CHÀO MỪNG ĐẾN VỚI 
-            </h1>
-            <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-headline font-extrabold mb-4 drop-shadow-lg">
-              ĐOÀN KHOA TÀI CHÍNH - NGÂN HÀNG
-            </h1>
-            <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl max-w-4xl mx-auto drop-shadow-md font-semibold italic">
-              Nơi trái tim gọi là "Nhà"
-            </p>
-          </div> */}
-        </div>
-      </section>
+    <section className="bg-[#08131b] py-16 md:py-24">
+      <div className="mx-auto w-full max-w-7xl px-5">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+          className="mb-8 md:mb-10"
+        >
+          <p className="font-[\"Space_Grotesk\"] text-xs uppercase tracking-[0.28em] text-cyan-100/80">Storyline</p>
+          <h2 className="mt-3 font-[\"PT_Sans\"] text-3xl font-bold uppercase leading-tight text-white md:text-5xl">
+            Nhung diem nhan
+            <span className="block text-cyan-100">trong hanh trinh sinh vien</span>
+          </h2>
+        </motion.div>
 
-      {/* Introduction Section */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <ScrollReveal>
-            <div className="space-y-16">
-              <div className="flex flex-col md:flex-row items-center gap-12 ">
-                <div className="md:w-1/2 space-y-4 text-center">
-                  <h2 className="text-3xl md:text-4xl font-anton font-medium text-primary">
-                    <span className="block md:inline">{settings.homepageTitle || 'Đoàn Khoa'}</span>{' '}
-                  </h2> 
-                  <p className="font-nunito text-muted-foreground text-lg text-justify">
-                    Đoàn Khoa Tài chính - Ngân hàng tự hào là lực lượng tiên phong trong công tác Đoàn và phong trào thanh niên tại Trường Đại học Kinh tế - Luật. Dưới sự dẫn dắt của Đoàn Trường và Chi ủy - Ban Chủ nhiệm Khoa, Đoàn Khoa Tài chính - Ngân hàng luôn đem đến những hoạt động năng động, nhiệt huyết, với sự tham gia và cống hiến của đông đảo sinh viên.
-                  </p>
-                </div>
-                <div className="md:w-1/2">
-                  <Image
-                    src="/images/doankhoa1.jpg"
-                    alt="Group of students"
-                    width={700}
-                    height={500}
-                    className="rounded-xl shadow-2xl"
-                    data-ai-hint="students collaborating"
-                  />
-                </div>
-              </div>
-
-              <h2 className="text-5xl md:text-5xl font-passions font-medium text-primary mt-0 text-center italic">"Giữa muôn vàn lựa chọn, chúng ta đã chọn cùng nhau đi qua những tháng năm rực rỡ nhất."</h2>
-              
-              <div className="flex flex-col md:flex-row-reverse items-center gap-12">
-                <div className="md:w-1/2 space-y-4 text-center">
-                  <p className="font-nunito text-muted-foreground text-lg text-justify">
-                  Mái nhà chung mang tên Đoàn khoa Tài chính - Ngân hàng, nơi các bạn có thể tìm thấy những người bạn đồng hành, những tri kỷ cùng chia sẻ đam mê, ước mơ và luôn an toàn, đáng tin cậy cho bạn hạ cánh viết tiếp những câu chuyện thanh xuân tươi đẹp khó phai. Bởi bằng ngọn lửa nhiệt huyết của tuổi trẻ, luôn sẵn sàng cống hiến vì những giá trị cộng đồng cùng tinh thần trách nhiệm và đoàn kết, Đoàn khoa Tài chính - Ngân hàng luôn là “tấm gương soi”, là cầu nối vững chắc, góp phần đưa các hoạt động Đoàn, các phong trào thanh niên tiêu biểu đến với các bạn sinh viên của Trường nói chung và sinh viên Khoa Tài chính - Ngân hàng nói riêng. 
-                  </p>
-                </div>
-                <div className="md:w-1/2">
-                  <Image
-                    src="/images/doankhoa2.jpg"
-                    alt="Group of students"
-                    width={700}
-                    height={500}
-                    className="rounded-xl shadow-2xl"
-                    data-ai-hint="students collaborating"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col md:flex-row items-center gap-12">
-                <div className="md:w-1/2 space-y-4 text-center">
-                  <p className="font-nunito text-muted-foreground text-lg text-justify">
-                  Với phương châm đặt lợi ích của sinh viên làm cốt lõi, từng hoạt động, chương trình của Đoàn Khoa không chỉ hứa hẹn sẽ tạo ra một môi trường năng động, sáng tạo và mang đậm dấu ấn riêng, mà còn góp phần nâng cao nhận thức chính trị, bồi dưỡng lý tưởng cách mạng cho đoàn viên, sinh viên. Các hoạt động được thiết kế nhằm hướng đến những nhu cầu thiết thực, kết hợp hài hòa giữa giáo dục chính trị – tư tưởng với phát triển kỹ năng và phong trào, qua đó đem lại cơ hội cho các bạn sinh viên thỏa sức khám phá bản thân, phát huy vai trò của tuổi trẻ, đồng thời lan tỏa những giá trị tích cực đến cộng đồng.
-                  </p>
-                </div>
-                <div className="md:w-1/2">
-                  <Image
-                    src="/images/doankhoa3.jpg"
-                    alt="Group of students"
-                    width={700}
-                    height={500}
-                    className="rounded-xl shadow-2xl"
-                    data-ai-hint="students collaborating"
-                  />
-                </div>
-              </div>
-
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-      
-      <h2 className="text-center text-2xl md:text-5xl font-anton font-medium text-primary mt-0">LÀ MỘT TÂN SINH VIÊN, BẠN SẼ CHỌN GÌ?</h2>
-      {/* Video Section */}
-      <section className="py-8 md:py-16" ref={videoSectionRef}>
-        <div className="container mx-auto px-4">
-          <div className="relative max-w-5xl mx-auto overflow-hidden rounded-xl shadow-2xl aspect-video">
-            <div className="absolute right-3 top-3 z-20">
-              <button
-                onClick={() => setIsMuted((prev) => !prev)}
-                className="rounded-md bg-black/60 px-3 py-1 text-sm text-white hover:bg-black"
-              >
-                {isMuted ? 'Unmute' : 'Mute'}
-              </button>
-            </div>
-            {videoInView ? (
-              <iframe
-                className="w-full h-full rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
-                src={youtubeEmbedUrl}
-                title="Home YouTube video"
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
+        <div className="grid gap-4 md:grid-cols-3">
+          {cards.map((item, index) => (
+            <motion.div
+              key={item.title}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.6, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              className="group relative overflow-hidden rounded-2xl border border-white/15"
+            >
+              <Image
+                src={item.image}
+                alt={item.title}
+                width={800}
+                height={560}
+                className="h-64 w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-            ) : (
-              <div className="w-full h-full rounded-xl bg-black flex items-center justify-center text-white">
-                Cuộn xuống để phát video.
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/85" />
+              <div className="absolute inset-x-0 bottom-0 p-5">
+                <h3 className="font-[\"PT_Sans\"] text-2xl font-bold uppercase text-white">{item.title}</h3>
+                <p className="mt-2 text-sm text-white/80">{item.desc}</p>
+                <Link
+                  href={item.href}
+                  className="mt-4 inline-flex rounded-full border border-white/35 px-4 py-2 font-[\"Space_Grotesk\"] text-xs font-semibold uppercase tracking-[0.18em] text-white transition-colors hover:bg-white hover:text-black"
+                >
+                  Xem them
+                </Link>
               </div>
-            )}
-          </div>
+            </motion.div>
+          ))}
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* Carousel Section */}
-      <section id="explore-section" className="py-16 md:py-24">
-        <div className="container mx-auto px-9 text-center">
-          <ScrollReveal>
-            <h2 className="text-3xl md:text-5xl font-anton font-medium text-primary mt-0 md:mt-0">
-              TÌM HIỂU VỀ CHÚNG TỚ
-            </h2>
-            <p className="text-muted-foreground font-nunito font-semibold text-1xl md:text-3xl mx-auto mb-6 mt-5 md:mb-12">
-              Các hoạt động, chương trình, sự kiện, thành tích nổi bật của Đoàn Khoa mình nè
-            </p>
-          </ScrollReveal>
-          <Carousel
-            opts={{
-              align: "start",
-              loop: true,
-            }}
-            className="w-full max-w-4xl mx-auto"
-          >
-            <CarouselContent>
-              {carouselItems.map((item, index) => (
-                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                  <div className="p-1 h-full">
-                    <ScrollReveal delayMs={80 * index}>
-                      <Link href={item.link} className="h-full block">
-                        <Card className="h-full flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                          <Image
-                            src={item.image}
-                            alt={item.title}
-                            width={600}
-                            height={400}
-                            className="w-full h-48 object-cover"
-                            data-ai-hint={item.hint}
-                          />
-                          <CardContent className="p-6 flex-grow flex flex-col justify-between">
-                            <div>
-                              <h3 className="text-xl font-headline font-semibold mb-2">{item.title}</h3>
-                              {/* <p className="text-muted-foreground text-sm">{item.description}</p> */}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </ScrollReveal>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 transform -translate-x-1/2" />
-            <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 transform translate-x-1/2" />
-          </Carousel>
-          
-        </div>
-      </section>
-      <Footer />
+export default function Home() {
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      gestureOrientation: "vertical",
+      smoothWheel: true,
+      syncTouch: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    let rafId = 0;
+
+    const raf = (time: number) => {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    };
+
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, []);
+
+  return (
+    <div className="bg-[#07131c] text-white">
+      <main className="relative z-0 overflow-x-clip">
+        <HeroSection />
+        <FeaturedSection />
+        <PromoSection />
+        <VisualGridSection />
+      </main>
     </div>
   );
 }

@@ -301,7 +301,8 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-700 flex flex-col items-center justify-center p-4">
+        <img src="/images/logo.png" alt="ĐKTCNH Logo" className="h-14 w-auto mb-8" />
         <Card className="w-full max-w-sm shadow-2xl">
           <CardHeader className="text-center pb-2">
             <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -335,13 +336,14 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <div className="flex flex-1 overflow-hidden" style={{ minHeight: 'calc(100vh - 4rem)' }}>
+      <div className="flex flex-1 overflow-hidden" style={{ minHeight: '100vh' }}>
 
         {/* ── Sidebar ────────────────────────────────────────────────────── */}
         <aside className="w-60 bg-white border-r flex flex-col shrink-0">
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex flex-col items-center gap-2">
+            <img src="/images/logo.png" alt="ĐKTCNH Logo" className="h-8 w-auto" />
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin Panel</p>
-            <h2 className="text-base font-bold text-slate-800 mt-0.5">Bảng điều khiển</h2>
+            <h2 className="text-base font-bold text-slate-800">Bảng điều khiển</h2>
           </div>
 
           <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
@@ -439,7 +441,6 @@ export default function AdminPage() {
                 totalSubmissions={totalSubmissions}
                 submissions={formSubmissions}
                 templates={formTemplates}
-                onNavigate={setActiveTab}
                 authHeaders={authHeaders}
                 onReload={() => reloadData(authHeaders)}
                 loadingData={loadingData}
@@ -471,7 +472,6 @@ function OverviewPanel({
   totalSubmissions,
   submissions,
   templates,
-  onNavigate,
   authHeaders,
   onReload,
   loadingData,
@@ -480,7 +480,6 @@ function OverviewPanel({
   totalSubmissions: number;
   submissions: FormSubmission[];
   templates: FormTemplateSummary[];
-  onNavigate: (tab: AdminTab) => void;
   authHeaders: Record<string, string>;
   onReload: () => void;
   loadingData: boolean;
@@ -506,6 +505,7 @@ function OverviewPanel({
   const [saveDetailSuccess, setSaveDetailSuccess] = useState(false);
   const [detailTemplate, setDetailTemplate] = useState<FormTemplateSummary | null>(null);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [showFormsAnalytics, setShowFormsAnalytics] = useState(false);
 
   const selectedTemplate = useMemo(
     () => templates.find(t => t.id === selectedTemplateId) || null,
@@ -774,24 +774,33 @@ function OverviewPanel({
     }
   };
 
-  const quickLinks = [
-    { icon: Home,     label: 'Trang chủ',   desc: 'Hình ảnh & video',  tab: 'category-home'          as AdminTab, color: 'bg-orange-50 text-orange-600' },
-    { icon: Trophy,   label: 'Thành tích',  desc: 'Thêm / chỉnh sửa', tab: 'category-achievements'  as AdminTab, color: 'bg-yellow-50 text-yellow-600' },
-    { icon: Activity, label: 'Hoạt động',   desc: 'Thêm / chỉnh sửa', tab: 'category-activities'    as AdminTab, color: 'bg-green-50 text-green-600'  },
-    { icon: FileText, label: 'Đơn đăng ký', desc: 'Quản lý forms',     tab: 'category-apply'         as AdminTab, color: 'bg-blue-50 text-blue-600'   },
-  ];
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleOpenFormsAnalytics = () => {
+    if (!showFormsAnalytics) {
+      setShowFormsAnalytics(true);
+      setTimeout(() => scrollToSection('forms-analytics-section'), 80);
+      return;
+    }
+    scrollToSection('forms-analytics-section');
+  };
 
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Tổng quan</h1>
-          <p className="text-sm text-slate-500 mt-1">Thống kê và tổng hợp dữ liệu website</p>
+          <p className="text-sm text-slate-500 mt-1">Thống kê và tổng hợp dữ liệu</p>
         </div>
         <Button variant="outline" size="sm" onClick={onReload} disabled={loadingData} className="shrink-0 mt-1">
           {loadingData
             ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang tải…</>
-            : <><svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Làm mới dữ liệu</>}
+            : <><svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Reload</>}
         </Button>
       </div>
 
@@ -843,24 +852,55 @@ function OverviewPanel({
         </Card>
       </div>
 
-      {/* Quick navigation */}
-      <h2 className="text-base font-semibold text-slate-700 mb-3">Truy cập nhanh</h2>
+      {/* Visual navigation */}
+      <h2 className="text-base font-semibold text-slate-700 mb-3">Tính năng</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {quickLinks.map(({ icon: Icon, label, desc, tab, color }) => (
-          <button
-            key={tab}
-            onClick={() => onNavigate(tab)}
-            className="p-4 bg-white rounded-xl border hover:border-blue-200 hover:shadow-sm transition-all text-left group"
-          >
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${color}`}>
-              <Icon className="w-5 h-5" />
-            </div>
-            <p className="text-sm font-medium text-slate-700 group-hover:text-blue-700">{label}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
-          </button>
-        ))}
+        <button
+          onClick={handleOpenFormsAnalytics}
+          className="p-4 bg-white rounded-xl border hover:border-blue-200 hover:shadow-sm transition-all text-left group"
+        >
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-blue-50 text-blue-600">
+            <FileText className="w-5 h-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-700 group-hover:text-blue-700">Đơn đăng ký</p>
+          <p className="text-xs text-slate-400 mt-0.5">Hiển thị danh sách và phân tích đơn</p>
+        </button>
+
+        <button
+          onClick={() => scrollToSection('candidate-stats-section')}
+          className="p-4 bg-white rounded-xl border hover:border-violet-200 hover:shadow-sm transition-all text-left group"
+        >
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-violet-50 text-violet-600">
+            <Activity className="w-5 h-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-700 group-hover:text-violet-700">Dữ liệu ứng viên</p>
+          <p className="text-xs text-slate-400 mt-0.5">Theo ban, giới tính và lớp</p>
+        </button>
+
+        <button
+          onClick={() => scrollToSection('recruitment-results-section')}
+          className="p-4 bg-white rounded-xl border hover:border-emerald-200 hover:shadow-sm transition-all text-left group"
+        >
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-emerald-50 text-emerald-600">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Kết quả tuyển</p>
+          <p className="text-xs text-slate-400 mt-0.5">Thống kê trạng thái ứng viên</p>
+        </button>
+
+        <button
+          onClick={() => scrollToSection('accepted-candidates-section')}
+          className="p-4 bg-white rounded-xl border hover:border-amber-200 hover:shadow-sm transition-all text-left group"
+        >
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-amber-50 text-amber-600">
+            <ClipboardList className="w-5 h-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-700 group-hover:text-amber-700">Tân cộng tác viên</p>
+          <p className="text-xs text-slate-400 mt-0.5">Danh sách trúng tuyển theo ban</p>
+        </button>
       </div>
 
+      {showFormsAnalytics && (
       <div id="forms-analytics-section" className="mt-8">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
@@ -1203,6 +1243,7 @@ function OverviewPanel({
 
         {/* ── Candidate Data Statistics ─────────────────────────────── */}
         <Card className="mt-6">
+          <div id="candidate-stats-section" />
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Thống kê dữ liệu ứng viên</CardTitle>
             <CardDescription className="text-xs">Phân tích đơn đăng ký theo ban, giới tính và lớp</CardDescription>
@@ -1289,6 +1330,7 @@ function OverviewPanel({
 
         {/* ── Application Results Statistics ───────────────────────── */}
         <Card className="mt-6">
+          <div id="recruitment-results-section" />
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Thống kê kết quả tuyển Cộng tác viên</CardTitle>
           </CardHeader>
@@ -1356,6 +1398,7 @@ function OverviewPanel({
 
         {/* ── Accepted Candidates by Department ────────────────────── */}
         <Card className="mt-6 mb-2">
+          <div id="accepted-candidates-section" />
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Danh sách Tân cộng tác viên</CardTitle>
           </CardHeader>
@@ -1368,7 +1411,7 @@ function OverviewPanel({
                   <div key={dept}>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                      <h3 className="font-semibold text-slate-800 text-sm text-blue-500">Ban {dept}</h3>
+                      <h3 className="font-semibold text-sm text-blue-500">Ban {dept}</h3>
                       <Badge className="bg-green-100 text-green-700 border border-green-200 hover:bg-green-100 text-xs">
                         {candidates.length} bạn
                       </Badge>
@@ -1406,6 +1449,7 @@ function OverviewPanel({
           </>
         )}
       </div>
+      )}
 
       <Dialog open={!!detailSubmission} onOpenChange={(open) => { if (!open) { setDetailSubmission(null); setDetailTemplate(null); } }}>
         <DialogContent className="inset-0 left-0 top-0 translate-x-0 translate-y-0 m-auto w-[calc(100%-2rem)] max-w-5xl h-fit max-h-[90vh] overflow-y-auto">
