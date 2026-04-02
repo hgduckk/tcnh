@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
-import { ACTIVITY_SELECT_COLUMNS, mapActivityRow } from "@/lib/activities";
+import { mapTestimonialRow, TESTIMONIAL_SELECT_COLUMNS } from "@/lib/blog";
 import { serializeError } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -16,19 +16,22 @@ export async function GET() {
     }
 
     const { data, error } = await db
-      .from("activities")
-      .select(ACTIVITY_SELECT_COLUMNS)
+      .from("alumni_testimonials")
+      .select(TESTIMONIAL_SELECT_COLUMNS)
       .eq("is_published", true)
       .order("display_order", { ascending: true })
       .order("created_at", { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data: (data || []).map(mapActivityRow) }, {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-      },
-    });
+    return NextResponse.json(
+      { success: true, data: (data || []).map(mapTestimonialRow) },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (e) {
     return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }

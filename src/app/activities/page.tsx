@@ -1,16 +1,14 @@
 "use client";
 
 import Image from 'next/image';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { PageBanner } from '@/components/shared/PageBanner';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { Footer } from '@/components/layout/Footer';
 import { useEffect, useState } from 'react';
-import type { ActivityRow } from '@/lib/activities';
+import { ACTIVITY_TYPE_LABELS, type ActivityRow } from '@/lib/activities';
 import type { PartnerRow } from '@/lib/partners';
 
 export default function ActivitiesPage() {
@@ -49,11 +47,72 @@ export default function ActivitiesPage() {
         fetchData();
     }, []);
 
+    const categoryItems = activities.filter((activity) => activity.activity_type === 'category');
+    const programItems = activities.filter((activity) => activity.activity_type === 'program');
+    const defaultTab = categoryItems.length > 0 ? 'category' : 'program';
+
+    const renderActivityList = (items: ActivityRow[], emptyMessage: string) => {
+        if (items.length === 0) {
+            return (
+                <div className="text-center py-12">
+                    <p className="text-muted-foreground">{emptyMessage}</p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="space-y-12">
+                {items.map((activity, idx) => (
+                    <ScrollReveal key={activity.id} delayMs={80 * idx}>
+                        <Card className="overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300 grid md:grid-cols-2 bg-white">
+                            <div className="p-6 bg-gradient-to-r from-blue-50 to-blue-100 flex items-center justify-center">
+                                {activity.images && activity.images.length > 0 ? (
+                                    <Carousel className="w-full max-w-sm" opts={{ loop: true }}>
+                                        <CarouselContent>
+                                            {activity.images.map((imageUrl, imageIndex) => (
+                                                <CarouselItem key={imageIndex}>
+                                                    <Image
+                                                        src={imageUrl}
+                                                        alt={`${activity.name} image ${imageIndex + 1}`}
+                                                        width={600}
+                                                        height={400}
+                                                        className="rounded-xl object-cover transform transition-transform duration-300 hover:scale-105"
+                                                    />
+                                                </CarouselItem>
+                                            ))}
+                                        </CarouselContent>
+                                        {activity.images.length > 1 && (
+                                            <>
+                                                <CarouselPrevious className="absolute top-1/2 -translate-y-1/2 left-2 text-white bg-transparent hover:bg-transparent" />
+                                                <CarouselNext className="absolute top-1/2 -translate-y-1/2 right-2 text-white bg-transparent hover:bg-transparent" />
+                                            </>
+                                        )}
+                                    </Carousel>
+                                ) : (
+                                    <div className="w-full max-w-sm aspect-video rounded-xl bg-muted flex items-center justify-center">
+                                        <p className="text-muted-foreground">Không có hình ảnh</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-8 flex flex-col justify-center">
+                                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary/70 mb-3">
+                                    {ACTIVITY_TYPE_LABELS[activity.activity_type]}
+                                </p>
+                                <h3 className="font-headline text-3xl font-bold text-primary text-justify mb-4">{activity.name}</h3>
+                                <p className="text-muted-foreground leading-relaxed text-justify">{activity.description}</p>
+                            </div>
+                        </Card>
+                    </ScrollReveal>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div>
             <PageBanner
                 title="HOẠT ĐỘNG CỦA CHÚNG TỚ"
-                subtitle="Các chương trình và sự kiện hấp dẫn mà Đoàn Khoa đã tổ chức."
+                subtitle="Các chuyên mục và chương trình nổi bật mà Đoàn Khoa đã thực hiện."
                 imageUrl="/images/back-ocean.jpg"
                 imageHint="students event"
             />
@@ -78,47 +137,34 @@ export default function ActivitiesPage() {
                 )}
 
                 {!loading && !error && activities.length > 0 && (
-                    <div className="space-y-12">
-                        {activities.map((activity, idx) => (
-                            <ScrollReveal key={activity.id} delayMs={80 * idx}>
-                              <Card className="overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300 grid md:grid-cols-2 bg-white">
-                                <div className="p-6 bg-gradient-to-r from-blue-50 to-blue-100 flex items-center justify-center">
-                                    {activity.images && activity.images.length > 0 ? (
-                                        <Carousel className="w-full max-w-sm" opts={{loop: true}}>
-                                            <CarouselContent>
-                                                {activity.images.map((imageUrl, i) => (
-                                                    <CarouselItem key={i}>
-                                                        <Image 
-                                                            src={imageUrl} 
-                                                            alt={`${activity.name} image ${i + 1}`} 
-                                                            width={600} 
-                                                            height={400} 
-                                                            className="rounded-xl object-cover transform transition-transform duration-300 hover:scale-105"
-                                                        />
-                                                    </CarouselItem>
-                                                ))}
-                                            </CarouselContent>
-                                            {activity.images.length > 1 && (
-                                                <>
-                                                    <CarouselPrevious className="absolute top-1/2 -translate-y-1/2 left-2 text-white bg-transparent hover:bg-transparent" />
-                                                    <CarouselNext className="absolute top-1/2 -translate-y-1/2 right-2 text-white bg-transparent hover:bg-transparent" />
-                                                </>
-                                            )}
-                                        </Carousel>
-                                    ) : (
-                                        <div className="w-full max-w-sm aspect-video rounded-xl bg-muted flex items-center justify-center">
-                                            <p className="text-muted-foreground">Không có hình ảnh</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="p-8 flex flex-col justify-center">
-                                    <h3 className="font-headline text-3xl font-bold text-primary text-justify mb-4">{activity.name}</h3>
-                                    <p className="text-muted-foreground leading-relaxed text-justify">{activity.description}</p>
-                                </div>
-                              </Card>
-                            </ScrollReveal>
-                        ))}
-                    </div>
+                    <Tabs defaultValue={defaultTab} className="space-y-8">
+                        <div className="flex justify-center">
+                            <TabsList className="grid w-full max-w-xl grid-cols-2 h-auto rounded-full bg-slate-100 p-1">
+                                <TabsTrigger value="category" className="rounded-full px-6 py-3 text-sm md:text-base">
+                                    Chuyên mục
+                                </TabsTrigger>
+                                <TabsTrigger value="program" className="rounded-full px-6 py-3 text-sm md:text-base">
+                                    Chương trình
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
+
+                        <TabsContent value="category" className="space-y-6">
+                            <div className="text-center space-y-2">
+                                <h2 className="text-3xl md:text-4xl font-anton text-primary">{ACTIVITY_TYPE_LABELS.category}</h2>
+                                <p className="text-muted-foreground">Nội dung chia sẻ, lan tỏa và đồng hành cùng sinh viên.</p>
+                            </div>
+                            {renderActivityList(categoryItems, 'Chưa có chuyên mục nào để hiển thị.')}
+                        </TabsContent>
+
+                        <TabsContent value="program" className="space-y-6">
+                            <div className="text-center space-y-2">
+                                <h2 className="text-3xl md:text-4xl font-anton text-primary">{ACTIVITY_TYPE_LABELS.program}</h2>
+                                <p className="text-muted-foreground">Những chương trình, sự kiện và hoạt động nổi bật của Đoàn Khoa.</p>
+                            </div>
+                            {renderActivityList(programItems, 'Chưa có chương trình nào để hiển thị.')}
+                        </TabsContent>
+                    </Tabs>
                 )}
                 
                 {/* Partners Section */}

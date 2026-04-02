@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, GripVertical, X } from "lucide-react";
 import Image from "next/image";
-import type { ActivityRow } from "@/lib/activities";
+import {
+  ACTIVITY_TYPE_LABELS,
+  DEFAULT_ACTIVITY_TYPE,
+  type ActivityRow,
+  type ActivityType,
+} from "@/lib/activities";
 
 type EditorState = {
   id: string | null;
+  activityType: ActivityType;
   name: string;
   description: string;
   images: string[];
@@ -22,6 +29,7 @@ type EditorState = {
 
 const initialEditor: EditorState = {
   id: null,
+  activityType: DEFAULT_ACTIVITY_TYPE,
   name: "",
   description: "",
   images: [],
@@ -36,6 +44,7 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
   const [error, setError] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState>(initialEditor);
   const [dragOrder, setDragOrder] = useState<ActivityRow[]>([]);
+  const [activeTypeFilter, setActiveTypeFilter] = useState<"all" | ActivityType>("all");
   const [isDragging, setIsDragging] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
@@ -65,11 +74,16 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const resetEditor = () => setEditor(initialEditor);
+  const resetEditor = () =>
+    setEditor({
+      ...initialEditor,
+      activityType: activeTypeFilter === "all" ? DEFAULT_ACTIVITY_TYPE : activeTypeFilter,
+    });
 
   const editRow = (row: ActivityRow) => {
     setEditor({
       id: row.id,
+      activityType: row.activity_type,
       name: row.name || "",
       description: row.description || "",
       images: row.images || [],
@@ -111,6 +125,7 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
 
       const payload = {
         id: activityId ?? undefined,
+        activityType: editor.activityType,
         name: editor.name,
         description: editor.description,
         images: finalImages,
@@ -223,6 +238,14 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
     return editor.imageFiles.map((file) => URL.createObjectURL(file));
   }, [editor.imageFiles]);
 
+  const visibleRows = useMemo(() => {
+    if (activeTypeFilter === "all") {
+      return dragOrder;
+    }
+
+    return dragOrder.filter((row) => row.activity_type === activeTypeFilter);
+  }, [activeTypeFilter, dragOrder]);
+
   return (
     <div className="space-y-6">
       {error && (
@@ -238,20 +261,38 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
-            <label className="text-sm font-semibold">Tên hoạt động</label>
+            <label className="text-sm font-semibold">Hiển thị tại mục nào?</label>
+            <Select
+              value={editor.activityType}
+              onValueChange={(value) =>
+                setEditor((prev) => ({ ...prev, activityType: value as ActivityType }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Chọn vị trí hiển thị" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="category">{ACTIVITY_TYPE_LABELS.category}</SelectItem>
+                <SelectItem value="program">{ACTIVITY_TYPE_LABELS.program}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-semibold">Tên nội dung</label>
             <Input
               value={editor.name}
               onChange={(e) => setEditor((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Nhập tên hoạt động"
+              placeholder="Nhập tên nội dung"
             />
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-semibold">Mô tả hoạt động</label>
+            <label className="text-sm font-semibold">Mô tả</label>
             <Textarea
               value={editor.description}
               onChange={(e) => setEditor((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Nhập mô tả hoạt động"
+              placeholder="Nhập mô tả nội dung"
               rows={4}
             />
           </div>
@@ -340,7 +381,7 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
               Reset
             </Button>
             <Button type="button" onClick={save} disabled={saving}>
-              {saving ? "Đang lưu..." : "Lưu hoạt động"}
+              {saving ? "Đang lưu..." : "Lưu nội dung"}
             </Button>
           </div>
         </CardContent>
@@ -348,7 +389,35 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Danh sách hoạt động</CardTitle>
+          <div className="space-y-3">
+            <CardTitle>Danh sách nội dung</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={activeTypeFilter === "all" ? "default" : "outline"}
+                onClick={() => setActiveTypeFilter("all")}
+              >
+                Tất cả
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={activeTypeFilter === "category" ? "default" : "outline"}
+                onClick={() => setActiveTypeFilter("category")}
+              >
+                {ACTIVITY_TYPE_LABELS.category}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={activeTypeFilter === "program" ? "default" : "outline"}
+                onClick={() => setActiveTypeFilter("program")}
+              >
+                {ACTIVITY_TYPE_LABELS.program}
+              </Button>
+            </div>
+          </div>
           <div className="flex gap-2">
             {isDragging && (
               <Button
@@ -367,10 +436,12 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
         </CardHeader>
         <CardContent>
           {rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Chưa có hoạt động nào. Nhấn "Tải lại" để đồng bộ.</p>
+            <p className="text-sm text-muted-foreground">Chưa có nội dung nào. Nhấn "Tải lại" để đồng bộ.</p>
+          ) : visibleRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Không có nội dung nào trong nhóm đang chọn.</p>
           ) : (
             <div className="space-y-3">
-              {dragOrder.map((row) => (
+              {visibleRows.map((row) => (
                 <div
                   key={row.id}
                   draggable
@@ -407,6 +478,7 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
                           </div>
                         )}
                         <div className="flex gap-2 flex-wrap">
+                          <Badge variant="secondary">{ACTIVITY_TYPE_LABELS[row.activity_type]}</Badge>
                           {row.is_published ? <Badge>Public</Badge> : <Badge variant="destructive">Ẩn</Badge>}
                           <Badge variant="outline">{row.images?.length || 0} ảnh</Badge>
                         </div>

@@ -3,7 +3,7 @@ import { assertAdminRequest } from "@/lib/adminAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { serializeError } from "@/lib/utils";
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const authError = assertAdminRequest(req);
     if (authError) return authError;
@@ -12,7 +12,8 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
     }
 
-    const id = String(params.id || "").trim();
+    const { id: rawId } = await context.params;
+    const id = String(rawId || "").trim();
     if (!id) {
       return NextResponse.json({ success: false, message: "Missing activity id." }, { status: 400 });
     }

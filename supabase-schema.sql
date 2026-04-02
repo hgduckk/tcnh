@@ -27,6 +27,78 @@ CREATE POLICY "Anyone can insert comments" ON comments
 -- Enable realtime for the comments table
 ALTER publication supabase_realtime ADD TABLE comments;
 
+-- Blog comments upgrade: role + moderation
+ALTER TABLE comments
+  ADD COLUMN IF NOT EXISTS author_role TEXT NOT NULL DEFAULT 'user',
+  ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'comments_author_role_check'
+  ) THEN
+    ALTER TABLE comments
+      ADD CONSTRAINT comments_author_role_check
+      CHECK (author_role IN ('user', 'admin'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_comments_published_created_at
+  ON comments(is_published, created_at DESC);
+
+DROP POLICY IF EXISTS "Anyone can view comments" ON comments;
+DROP POLICY IF EXISTS "Anyone can insert comments" ON comments;
+
+CREATE POLICY "Public can view published comments" ON comments
+  FOR SELECT USING (is_published = true);
+
+CREATE POLICY "Anon can insert user comments only" ON comments
+  FOR INSERT WITH CHECK (author_role = 'user' AND is_published = true);
+
+-- Alumni testimonials for /blog
+CREATE TABLE IF NOT EXISTS alumni_testimonials (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  avatar_url TEXT,
+  positions JSONB NOT NULL DEFAULT '[]'::jsonb,
+  message TEXT NOT NULL,
+  is_published BOOLEAN NOT NULL DEFAULT true,
+  display_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_alumni_testimonials_published_order
+  ON alumni_testimonials(is_published, display_order, created_at DESC);
+
+ALTER TABLE alumni_testimonials ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can read published alumni testimonials" ON alumni_testimonials;
+CREATE POLICY "Public can read published alumni testimonials" ON alumni_testimonials
+  FOR SELECT USING (is_published = true);
+
+CREATE OR REPLACE FUNCTION set_alumni_testimonials_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_alumni_testimonials_updated_at ON alumni_testimonials;
+CREATE TRIGGER trg_alumni_testimonials_updated_at
+BEFORE UPDATE ON alumni_testimonials
+FOR EACH ROW
+EXECUTE FUNCTION set_alumni_testimonials_updated_at();
+
+-- Public storage bucket for alumni testimonial avatars
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('blog-testimonials', 'blog-testimonials', true)
+ON CONFLICT (id) DO NOTHING;
+
 -- ------------------------------------------------------------
 -- Application forms (template + submissions)
 -- ------------------------------------------------------------
@@ -246,11 +318,28 @@ CREATE TABLE IF NOT EXISTS activities (
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   images JSONB NOT NULL DEFAULT '[]'::jsonb,
+  activity_type TEXT NOT NULL DEFAULT 'program' CHECK (activity_type IN ('category', 'program')),
   is_published BOOLEAN NOT NULL DEFAULT true,
   display_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE activities
+  ADD COLUMN IF NOT EXISTS activity_type TEXT NOT NULL DEFAULT 'program';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'activities_activity_type_check'
+  ) THEN
+    ALTER TABLE activities
+      ADD CONSTRAINT activities_activity_type_check
+      CHECK (activity_type IN ('category', 'program'));
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_activities_published_order
   ON activities(is_published, display_order, created_at DESC);

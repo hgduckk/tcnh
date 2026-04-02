@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { assertAdminRequest } from "@/lib/adminAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import {
-  ACTIVITY_SELECT_COLUMNS,
-  activityInputToDb,
-  mapActivityRow,
-  normalizeActivityInput,
-} from "@/lib/activities";
+  mapTestimonialRow,
+  normalizeTestimonialInput,
+  testimonialInputToDb,
+  TESTIMONIAL_SELECT_COLUMNS,
+} from "@/lib/blog";
 import { serializeError } from "@/lib/utils";
 
 export async function GET(req: Request) {
@@ -15,18 +15,21 @@ export async function GET(req: Request) {
     if (authError) return authError;
 
     if (!supabaseAdmin) {
-      return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
+      return NextResponse.json(
+        { success: false, message: "Supabase admin client not configured." },
+        { status: 500 }
+      );
     }
 
     const { data, error } = await supabaseAdmin
-      .from("activities")
-      .select(ACTIVITY_SELECT_COLUMNS)
+      .from("alumni_testimonials")
+      .select(TESTIMONIAL_SELECT_COLUMNS)
       .order("display_order", { ascending: true })
       .order("created_at", { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data: (data || []).map(mapActivityRow) });
+    return NextResponse.json({ success: true, data: (data || []).map(mapTestimonialRow) });
   } catch (e) {
     return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }
@@ -38,41 +41,48 @@ export async function POST(req: Request) {
     if (authError) return authError;
 
     if (!supabaseAdmin) {
-      return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
+      return NextResponse.json(
+        { success: false, message: "Supabase admin client not configured." },
+        { status: 500 }
+      );
     }
 
     const body = await req.json();
-    const normalized = normalizeActivityInput(body);
+    const normalized = normalizeTestimonialInput(body);
 
-    if (!normalized.name) {
-      return NextResponse.json({ success: false, message: "Missing activity name." }, { status: 400 });
+    if (!normalized.fullName) {
+      return NextResponse.json({ success: false, message: "Missing full name." }, { status: 400 });
+    }
+
+    if (!normalized.message) {
+      return NextResponse.json({ success: false, message: "Missing testimonial message." }, { status: 400 });
     }
 
     const payload = {
-      ...activityInputToDb(normalized),
+      ...testimonialInputToDb(normalized),
       ...(normalized.id ? { id: normalized.id } : {}),
     };
 
     if (normalized.id) {
       const { data, error } = await supabaseAdmin
-        .from("activities")
+        .from("alumni_testimonials")
         .upsert(payload, { onConflict: "id" })
-        .select(ACTIVITY_SELECT_COLUMNS)
+        .select(TESTIMONIAL_SELECT_COLUMNS)
         .single();
 
       if (error) throw error;
-      return NextResponse.json({ success: true, data: mapActivityRow(data) });
+      return NextResponse.json({ success: true, data: mapTestimonialRow(data) });
     }
 
     const { data, error } = await supabaseAdmin
-      .from("activities")
+      .from("alumni_testimonials")
       .insert(payload)
-      .select(ACTIVITY_SELECT_COLUMNS)
+      .select(TESTIMONIAL_SELECT_COLUMNS)
       .single();
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data: mapActivityRow(data) });
+    return NextResponse.json({ success: true, data: mapTestimonialRow(data) });
   } catch (e) {
     return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }
@@ -84,7 +94,10 @@ export async function PATCH(req: Request) {
     if (authError) return authError;
 
     if (!supabaseAdmin) {
-      return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
+      return NextResponse.json(
+        { success: false, message: "Supabase admin client not configured." },
+        { status: 500 }
+      );
     }
 
     const body = await req.json();
@@ -94,31 +107,27 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false, message: "Invalid orders array." }, { status: 400 });
     }
 
-    // Update display_order for each activity in the array
-    const updates = orders.map((item: any, index: number) => ({
-      id: item.id,
-      displayOrder: index,
-    }));
+    for (const [index, item] of orders.entries()) {
+      const id = String(item?.id || "").trim();
+      if (!id) continue;
 
-    // Execute updates sequentially
-    for (const { id, displayOrder } of updates) {
       const { error } = await supabaseAdmin
-        .from("activities")
-        .update({ display_order: displayOrder })
+        .from("alumni_testimonials")
+        .update({ display_order: index })
         .eq("id", id);
 
       if (error) throw error;
     }
 
-    // Return updated list
-    const { data, error: fetchError } = await supabaseAdmin
-      .from("activities")
-      .select(ACTIVITY_SELECT_COLUMNS)
-      .order("display_order", { ascending: true });
+    const { data, error } = await supabaseAdmin
+      .from("alumni_testimonials")
+      .select(TESTIMONIAL_SELECT_COLUMNS)
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: false });
 
-    if (fetchError) throw fetchError;
+    if (error) throw error;
 
-    return NextResponse.json({ success: true, data: (data || []).map(mapActivityRow) });
+    return NextResponse.json({ success: true, data: (data || []).map(mapTestimonialRow) });
   } catch (e) {
     return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }

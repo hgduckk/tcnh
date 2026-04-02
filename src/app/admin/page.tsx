@@ -19,13 +19,15 @@ import { AchievementsAdmin } from '@/components/admin/AchievementsAdmin';
 import { ActivitiesAdmin } from '@/components/admin/ActivitiesAdmin';
 import { PartnersAdmin } from '@/components/admin/PartnersAdmin';
 import { StructureAdmin } from '@/components/admin/StructureAdmin';
+import { BlogTestimonialsAdmin } from '@/components/admin/BlogTestimonialsAdmin';
+import { BlogDiscussionAdmin } from '@/components/admin/BlogDiscussionAdmin';
 import { formatDateTime } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
   ImagePlus, Video, PlusCircle, Database, Bot, FileSpreadsheet, ShieldCheck,
-  LogOut, Eye, ClipboardList, Users,
+  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -92,7 +94,9 @@ type AdminTab =
   | 'category-achievements'
   | 'category-activities'
   | 'category-apply'
-  | 'category-partners';
+  | 'category-partners'
+  | 'category-blog-testimonials'
+  | 'category-blog-discussions';
 
 type ServiceStatus = 'idle' | 'loading' | 'ok' | 'error';
 
@@ -423,6 +427,18 @@ export default function AdminPage() {
                     active={activeTab === 'category-partners'}
                     onClick={() => setActiveTab('category-partners')}
                   />
+                  <SidebarBtn
+                    icon={Quote}
+                    label="Lời gửi gắm"
+                    active={activeTab === 'category-blog-testimonials'}
+                    onClick={() => setActiveTab('category-blog-testimonials')}
+                  />
+                  <SidebarBtn
+                    icon={MessageSquare}
+                    label="Diễn đàn"
+                    active={activeTab === 'category-blog-discussions'}
+                    onClick={() => setActiveTab('category-blog-discussions')}
+                  />
                 </div>
               )}
             </div>
@@ -476,6 +492,8 @@ export default function AdminPage() {
               <ApplicationFormsAdmin adminPassword={password} />
             )}
             {activeTab === 'category-partners' && <CategoryPartnersPanel adminPassword={password} />}
+            {activeTab === 'category-blog-testimonials' && <CategoryBlogTestimonialsPanel adminPassword={password} />}
+            {activeTab === 'category-blog-discussions' && <CategoryBlogDiscussionsPanel adminPassword={password} />}
           </div>
         </main>
       </div>
@@ -2092,7 +2110,7 @@ function CategoryActivitiesPanel({ adminPassword }: { adminPassword: string }) {
       <div className="mb-6">
         <Breadcrumb label="Hoạt động" />
         <h1 className="text-2xl font-bold text-slate-800">Quản lý Hoạt động</h1>
-        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các chương trình hoạt động</p>
+        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và phân loại nội dung vào Chuyên mục hoặc Chương trình</p>
       </div>
 
       <ActivitiesAdmin adminPassword={adminPassword} />
@@ -2114,6 +2132,42 @@ function CategoryPartnersPanel({ adminPassword }: { adminPassword: string }) {
       </div>
 
       <PartnersAdmin adminPassword={adminPassword} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category Blog Testimonials
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryBlogTestimonialsPanel({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Lời gửi gắm" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Lời gửi gắm cựu thành viên</h1>
+        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và công khai lời gửi gắm từ cựu thành viên trên trang Diễn đàn</p>
+      </div>
+
+      <BlogTestimonialsAdmin adminPassword={adminPassword} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category Blog Discussions
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryBlogDiscussionsPanel({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Diễn đàn" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Diễn đàn thảo luận</h1>
+        <p className="text-sm text-slate-500 mt-1">Xem bình luận người dùng, phản hồi với vai trò Admin và ẩn/hiện bình luận</p>
+      </div>
+
+      <BlogDiscussionAdmin adminPassword={adminPassword} />
     </div>
   );
 }

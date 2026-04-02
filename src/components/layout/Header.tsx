@@ -13,9 +13,9 @@ const navItems = [
   { href: '/achievements', label: 'Thành tích' },
   { href: '/activities', label: 'Hoạt động' },
   { href: '/structure', label: 'Cơ cấu' },
-  { href: '/updating', label: 'Diễn đàn' },
+  { href: '/blog', label: 'Diễn đàn' },
   { href: '/apply', label: 'Ứng tuyển' },
-  { href: '/a80', label: 'Tổ quốc Tôi' },
+  { href: '/youth', label: 'Tuổi trẻ' },
   { href: '/ai', label: 'Chatbot' },
 ];
 

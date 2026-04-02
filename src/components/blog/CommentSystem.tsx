@@ -1,176 +1,90 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Reply, Clock, User, UserX } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-import { formatDateTime } from '@/lib/utils';
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { MessageCircle, Reply, Clock, User, UserX, ShieldCheck } from "lucide-react";
+import { formatDateTime } from "@/lib/utils";
+import type { BlogCommentRow } from "@/lib/blog";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabasePublishableKey =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase = supabaseUrl && supabasePublishableKey
-  ? createClient(supabaseUrl, supabasePublishableKey)
-  : null;
-
-interface Comment {
-  id: string;
-  name: string | null;
-  comment: string;
-  parent_id: string | null;
-  is_anonymous: boolean;
-  created_at: string;
-  avatar?: string | null;
-  replies?: Comment[];
-}
+type CommentNode = BlogCommentRow & { replies: CommentNode[] };
 
 export function CommentSystem() {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<CommentNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
-  // Fetch comments from Supabase
-  useEffect(() => {
-    fetchComments();
-    
-    if (!supabase) {
-      console.warn('Supabase not configured; comments feature disabled.');
-      setIsLoading(false);
-      return;
-    }
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('comments')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'comments' },
-        () => {
-          fetchComments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   const fetchComments = async () => {
-    if (!supabase) {
-      console.warn('Supabase not configured; cannot fetch comments.');
-      return;
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching comments:', error);
-        return;
-      }
-
-      // Organize comments with replies
-      const commentMap = new Map<string, Comment>();
-      const rootComments: Comment[] = [];
-
-      data.forEach(comment => {
-        commentMap.set(comment.id, { ...comment, replies: [] });
-      });
-
-      data.forEach(comment => {
-        if (comment.parent_id) {
-          const parent = commentMap.get(comment.parent_id);
-          if (parent) {
-            parent.replies!.push(commentMap.get(comment.id)!);
-          }
-        } else {
-          rootComments.push(commentMap.get(comment.id)!);
-        }
-      });
-
-      // Sort replies by creation time (oldest first for readability)
-      rootComments.forEach(comment => {
-        if (comment.replies) {
-          comment.replies.sort((a, b) => 
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-        }
-      });
-
-      setComments(rootComments);
+      const res = await fetch("/api/blog/comments", { cache: "no-store" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || "Không tải được bình luận.");
+      setComments(Array.isArray(json?.data) ? json.data : []);
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
+      setComments([]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchComments();
+  }, []);
+
   const formatDate = formatDateTime;
 
   const CommentForm = ({ parentId, onCancel }: { parentId?: string; onCancel?: () => void }) => {
-    const [name, setName] = useState('');
-    const [comment, setComment] = useState('');
+    const [name, setName] = useState("");
+    const [comment, setComment] = useState("");
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      
+
       if (!comment.trim()) {
-        alert('Vui lòng nhập nội dung bình luận!');
+        alert("Vui lòng nhập nội dung bình luận!");
         return;
       }
 
       if (!isAnonymous && !name.trim()) {
-        alert('Vui lòng nhập tên hoặc chọn ẩn danh!');
+        alert("Vui lòng nhập tên hoặc chọn ẩn danh!");
         return;
       }
 
       setIsSubmitting(true);
 
-      if (!supabase) {
-        alert('Supabase chưa cấu hình. Bình luận không gửi được.');
-        setIsSubmitting(false);
-        return;
-      }
-
       try {
-        const { error } = await supabase
-          .from('comments')
-          .insert([
-            {
-              name: isAnonymous ? null : name,
-              comment: comment,
-              parent_id: parentId || null,
-              is_anonymous: isAnonymous
-            }
-          ]);
+        const res = await fetch("/api/blog/comments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            comment,
+            parentId: parentId || null,
+            isAnonymous,
+          }),
+        });
 
-        if (error) {
-          console.error('Error submitting comment:', error);
-          alert('Có lỗi xảy ra khi gửi bình luận. Vui lòng thử lại!');
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(json?.message || "Có lỗi xảy ra khi gửi bình luận. Vui lòng thử lại!");
           return;
         }
 
-        // Reset form
-        setName('');
-        setComment('');
+        setName("");
+        setComment("");
         setIsAnonymous(false);
         if (onCancel) onCancel();
-
+        fetchComments();
       } catch (error) {
-        console.error('Error submitting comment:', error);
-        alert('Có lỗi xảy ra khi gửi bình luận. Vui lòng thử lại!');
+        console.error("Error submitting comment:", error);
+        alert("Có lỗi xảy ra khi gửi bình luận. Vui lòng thử lại!");
       } finally {
         setIsSubmitting(false);
       }
@@ -181,12 +95,12 @@ export function CommentSystem() {
         <div className="flex items-center space-x-2 mb-3">
           <input
             type="checkbox"
-            id={`isAnonymous-${parentId || 'main'}`}
+            id={`isAnonymous-${parentId || "main"}`}
             checked={isAnonymous}
             onChange={(e) => setIsAnonymous(e.target.checked)}
             className="rounded"
           />
-          <label htmlFor={`isAnonymous-${parentId || 'main'}`} className="text-sm text-gray-600">
+          <label htmlFor={`isAnonymous-${parentId || "main"}`} className="text-sm text-gray-600">
             Bình luận ẩn danh
           </label>
         </div>
@@ -211,12 +125,8 @@ export function CommentSystem() {
         />
 
         <div className="flex gap-2">
-          <Button 
-            type="submit" 
-            disabled={isSubmitting}
-            className=" text-white"
-          >
-            {isSubmitting ? 'Đang gửi...' : (parentId ? 'Phản hồi' : 'Gửi bình luận')}
+          <Button type="submit" disabled={isSubmitting} className="text-white">
+            {isSubmitting ? "Đang gửi..." : parentId ? "Phản hồi" : "Gửi bình luận"}
           </Button>
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel}>
@@ -228,14 +138,16 @@ export function CommentSystem() {
     );
   };
 
-  const CommentItem = ({ comment, level = 0 }: { comment: Comment; level?: number }) => (
-    <div className={`${level > 0 ? 'ml-8 mt-4 border-l-2 border-gray-200 pl-4' : 'mb-6'}`}>
+  const CommentItem = ({ comment, level = 0 }: { comment: CommentNode; level?: number }) => (
+    <div className={`${level > 0 ? "ml-8 mt-4 border-l-2 border-gray-200 pl-4" : "mb-6"}`}>
       <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-3">
             <Avatar className="w-10 h-10">
-              <AvatarFallback className=" text-white">
-                {comment.is_anonymous ? (
+              <AvatarFallback className="text-white">
+                {comment.author_role === "admin" ? (
+                  <ShieldCheck className="w-5 h-5" />
+                ) : comment.is_anonymous ? (
                   <UserX className="w-5 h-5" />
                 ) : (
                   <User className="w-5 h-5" />
@@ -245,9 +157,18 @@ export function CommentSystem() {
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-gray-900">
-                  {comment.is_anonymous ? 'Ẩn danh' : comment.name}
+                  {comment.author_role === "admin"
+                    ? "Admin"
+                    : comment.is_anonymous
+                    ? "Ẩn danh"
+                    : comment.name}
                 </span>
-                {comment.is_anonymous && (
+                {comment.author_role === "admin" && (
+                  <Badge className="text-xs bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-100">
+                    Quản trị viên
+                  </Badge>
+                )}
+                {comment.author_role !== "admin" && comment.is_anonymous && (
                   <Badge variant="secondary" className="text-xs">
                     Ẩn danh
                   </Badge>
@@ -273,25 +194,19 @@ export function CommentSystem() {
             <Reply className="w-4 h-4 mr-1" />
             Phản hồi
           </Button>
-          {comment.replies && comment.replies.length > 0 && (
-            <span className="text-xs text-gray-500">
-              {comment.replies.length} phản hồi
-            </span>
+          {comment.replies.length > 0 && (
+            <span className="text-xs text-gray-500">{comment.replies.length} phản hồi</span>
           )}
         </div>
 
         {replyingTo === comment.id && (
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <CommentForm 
-              parentId={comment.id} 
-              onCancel={() => setReplyingTo(null)}
-            />
+            <CommentForm parentId={comment.id} onCancel={() => setReplyingTo(null)} />
           </div>
         )}
       </div>
 
-      {/* Replies */}
-      {comment.replies && comment.replies.length > 0 && (
+      {comment.replies.length > 0 && (
         <div className="mt-4">
           {comment.replies.map((reply) => (
             <CommentItem key={reply.id} comment={reply} level={level + 1} />
@@ -310,13 +225,11 @@ export function CommentSystem() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Comment Form */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4 text-gray-900">Bạn có thắc mắc gì hãy bình luận ở đây nha</h3>
           <CommentForm />
         </div>
 
-        {/* Comments List */}
         <div>
           {isLoading ? (
             <div className="text-center py-8">
