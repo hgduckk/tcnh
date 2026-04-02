@@ -239,3 +239,105 @@ CREATE TRIGGER trg_achievements_updated_at
 BEFORE UPDATE ON achievements
 FOR EACH ROW
 EXECUTE FUNCTION set_achievements_updated_at();
+
+-- Activities content (managed in /admin, rendered in /activities)
+CREATE TABLE IF NOT EXISTS activities (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  images JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_published BOOLEAN NOT NULL DEFAULT true,
+  display_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_activities_published_order
+  ON activities(is_published, display_order, created_at DESC);
+
+ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read published activities" ON activities
+  FOR SELECT USING (is_published = true);
+
+CREATE OR REPLACE FUNCTION set_activities_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_activities_updated_at ON activities;
+CREATE TRIGGER trg_activities_updated_at
+BEFORE UPDATE ON activities
+FOR EACH ROW
+EXECUTE FUNCTION set_activities_updated_at();
+
+-- Partners/Collaborators (managed in /admin, rendered in /activities)
+CREATE TABLE IF NOT EXISTS partners (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  logo_url TEXT NOT NULL,
+  is_published BOOLEAN NOT NULL DEFAULT true,
+  display_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_partners_published_order
+  ON partners(is_published, display_order, created_at DESC);
+
+ALTER TABLE partners ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read published partners" ON partners
+  FOR SELECT USING (is_published = true);
+
+CREATE OR REPLACE FUNCTION set_partners_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_partners_updated_at ON partners;
+CREATE TRIGGER trg_partners_updated_at
+BEFORE UPDATE ON partners
+FOR EACH ROW
+EXECUTE FUNCTION set_partners_updated_at();
+
+-- Structure departments (managed in /admin, rendered in /structure)
+CREATE TABLE IF NOT EXISTS structure_departments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  short_description TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  images JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_published BOOLEAN NOT NULL DEFAULT true,
+  display_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_structure_departments_published_order
+  ON structure_departments(is_published, display_order, created_at DESC);
+
+ALTER TABLE structure_departments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read published structure departments" ON structure_departments
+  FOR SELECT USING (is_published = true);
+
+CREATE OR REPLACE FUNCTION set_structure_departments_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_structure_departments_updated_at ON structure_departments;
+CREATE TRIGGER trg_structure_departments_updated_at
+BEFORE UPDATE ON structure_departments
+FOR EACH ROW
+EXECUTE FUNCTION set_structure_departments_updated_at();

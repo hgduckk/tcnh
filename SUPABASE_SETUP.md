@@ -3,6 +3,7 @@
 This project uses Supabase for multiple features:
 1. **Blog Comment System** - Realtime comments with AI moderation
 2. **A80 Message System** - Vietnamese flag pixel display with student messages
+3. **Content Management** - Achievements, activities, partners, and structure departments managed from `/admin`
 
 Follow these steps to set up the complete database system.
 
@@ -87,6 +88,40 @@ CREATE POLICY "Allow public read" ON storage.objects
 ALTER publication supabase_realtime ADD TABLE comments;
 ALTER publication supabase_realtime ADD TABLE submissions;
 ```
+
+For the current website content management features, also run the schema in [supabase-schema.sql](supabase-schema.sql).
+
+Minimum extra resources required by the current codebase:
+
+1. Tables:
+  - `achievements`
+  - `activities`
+  - `partners`
+  - `structure_departments`
+2. Public Storage buckets:
+  - `achievements`
+  - `activities`
+  - `partners`
+  - `structure`
+
+Create the buckets in Supabase Storage UI, or run:
+
+```sql
+insert into storage.buckets (id, name, public)
+values
+  ('achievements', 'achievements', true),
+  ('activities', 'activities', true),
+  ('partners', 'partners', true),
+  ('structure', 'structure', true)
+on conflict (id) do nothing;
+```
+
+Image storage layout used by the app:
+
+1. `achievements`: `achievementId/image.webp`
+2. `activities`: `activityId/image-0.webp`, `image-1.webp`, ...
+3. `partners`: `partnerId/logo.webp`
+4. `structure`: `departmentId/image-0.webp`, `image-1.webp`, ...
 
 ## 4. Test the System
 

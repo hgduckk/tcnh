@@ -16,13 +16,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Footer } from '@/components/layout/Footer';
 import { ApplicationFormsAdmin } from '@/components/admin/ApplicationFormsAdmin';
 import { AchievementsAdmin } from '@/components/admin/AchievementsAdmin';
+import { ActivitiesAdmin } from '@/components/admin/ActivitiesAdmin';
+import { PartnersAdmin } from '@/components/admin/PartnersAdmin';
+import { StructureAdmin } from '@/components/admin/StructureAdmin';
 import { formatDateTime } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
   ImagePlus, Video, PlusCircle, Database, Bot, FileSpreadsheet, ShieldCheck,
-  LogOut, Eye, ClipboardList,
+  LogOut, Eye, ClipboardList, Users,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -85,9 +88,11 @@ type AdminTab =
   | 'overview'
   | 'function'
   | 'category-home'
+  | 'category-structure'
   | 'category-achievements'
   | 'category-activities'
-  | 'category-apply';
+  | 'category-apply'
+  | 'category-partners';
 
 type ServiceStatus = 'idle' | 'loading' | 'ok' | 'error';
 
@@ -395,6 +400,12 @@ export default function AdminPage() {
                     onClick={() => setActiveTab('category-achievements')}
                   />
                   <SidebarBtn
+                    icon={FolderOpen}
+                    label="Cơ cấu"
+                    active={activeTab === 'category-structure'}
+                    onClick={() => setActiveTab('category-structure')}
+                  />
+                  <SidebarBtn
                     icon={Activity}
                     label="Hoạt động"
                     active={activeTab === 'category-activities'}
@@ -405,6 +416,12 @@ export default function AdminPage() {
                     label="Đơn đăng ký"
                     active={activeTab === 'category-apply'}
                     onClick={() => setActiveTab('category-apply')}
+                  />
+                  <SidebarBtn
+                    icon={Users}
+                    label="Đơn vị hợp tác"
+                    active={activeTab === 'category-partners'}
+                    onClick={() => setActiveTab('category-partners')}
                   />
                 </div>
               )}
@@ -452,11 +469,13 @@ export default function AdminPage() {
               <FunctionPanel authHeaders={authHeaders} />
             )}
             {activeTab === 'category-home' && <CategoryHomePanel />}
+            {activeTab === 'category-structure' && <CategoryStructurePanel adminPassword={password} />}
             {activeTab === 'category-achievements' && <CategoryAchievementsPanel adminPassword={password} />}
-            {activeTab === 'category-activities' && <CategoryActivitiesPanel />}
+            {activeTab === 'category-activities' && <CategoryActivitiesPanel adminPassword={password} />}
             {activeTab === 'category-apply' && (
               <ApplicationFormsAdmin adminPassword={password} />
             )}
+            {activeTab === 'category-partners' && <CategoryPartnersPanel adminPassword={password} />}
           </div>
         </main>
       </div>
@@ -2028,6 +2047,24 @@ function CategoryHomePanel() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category — Structure
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryStructurePanel({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Cơ cấu" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Cơ cấu</h1>
+        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các ban trong cơ cấu tổ chức</p>
+      </div>
+
+      <StructureAdmin adminPassword={adminPassword} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Panel: Category — Achievements
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -2049,7 +2086,7 @@ function CategoryAchievementsPanel({ adminPassword }: { adminPassword: string })
 // Panel: Category — Activities
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CategoryActivitiesPanel() {
+function CategoryActivitiesPanel({ adminPassword }: { adminPassword: string }) {
   return (
     <div>
       <div className="mb-6">
@@ -2058,20 +2095,25 @@ function CategoryActivitiesPanel() {
         <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các chương trình hoạt động</p>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <Button disabled>
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Thêm hoạt động mới
-        </Button>
+      <ActivitiesAdmin adminPassword={adminPassword} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category Partners
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryPartnersPanel({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Đơn vị hợp tác" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Đơn vị hợp tác</h1>
+        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các đơn vị hợp tác</p>
       </div>
 
-      <Card>
-        <CardContent className="py-16 text-center">
-          <Activity className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">Chức năng đang phát triển</p>
-          <p className="text-sm text-slate-400 mt-1">Danh sách hoạt động sẽ hiển thị ở đây</p>
-        </CardContent>
-      </Card>
+      <PartnersAdmin adminPassword={adminPassword} />
     </div>
   );
 }
