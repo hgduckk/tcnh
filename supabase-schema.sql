@@ -94,11 +94,6 @@ BEFORE UPDATE ON alumni_testimonials
 FOR EACH ROW
 EXECUTE FUNCTION set_alumni_testimonials_updated_at();
 
--- Public storage bucket for alumni testimonial avatars
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('blog-testimonials', 'blog-testimonials', true)
-ON CONFLICT (id) DO NOTHING;
-
 -- ------------------------------------------------------------
 -- Application forms (template + submissions)
 -- ------------------------------------------------------------
@@ -430,3 +425,72 @@ CREATE TRIGGER trg_structure_departments_updated_at
 BEFORE UPDATE ON structure_departments
 FOR EACH ROW
 EXECUTE FUNCTION set_structure_departments_updated_at();
+
+-- ------------------------------------------------------------
+-- A80 submissions (managed in /youth/a80 and /admin-a80)
+-- ------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS submissions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  student_id TEXT,
+  class_name TEXT,
+  faculty TEXT,
+  email TEXT,
+  content TEXT NOT NULL,
+  image_url TEXT,
+  is_anonymous BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_submissions_created_at
+  ON submissions(created_at DESC);
+
+ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can read submissions" ON submissions;
+CREATE POLICY "Public can read submissions" ON submissions
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public can insert submissions" ON submissions;
+CREATE POLICY "Public can insert submissions" ON submissions
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can delete submissions" ON submissions;
+CREATE POLICY "Public can delete submissions" ON submissions
+  FOR DELETE USING (true);
+
+-- ------------------------------------------------------------
+-- Storage buckets used by website + admin
+-- ------------------------------------------------------------
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES
+  ('blog-testimonials', 'blog-testimonials', true),
+  ('achievements', 'achievements', true),
+  ('activities', 'activities', true),
+  ('partners', 'partners', true),
+  ('structure', 'structure', true),
+  ('submission-images', 'submission-images', true)
+ON CONFLICT (id) DO UPDATE
+SET
+  name = EXCLUDED.name,
+  public = EXCLUDED.public;
+
+-- Storage policies for public A80 uploads (API uses anon client key)
+DROP POLICY IF EXISTS "Public can view submission images" ON storage.objects;
+CREATE POLICY "Public can view submission images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'submission-images');
+
+DROP POLICY IF EXISTS "Public can upload submission images" ON storage.objects;
+CREATE POLICY "Public can upload submission images" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'submission-images');
+
+DROP POLICY IF EXISTS "Public can update submission images" ON storage.objects;
+CREATE POLICY "Public can update submission images" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'submission-images')
+  WITH CHECK (bucket_id = 'submission-images');
+
+DROP POLICY IF EXISTS "Public can delete submission images" ON storage.objects;
+CREATE POLICY "Public can delete submission images" ON storage.objects
+  FOR DELETE USING (bucket_id = 'submission-images');

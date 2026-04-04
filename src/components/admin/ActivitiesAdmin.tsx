@@ -261,7 +261,7 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
-            <label className="text-sm font-semibold">Hiển thị tại mục nào?</label>
+            <label className="text-sm font-semibold">Phân loại</label>
             <Select
               value={editor.activityType}
               onValueChange={(value) =>
@@ -279,11 +279,11 @@ export function ActivitiesAdmin({ adminPassword }: { adminPassword: string }) {
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-semibold">Tên nội dung</label>
+            <label className="text-sm font-semibold">Tiêu đề</label>
             <Input
               value={editor.name}
               onChange={(e) => setEditor((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Nhập tên nội dung"
+              placeholder="Nhập tiêu đề"
             />
           </div>
 

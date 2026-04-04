@@ -44,7 +44,7 @@ export default function BlogPage() {
                   alt="Fanpage preview"
                   width={400}
                   height={250}
-                  className="rounded-lg mb-4 center"
+                  className="rounded-lg mb-4 w-full h-auto object-cover"
                   data-ai-hint="social media page"
                 />
                 <p className="text-muted-foreground mb-4">

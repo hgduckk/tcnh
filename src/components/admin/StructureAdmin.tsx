@@ -246,25 +246,25 @@ export function StructureAdmin({ adminPassword }: { adminPassword: string }) {
               <Input
                 value={editor.name}
                 onChange={(e) => setEditor((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Ví dụ: Ban Tuyên giáo - Sự kiện"
+                placeholder="Ví dụ: Ban Tổ chức - Xây dựng Đoàn"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Mô tả ngắn</label>
+              <label className="text-sm font-medium">Câu quote ngắn</label>
               <Input
                 value={editor.shortDescription}
                 onChange={(e) => setEditor((prev) => ({ ...prev, shortDescription: e.target.value }))}
-                placeholder="Ví dụ: Nơi mọi ý tưởng được chắp cánh vươn xa"
+                placeholder="Ví dụ: High risk - high return"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Nội dung</label>
+            <label className="text-sm font-medium">Mô tả</label>
             <Textarea
               value={editor.content}
               onChange={(e) => setEditor((prev) => ({ ...prev, content: e.target.value }))}
-              placeholder="Nhập nội dung giới thiệu của ban"
+              placeholder="Nhập nội dung giới thiệu của ban..."
               rows={8}
             />
           </div>

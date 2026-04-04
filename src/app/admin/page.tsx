@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Footer } from '@/components/layout/Footer';
 import { ApplicationFormsAdmin } from '@/components/admin/ApplicationFormsAdmin';
 import { AchievementsAdmin } from '@/components/admin/AchievementsAdmin';
@@ -27,7 +28,7 @@ import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
   ImagePlus, Video, PlusCircle, Database, Bot, FileSpreadsheet, ShieldCheck,
-  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote,
+  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ interface FormTemplateSummary {
 type AdminTab =
   | 'overview'
   | 'function'
+  | 'schema'
   | 'category-home'
   | 'category-structure'
   | 'category-achievements'
@@ -243,6 +245,7 @@ export default function AdminPage() {
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [categoryOpen, setCategoryOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const authHeaders = useMemo(() => ({ 'x-admin-password': password }), [password]);
 
@@ -345,131 +348,197 @@ export default function AdminPage() {
 
   // ── Authenticated layout ──────────────────────────────────────────────────
 
+  // Sidebar content (shared between desktop and mobile drawer)
+  const sidebarContent = (
+    <>
+      <div className="p-4 border-b flex flex-col items-center gap-2">
+        <img src="/images/logo.png" alt="ĐKTCNH Logo" className="h-8 w-auto" />
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin Panel</p>
+        <h2 className="text-base font-bold text-slate-800">Bảng điều khiển</h2>
+      </div>
+
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+        {/* Overview */}
+        <SidebarBtn
+          icon={LayoutDashboard}
+          label="Tổng quan"
+          active={activeTab === 'overview'}
+          onClick={() => {
+            setActiveTab('overview');
+            setSidebarOpen(false);
+          }}
+        />
+
+        {/* Function */}
+        <SidebarBtn
+          icon={Wrench}
+          label="Kiểm thử kết nối"
+          active={activeTab === 'function'}
+          onClick={() => {
+            setActiveTab('function');
+            setSidebarOpen(false);
+          }}
+        />
+
+        <SidebarBtn
+          icon={Database}
+          label="Schema Visualizer"
+          active={activeTab === 'schema'}
+          onClick={() => {
+            setActiveTab('schema');
+            setSidebarOpen(false);
+          }}
+        />
+
+        {/* Category — collapsible */}
+        <div className="pt-3">
+          <button
+            onClick={() => setCategoryOpen(o => !o)}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors rounded-lg hover:bg-slate-50"
+          >
+            <span className="flex items-center gap-1.5">
+              <FolderOpen className="w-3.5 h-3.5" />
+              Danh mục trang
+            </span>
+            {categoryOpen
+              ? <ChevronDown className="w-3.5 h-3.5" />
+              : <ChevronRight className="w-3.5 h-3.5" />}
+          </button>
+
+          {categoryOpen && (
+            <div className="mt-1 space-y-0.5 pl-2">
+              <SidebarBtn
+                icon={Home}
+                label="Trang chủ"
+                active={activeTab === 'category-home'}
+                onClick={() => {
+                  setActiveTab('category-home');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
+                icon={Trophy}
+                label="Thành tích"
+                active={activeTab === 'category-achievements'}
+                onClick={() => {
+                  setActiveTab('category-achievements');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
+                icon={FolderOpen}
+                label="Cơ cấu"
+                active={activeTab === 'category-structure'}
+                onClick={() => {
+                  setActiveTab('category-structure');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
+                icon={Activity}
+                label="Hoạt động"
+                active={activeTab === 'category-activities'}
+                onClick={() => {
+                  setActiveTab('category-activities');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
+                icon={FileText}
+                label="Đơn đăng ký"
+                active={activeTab === 'category-apply'}
+                onClick={() => {
+                  setActiveTab('category-apply');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
+                icon={Users}
+                label="Đơn vị hợp tác"
+                active={activeTab === 'category-partners'}
+                onClick={() => {
+                  setActiveTab('category-partners');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
+                icon={Quote}
+                label="Lời gửi gắm"
+                active={activeTab === 'category-blog-testimonials'}
+                onClick={() => {
+                  setActiveTab('category-blog-testimonials');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
+                icon={MessageSquare}
+                label="Diễn đàn"
+                active={activeTab === 'category-blog-discussions'}
+                onClick={() => {
+                  setActiveTab('category-blog-discussions');
+                  setSidebarOpen(false);
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Sidebar footer */}
+      <div className="p-3 border-t space-y-0.5">
+        {siteConfig?.showAdminLink && (
+          <a
+            href={siteConfig.frontendUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Xem website
+          </a>
+        )}
+        <button
+          onClick={() => { setIsAuthenticated(false); setPassword(''); }}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Đăng xuất
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <div className="flex flex-1 overflow-hidden" style={{ minHeight: '100vh' }}>
+      {/* Mobile header with hamburger button */}
+      <div className="md:hidden bg-white border-b border-slate-200 flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="p-2">
+                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-60 p-0 overflow-y-auto">
+              <div className="h-full flex flex-col bg-white">
+                {sidebarContent}
+              </div>
+            </SheetContent>
+          </Sheet>
+          <img src="/images/logo.png" alt="ĐKTCNH Logo" className="h-6 w-auto" />
+        </div>
+        <p className="text-xs font-semibold text-slate-500">Bảng điều khiển</p>
+      </div>
 
-        {/* ── Sidebar ────────────────────────────────────────────────────── */}
-        <aside className="w-60 bg-white border-r flex flex-col shrink-0">
-          <div className="p-4 border-b flex flex-col items-center gap-2">
-            <img src="/images/logo.png" alt="ĐKTCNH Logo" className="h-8 w-auto" />
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin Panel</p>
-            <h2 className="text-base font-bold text-slate-800">Bảng điều khiển</h2>
-          </div>
-
-          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-            {/* Overview */}
-            <SidebarBtn
-              icon={LayoutDashboard}
-              label="Tổng quan"
-              active={activeTab === 'overview'}
-              onClick={() => setActiveTab('overview')}
-            />
-
-            {/* Function */}
-            <SidebarBtn
-              icon={Wrench}
-              label="Kiểm thử kết nối"
-              active={activeTab === 'function'}
-              onClick={() => setActiveTab('function')}
-            />
-
-            {/* Category — collapsible */}
-            <div className="pt-3">
-              <button
-                onClick={() => setCategoryOpen(o => !o)}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors rounded-lg hover:bg-slate-50"
-              >
-                <span className="flex items-center gap-1.5">
-                  <FolderOpen className="w-3.5 h-3.5" />
-                  Danh mục trang
-                </span>
-                {categoryOpen
-                  ? <ChevronDown className="w-3.5 h-3.5" />
-                  : <ChevronRight className="w-3.5 h-3.5" />}
-              </button>
-
-              {categoryOpen && (
-                <div className="mt-1 space-y-0.5 pl-2">
-                  <SidebarBtn
-                    icon={Home}
-                    label="Trang chủ"
-                    active={activeTab === 'category-home'}
-                    onClick={() => setActiveTab('category-home')}
-                  />
-                  <SidebarBtn
-                    icon={Trophy}
-                    label="Thành tích"
-                    active={activeTab === 'category-achievements'}
-                    onClick={() => setActiveTab('category-achievements')}
-                  />
-                  <SidebarBtn
-                    icon={FolderOpen}
-                    label="Cơ cấu"
-                    active={activeTab === 'category-structure'}
-                    onClick={() => setActiveTab('category-structure')}
-                  />
-                  <SidebarBtn
-                    icon={Activity}
-                    label="Hoạt động"
-                    active={activeTab === 'category-activities'}
-                    onClick={() => setActiveTab('category-activities')}
-                  />
-                  <SidebarBtn
-                    icon={FileText}
-                    label="Đơn đăng ký"
-                    active={activeTab === 'category-apply'}
-                    onClick={() => setActiveTab('category-apply')}
-                  />
-                  <SidebarBtn
-                    icon={Users}
-                    label="Đơn vị hợp tác"
-                    active={activeTab === 'category-partners'}
-                    onClick={() => setActiveTab('category-partners')}
-                  />
-                  <SidebarBtn
-                    icon={Quote}
-                    label="Lời gửi gắm"
-                    active={activeTab === 'category-blog-testimonials'}
-                    onClick={() => setActiveTab('category-blog-testimonials')}
-                  />
-                  <SidebarBtn
-                    icon={MessageSquare}
-                    label="Diễn đàn"
-                    active={activeTab === 'category-blog-discussions'}
-                    onClick={() => setActiveTab('category-blog-discussions')}
-                  />
-                </div>
-              )}
-            </div>
-          </nav>
-
-          {/* Sidebar footer */}
-          <div className="p-3 border-t space-y-0.5">
-            {siteConfig?.showAdminLink && (
-              <a
-                href={siteConfig.frontendUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Xem website
-              </a>
-            )}
-            <button
-              onClick={() => { setIsAuthenticated(false); setPassword(''); }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Đăng xuất
-            </button>
-          </div>
+      <div className="flex flex-1">
+        {/* Desktop Sidebar */}
+        <aside className="w-60 bg-white border-r border-slate-200 flex flex-col shrink-0 max-md:hidden overflow-y-auto">
+          {sidebarContent}
         </aside>
 
         {/* ── Main content ────────────────────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6 max-w-5xl mx-auto">
+          <div className="p-3 md:p-6 max-w-6xl mx-auto w-full pb-12">
             {activeTab === 'overview' && (
               <OverviewPanel
                 metrics={metrics}
@@ -483,6 +552,9 @@ export default function AdminPage() {
             )}
             {activeTab === 'function' && (
               <FunctionPanel authHeaders={authHeaders} />
+            )}
+            {activeTab === 'schema' && (
+              <SchemaPanel authHeaders={authHeaders} />
             )}
             {activeTab === 'category-home' && <CategoryHomePanel />}
             {activeTab === 'category-structure' && <CategoryStructurePanel adminPassword={password} />}
@@ -1491,39 +1563,73 @@ function OverviewPanel({
       )}
 
       <Dialog open={!!detailSubmission} onOpenChange={(open) => { if (!open) { setDetailSubmission(null); setDetailTemplate(null); } }}>
-        <DialogContent className="inset-0 left-0 top-0 translate-x-0 translate-y-0 m-auto w-[calc(100%-2rem)] max-w-5xl h-fit max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              THÔNG TIN CÁ NHÂN
-              {loadingTemplate && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
-            </DialogTitle>
-            <DialogDescription>
-              Thông tin hồ sơ, câu trả lời, đánh giá và nhận xét.
-            </DialogDescription>
+        <DialogContent className="inset-0 left-0 top-0 translate-x-0 translate-y-0 m-auto w-[calc(100%-2rem)] max-w-5xl h-fit max-h-[90vh] overflow-y-auto rounded-2xl border-slate-200 bg-white shadow-2xl">
+          <DialogHeader className="pb-4 border-b border-slate-150">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <ClipboardList className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="flex items-center gap-2 text-lg">
+                  Hồ Sơ Ứng Viên
+                  {loadingTemplate && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Xem chi tiết hồ sơ, câu trả lời và đánh giá
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           {detailSubmission && (
-            <div className="space-y-5">
+            <div className="space-y-5 pt-2">
               {/* ── Profile header ── */}
-              <div className="grid md:grid-cols-[180px_1fr] gap-4">
+              <div className="grid md:grid-cols-[140px_1fr] gap-5 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
                 <div>
                   <img
-                    src={detailSubmission.photo_url || 'https://placehold.co/180x220?text=No+Image'}
+                    src={detailSubmission.photo_url || 'https://placehold.co/140x170?text=Photo'}
                     alt={detailSubmission.full_name || 'Candidate'}
-                    className="w-full h-[220px] rounded-lg object-cover border bg-slate-100"
+                    className="w-full h-[170px] rounded-lg object-cover border-2 border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 shadow-md"
                   />
                 </div>
-                <div className="grid sm:grid-cols-2 gap-2 text-sm mt-4">
-                  <div><span className="text-slate-500">Họ tên:</span> <span className="font-medium">{detailSubmission.full_name || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Giới tính:</span> <span className="font-medium">{detailSubmission.gender || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Ngày sinh:</span> <span className="font-medium">{detailSubmission.birth_date || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Ban:</span> <span className="font-medium">{detailSubmission.department || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">Lớp:</span> <span className="font-medium">{detailSubmission.class_name || 'N/A'}</span></div>
-                  <div><span className="text-slate-500">MSSV:</span> <span className="font-medium">{detailSubmission.student_id || 'N/A'}</span></div>
-                  <div className="sm:col-span-2"><span className="text-slate-500">Email:</span> <span className="font-medium">{detailSubmission.email || 'N/A'}</span></div>
-                  <div className="sm:col-span-2"><span className="text-slate-500">Thời gian nộp:</span> <span className="font-medium">{formatDateTime(detailSubmission.submitted_at)}</span></div>
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{detailSubmission.full_name || 'N/A'}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">ID: {detailSubmission.student_id || 'N/A'}</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-blue-50 border border-blue-150 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Ban</p>
+                      <p className="text-sm font-medium text-blue-900">{detailSubmission.department || '—'}</p>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-150 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Lớp</p>
+                      <p className="text-sm font-medium text-purple-900">{detailSubmission.class_name || '—'}</p>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-150 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Giới tính</p>
+                      <p className="text-sm font-medium text-amber-900">{detailSubmission.gender || '—'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm border-t border-slate-100 pt-3">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Ngày sinh</p>
+                      <p className="text-slate-800 font-medium">{detailSubmission.birth_date || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Email</p>
+                      <p className="text-slate-800 font-medium break-all text-xs">{detailSubmission.email || '—'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Nộp lúc</p>
+                      <p className="text-slate-800 font-medium text-xs">{formatDateTime(detailSubmission.submitted_at)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* ── Divider ── */}
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
 
               {/* ── Answers ── */}
               {(() => {
@@ -1538,112 +1644,160 @@ function OverviewPanel({
                 const deptCount = deptQs.length || detailSubmission.dept_optional_answers?.length || 0;
                 return (
                   <>
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Câu hỏi cá nhân:</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {Array.from({ length: personalCount }).map((_, i) => (
-                          <div key={`p-${i}`} className="text-sm">
-                            {personalQs[i] && (
-                              <p className="text-xs font-medium text-slate-600 mb-1">Câu {i + 1}: {personalQs[i]}</p>
-                            )}
-                            {!personalQs[i] && (
-                              <p className="text-xs text-slate-400 mb-1">Câu {i + 1}</p>
-                            )}
-                            <p className="rounded-md bg-slate-50 border px-2.5 py-2 text-slate-700">{detailSubmission.optional_personal_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
-                          </div>
-                        ))}
-                        {personalCount === 0 && <p className="text-xs text-slate-400 italic">Không có câu hỏi cá nhân</p>}
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Câu hỏi của ban {detailSubmission.department}:</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {Array.from({ length: deptCount }).map((_, i) => (
-                          <div key={`d-${i}`} className="text-sm">
-                            {deptQs[i] && (
-                              <p className="text-xs font-medium text-slate-600 mb-1">Câu {i + 1}: {deptQs[i]}</p>
-                            )}
-                            {!deptQs[i] && (
-                              <p className="text-xs text-slate-400 mb-1">Câu {i + 1}</p>
-                            )}
-                            <p className="rounded-md bg-slate-50 border px-2.5 py-2 text-slate-700">{detailSubmission.dept_optional_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
-                          </div>
-                        ))}
-                        {deptCount === 0 && <p className="text-xs text-slate-400 italic">Không có câu hỏi ban</p>}
-                      </CardContent>
-                    </Card>
+                    {personalCount > 0 && (
+                      <Card className="border-blue-100 bg-blue-50/40 shadow-sm">
+                        <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-t-lg">
+                          <CardTitle className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                            Câu hỏi cá nhân
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-4">
+                          {Array.from({ length: personalCount }).map((_, i) => (
+                            <div key={`p-${i}`} className="text-sm border-l-4 border-blue-300 pl-4 py-2">
+                              {personalQs[i] && (
+                                <p className="text-xs font-semibold text-blue-700 mb-2">Câu {i + 1}: {personalQs[i]}</p>
+                              )}
+                              {!personalQs[i] && (
+                                <p className="text-xs text-slate-400 mb-2">Câu {i + 1}</p>
+                              )}
+                              <p className="rounded-lg bg-white border border-blue-200 px-3 py-3 text-slate-700 leading-relaxed">{detailSubmission.optional_personal_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
+                    {deptCount > 0 && (
+                      <Card className="border-purple-100 bg-purple-50/40 shadow-sm">
+                        <CardHeader className="pb-3 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-t-lg">
+                          <CardTitle className="text-sm font-semibold text-purple-900 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                            Câu hỏi của ban {detailSubmission.department}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-4">
+                          {Array.from({ length: deptCount }).map((_, i) => (
+                            <div key={`d-${i}`} className="text-sm border-l-4 border-purple-300 pl-4 py-2">
+                              {deptQs[i] && (
+                                <p className="text-xs font-semibold text-purple-700 mb-2">Câu {i + 1}: {deptQs[i]}</p>
+                              )}
+                              {!deptQs[i] && (
+                                <p className="text-xs text-slate-400 mb-2">Câu {i + 1}</p>
+                              )}
+                              <p className="rounded-lg bg-white border border-purple-200 px-3 py-3 text-slate-700 leading-relaxed">{detailSubmission.dept_optional_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
                   </>
                 );
               })()}
 
-              {/* ── Standing Committee comment ── */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Nhận xét Ban Thường Vụ</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={dialogStandingComment}
-                    onChange={(e) => setDialogStandingComment(e.target.value)}
-                    placeholder="Nhập nhận xét của Ban Thường Vụ sau khi phỏng vấn..."
-                    rows={3}
-                    className="resize-none"
-                  />
-                </CardContent>
-              </Card>
+              {/* ── Comments Section ── */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card className="border-green-100 bg-green-50/40 shadow-sm">
+                  <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-green-100/50 rounded-t-lg">
+                    <CardTitle className="text-sm font-semibold text-green-900 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full" />
+                      Ban Thường Vụ
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <Textarea
+                      value={dialogStandingComment}
+                      onChange={(e) => setDialogStandingComment(e.target.value)}
+                      placeholder="Nhập nhận xét sau khi phỏng vấn..."
+                      rows={3}
+                      className="rounded-lg border-green-200 bg-white focus:border-green-400 focus:ring-green-200"
+                    />
+                  </CardContent>
+                </Card>
 
-              {/* ── Board comment ── */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Nhận xét Ban Chuyên môn</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={dialogBoardComment}
-                    onChange={(e) => setDialogBoardComment(e.target.value)}
-                    placeholder="Nhập nhận xét của Ban Chuyên môn sau khi phỏng vấn..."
-                    rows={3}
-                    className="resize-none"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* ── Status picker ── */}
-              <div>
-                <h4 className="text-sm font-semibold text-slate-700 mb-2">Trạng thái ứng viên</h4>
-                <div className="flex gap-2 flex-wrap">
-                  {(Object.entries(CANDIDATE_STATUS) as [CandidateStatus, typeof CANDIDATE_STATUS[CandidateStatus]][]).map(([key, cfg]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setDialogStatus(key)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                        dialogStatus === key
-                          ? `${cfg.btnActive} ring-2 ring-offset-1`
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className={`w-2.5 h-2.5 rounded-full ${cfg.circleColor}`} />
-                      {cfg.label}
-                    </button>
-                  ))}
-                </div>
+                <Card className="border-amber-100 bg-amber-50/40 shadow-sm">
+                  <CardHeader className="pb-3 bg-gradient-to-r from-amber-50 to-amber-100/50 rounded-t-lg">
+                    <CardTitle className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-amber-500 rounded-full" />
+                      Ban Chuyên môn
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <Textarea
+                      value={dialogBoardComment}
+                      onChange={(e) => setDialogBoardComment(e.target.value)}
+                      placeholder="Nhập nhận xét sau khi phỏng vấn..."
+                      rows={3}
+                      className="rounded-lg border-amber-200 bg-white focus:border-amber-400 focus:ring-amber-200"
+                    />
+                  </CardContent>
+                </Card>
               </div>
 
-              {/* ── Save area ── */}
+              {/* ── Status picker ── */}
+              <Card className="border-slate-100 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-slate-900">Trạng thái ứng viên</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {(Object.entries(CANDIDATE_STATUS) as [CandidateStatus, typeof CANDIDATE_STATUS[CandidateStatus]][]).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setDialogStatus(key)}
+                        className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 text-xs font-semibold transition-all duration-200 ${
+                          dialogStatus === key
+                            ? `${cfg.btnActive} ring-2 ring-offset-2`
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className={`w-3 h-3 rounded-full ${cfg.circleColor}`} />
+                        {cfg.label}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* ── Alerts ── */}
               {saveDetailError && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{saveDetailError}</p>
+                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 rounded-lg text-sm text-red-700 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-0.5" />
+                  {saveDetailError}
+                </div>
               )}
               {saveDetailSuccess && (
-                <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">Đã lưu thành công!</p>
+                <div className="bg-green-50 border-l-4 border-green-500 px-4 py-3 rounded-lg text-sm text-green-700 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-0.5" />
+                  Đã lưu thành công!
+                </div>
               )}
-              <div className="flex justify-end">
-                <Button onClick={saveDetailChanges} disabled={savingDetail}>
-                  {savingDetail ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang lưu…</> : 'Lưu thay đổi'}
+
+              {/* ── Action ── */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDetailSubmission(null);
+                    setDetailTemplate(null);
+                  }}
+                  className="rounded-lg"
+                >
+                  Đóng
+                </Button>
+                <Button
+                  onClick={saveDetailChanges}
+                  disabled={savingDetail}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
+                >
+                  {savingDetail ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Đang lưu…
+                    </>
+                  ) : (
+                    'Lưu thay đổi'
+                  )}
                 </Button>
               </div>
             </div>
@@ -1665,7 +1819,7 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
   const [messages, setMessages] = useState<Record<string, string>>({});
   const [pageStatuses, setPageStatuses] = useState<Record<string, ServiceStatus>>({
     home: 'idle', achievements: 'idle', activities: 'idle', apply: 'idle',
-    blog: 'idle', structure: 'idle', a80: 'idle', aiPage: 'idle',
+    blog: 'idle', structure: 'idle', youth: 'idle', aiPage: 'idle',
   });
   const [pageMessages, setPageMessages] = useState<Record<string, string>>({});
   const [logs, setLogs] = useState<Array<{ id: string; label: string; ok: boolean; msg: string; at: string }>>([]);
@@ -1831,7 +1985,7 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
     { key: 'apply', label: 'Đơn đăng ký', desc: 'Danh mục trang: Đơn đăng ký', path: '/apply' },
     { key: 'blog', label: 'Blog', desc: 'Trang khác: Blog', path: '/blog' },
     { key: 'structure', label: 'Cơ cấu', desc: 'Trang khác: Cơ cấu', path: '/structure' },
-    { key: 'a80', label: 'A80', desc: 'Trang khác: A80', path: '/a80' },
+    { key: 'youth', label: 'Tuổi trẻ', desc: 'Trang khác: Tuổi trẻ', path: '/youth' },
     { key: 'aiPage', label: 'AI', desc: 'Trang khác: AI', path: '/ai' },
   ];
 
@@ -1866,6 +2020,7 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
         </div>
       </div>
 
+      <h2 className="text-base font-semibold text-slate-700 mb-3">Kiểm tra kết nối API</h2>
       <div className="grid sm:grid-cols-2 gap-4">
         {services.map(({ key, icon: Icon, label, desc, bgColor, iconColor, onTest }) => (
           <Card key={key}>
@@ -1904,7 +2059,7 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
       </div>
 
       <div className="mt-6">
-        <h2 className="text-base font-semibold text-slate-700 mb-3">Kiểm tra kết nối theo trang</h2>
+        <h2 className="text-base font-semibold text-slate-700 mb-3">Kiểm tra kết nối từng Page</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           {pageChecks.map((page) => (
             <Card key={page.key}>
@@ -1978,6 +2133,420 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SchemaPanel({ authHeaders }: { authHeaders: Record<string, string> }) {
+  return (
+    <div>
+      <SchemaVisualizerCard authHeaders={authHeaders} />
+    </div>
+  );
+}
+
+function SchemaVisualizerCard({ authHeaders }: { authHeaders: Record<string, string> }) {
+  type SchemaField = {
+    name: string;
+    type: string;
+    isPrimary: boolean;
+    isForeign: boolean;
+  };
+
+  type SchemaTable = {
+    name: string;
+    fields: SchemaField[];
+  };
+
+  type SchemaEdge = {
+    fromTable: string;
+    fromColumn: string;
+    toTable: string;
+    toColumn: string;
+  };
+
+  type SchemaPayload = {
+    tables: SchemaTable[];
+    edges: SchemaEdge[];
+  };
+
+  type VisualNode = {
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    title: string;
+    subtitle: string;
+    fields: SchemaField[];
+    fieldIndex: Record<string, number>;
+  };
+
+  const [schema, setSchema] = useState<SchemaPayload | null>(null);
+  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [dragState, setDragState] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSchema = async () => {
+      setLoadingSchema(true);
+      setSchemaError(null);
+
+      try {
+        const res = await fetch('/api/admin/schema-visualizer', {
+          headers: authHeaders,
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          throw new Error(payload?.message || `Lỗi HTTP ${res.status}`);
+        }
+
+        const payload = await res.json();
+        if (!cancelled) {
+          setSchema(payload?.data || { tables: [], edges: [] });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSchemaError(String(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSchema(false);
+        }
+      }
+    };
+
+    fetchSchema();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authHeaders, refreshKey]);
+
+  const visual = useMemo(() => {
+    const tables = schema?.tables || [];
+    const edges = schema?.edges || [];
+
+    if (!tables.length) {
+      return {
+        nodes: [] as VisualNode[],
+        edges,
+        width: 1240,
+        height: 560,
+      };
+    }
+
+    const refsByTable = new Map<string, Set<string>>();
+    for (const table of tables) {
+      refsByTable.set(table.name, new Set());
+    }
+    for (const edge of edges) {
+      if (!refsByTable.has(edge.fromTable)) refsByTable.set(edge.fromTable, new Set());
+      if (edge.fromTable !== edge.toTable) {
+        refsByTable.get(edge.fromTable)!.add(edge.toTable);
+      }
+    }
+
+    const levelCache = new Map<string, number>();
+    const visiting = new Set<string>();
+
+    const getLevel = (tableName: string): number => {
+      if (levelCache.has(tableName)) return levelCache.get(tableName)!;
+      if (visiting.has(tableName)) return 0;
+
+      visiting.add(tableName);
+      const refs = Array.from(refsByTable.get(tableName) || []);
+      const level = refs.length ? Math.max(...refs.map((ref) => getLevel(ref) + 1)) : 0;
+      visiting.delete(tableName);
+      levelCache.set(tableName, level);
+
+      return level;
+    };
+
+    const groups = new Map<number, SchemaTable[]>();
+    for (const table of tables) {
+      const lvl = getLevel(table.name);
+      if (!groups.has(lvl)) groups.set(lvl, []);
+      groups.get(lvl)!.push(table);
+    }
+
+    const xPadding = 36;
+    const yPadding = 28;
+    const columnGap = 420;
+    const rowGap = 26;
+
+    const nodes: VisualNode[] = [];
+
+    const sortedLevels = Array.from(groups.keys()).sort((a, b) => a - b);
+    for (const lvl of sortedLevels) {
+      const group = [...(groups.get(lvl) || [])].sort((a, b) => a.name.localeCompare(b.name));
+      let currentY = yPadding;
+
+      for (const table of group) {
+        const width = 344;
+        const height = Math.max(104, 56 + table.fields.length * 24);
+        const fieldIndex: Record<string, number> = {};
+        table.fields.forEach((f, idx) => {
+          fieldIndex[f.name] = idx;
+        });
+
+        nodes.push({
+          id: table.name,
+          x: xPadding + lvl * columnGap,
+          y: currentY,
+          width,
+          height,
+          title: table.name,
+          subtitle: `${table.fields.length} thuộc tính`,
+          fields: table.fields,
+          fieldIndex,
+        });
+
+        currentY += height + rowGap;
+      }
+    }
+
+    const width = Math.max(1240, ...nodes.map((n) => n.x + n.width + 42));
+    const height = Math.max(560, ...nodes.map((n) => n.y + n.height + 32));
+
+    return { nodes, edges, width, height };
+  }, [schema]);
+
+  const positionedNodes = useMemo(() => {
+    return visual.nodes.map((node) => {
+      const movedPos = nodePositions[node.id];
+      return movedPos ? { ...node, x: movedPos.x, y: movedPos.y } : node;
+    });
+  }, [visual.nodes, nodePositions]);
+
+  const nodeMap = useMemo(() => {
+    const map: Record<string, (typeof visual.nodes)[number]> = {};
+    for (const node of positionedNodes) {
+      map[node.id] = node;
+    }
+    return map;
+  }, [positionedNodes]);
+
+  useEffect(() => {
+    setNodePositions((prev) => {
+      const next: Record<string, { x: number; y: number }> = {};
+      for (const node of visual.nodes) {
+        next[node.id] = prev[node.id] || { x: node.x, y: node.y };
+      }
+      return next;
+    });
+  }, [visual.nodes]);
+
+  useEffect(() => {
+    if (!dragState) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const baseNode = visual.nodes.find((node) => node.id === dragState.id);
+      if (!baseNode) return;
+
+      const rawX = event.clientX - rect.left - dragState.offsetX;
+      const rawY = event.clientY - rect.top - dragState.offsetY;
+
+      const maxX = Math.max(8, visual.width - baseNode.width - 8);
+      const maxY = Math.max(8, visual.height - baseNode.height - 8);
+
+      setNodePositions((prev) => ({
+        ...prev,
+        [dragState.id]: {
+          x: Math.max(8, Math.min(maxX, rawX)),
+          y: Math.max(8, Math.min(maxY, rawY)),
+        },
+      }));
+    };
+
+    const handlePointerUp = () => {
+      setDragState(null);
+      setDraggingNodeId(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [dragState, visual]);
+
+  const handleStartDragNode = (event: React.PointerEvent<HTMLDivElement>, nodeId: string) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const node = nodeMap[nodeId];
+    if (!rect || !node) return;
+
+    setDraggingNodeId(nodeId);
+    setDragState({
+      id: nodeId,
+      offsetX: event.clientX - rect.left - node.x,
+      offsetY: event.clientY - rect.top - node.y,
+    });
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignore; dragging still handled through window listeners.
+    }
+  };
+
+  const orthogonalPath = (edge: SchemaEdge) => {
+    const source = nodeMap[edge.fromTable];
+    const target = nodeMap[edge.toTable];
+
+    if (!source || !target) {
+      return { path: '' };
+    }
+
+    const fromIndex = source.fieldIndex[edge.fromColumn] ?? 0;
+    const toIndex = target.fieldIndex[edge.toColumn] ?? 0;
+    const sourceY = source.y + 56 + fromIndex * 24;
+    const targetY = target.y + 56 + toIndex * 24;
+
+    if (source.id === target.id) {
+      const sourceX = source.x + source.width;
+      const loopX = source.x + source.width + 42;
+      const loopY = source.y + 24;
+      return {
+        path: `M ${sourceX} ${sourceY} L ${loopX} ${sourceY} L ${loopX} ${loopY} L ${source.x + source.width - 8} ${loopY}`,
+      };
+    }
+
+    const sourceCenterX = source.x + source.width / 2;
+    const targetCenterX = target.x + target.width / 2;
+    const exitsFromRight = targetCenterX >= sourceCenterX;
+
+    // Attach exactly on the nearest vertical border and flip side when tables cross.
+    const sourceX = exitsFromRight ? source.x + source.width : source.x;
+    const targetX = exitsFromRight ? target.x : target.x + target.width;
+
+    const minGap = 28;
+    const midX = exitsFromRight
+      ? Math.max(sourceX + minGap, targetX - minGap)
+      : Math.min(sourceX - minGap, targetX + minGap);
+
+    return {
+      path: `M ${sourceX} ${sourceY} L ${midX} ${sourceY} L ${midX} ${targetY} L ${targetX} ${targetY}`,
+    };
+  };
+
+  return (
+    <Card className="mt-6 border-slate-100 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2">
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setRefreshKey((v) => v + 1)}
+              disabled={loadingSchema}
+              className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            >
+              {loadingSchema ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang tải…</> : 'Làm mới sơ đồ'}
+            </Button>
+            <div className="flex items-center gap-2 rounded-md border border-slate-100 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+              <span className="text-[11px] leading-none text-[#d97706]">♦</span>
+              PK
+              <span className="ml-1 text-[11px] leading-none text-[#0ea5e9]">♦</span>
+              FK
+            </div>
+
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {schemaError ? (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            Không tải được schema: {schemaError}
+          </div>
+        ) : null}
+
+        <div className="relative overflow-auto rounded-md border border-slate-100 bg-slate-50/70 p-3 [background-image:radial-gradient(#dbe5f2_1px,transparent_0)] [background-size:18px_18px]">
+          <div ref={canvasRef} className="relative" style={{ minWidth: `${visual.width}px`, minHeight: `${visual.height}px` }}>
+            <svg
+              className="absolute inset-0 h-full w-full"
+              viewBox={`0 0 ${visual.width} ${visual.height}`}
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <marker id="erdArrowDynamic" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                  <path d="M 0 0 L 8 3 L 0 6 z" fill="#64748b" />
+                </marker>
+              </defs>
+
+              {visual.edges.map((edge) => {
+                const segment = orthogonalPath(edge);
+                if (!segment.path) return null;
+
+                return (
+                  <g key={`${edge.fromTable}.${edge.fromColumn}-${edge.toTable}.${edge.toColumn}`}>
+                    <path
+                      d={segment.path}
+                      fill="none"
+                      stroke="#64748b"
+                      strokeWidth="1.5"
+                      strokeDasharray="6 4"
+                      markerEnd="url(#erdArrowDynamic)"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+
+            {positionedNodes.map((node) => (
+              <div
+                key={node.id}
+                className={`absolute rounded-[8px] border border-slate-200 bg-white/95 shadow-sm ${draggingNodeId === node.id ? 'z-20' : 'z-10'}`}
+                style={{ left: node.x, top: node.y, width: node.width }}
+              >
+                <div
+                  onPointerDown={(event) => handleStartDragNode(event, node.id)}
+                  className="flex min-h-[44px] cursor-grab flex-col justify-center rounded-t-[8px] border-b border-slate-100 bg-slate-50 px-2.5 py-1.5 active:cursor-grabbing"
+                >
+                  <p className="truncate text-left text-[12px] font-semibold text-slate-700">{node.title}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-400">{node.subtitle}</p>
+                </div>
+
+                <div className="p-2.5 pt-2">
+                  <div className="overflow-hidden rounded-md border border-slate-100">
+                    <div className="divide-y divide-slate-100/80">
+                      {node.fields.map((field) => (
+                        <div key={`${node.id}-${field.name}`} className="relative grid grid-cols-[1.35fr_1fr] items-center gap-2 px-2 py-1.5 pr-6 text-[11px] text-slate-600">
+                          <span className="truncate text-left">{field.name}</span>
+                          <span className="truncate text-right text-slate-400">{field.type}</span>
+                          <span className="pointer-events-none absolute -right-3 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[11px] leading-none">
+                            {field.isPrimary ? (
+                              <span className="text-[#d97706]">♦</span>
+                            ) : null}
+                            {field.isForeign ? (
+                              <span className="text-[#0ea5e9]">♦</span>
+                            ) : null}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
