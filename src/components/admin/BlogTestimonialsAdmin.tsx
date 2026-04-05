@@ -86,57 +86,47 @@ export function BlogTestimonialsAdmin({ adminPassword }: { adminPassword: string
     return editor.avatarUrl;
   }, [editor.avatarFile, editor.avatarUrl]);
 
-  const uploadAvatar = async () => {
-    if (!editor.avatarFile) {
-      setError("Vui lòng chọn file ảnh trước khi upload.");
-      return;
-    }
-
-    setUploadingAvatar(true);
-    setError(null);
-    try {
-      const formData = new FormData();
-      formData.append("file", editor.avatarFile);
-      if (editor.id) {
-        formData.append("testimonialId", editor.id);
-      }
-
-      const res = await fetch("/api/admin/blog/testimonials/upload-avatar", {
-        method: "POST",
-        headers: authHeaders,
-        body: formData,
-      });
-
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json?.message || "Upload ảnh thất bại.");
-      }
-
-      setEditor((prev) => ({
-        ...prev,
-        id: prev.id || json?.data?.testimonialId || null,
-        avatarUrl: json?.data?.avatarUrl || "",
-        avatarFile: null,
-      }));
-      alert("Upload ảnh đại diện thành công.");
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
   const save = async () => {
     setError(null);
     if (!editor.fullName.trim()) return setError("Vui lòng nhập tên cựu thành viên.");
     if (!editor.message.trim()) return setError("Vui lòng nhập lời gửi gắm.");
+    if (!editor.avatarUrl && !editor.avatarFile) {
+      return setError("Vui lòng chọn ảnh đại diện để upload.");
+    }
 
     setSaving(true);
     try {
+      let testimonialId = editor.id;
+      let avatarUrl = editor.avatarUrl;
+
+      if (editor.avatarFile) {
+        setUploadingAvatar(true);
+        const formData = new FormData();
+        formData.append("file", editor.avatarFile);
+        if (testimonialId) {
+          formData.append("testimonialId", testimonialId);
+        }
+
+        const uploadRes = await fetch("/api/admin/blog/testimonials/upload-avatar", {
+          method: "POST",
+          headers: authHeaders,
+          body: formData,
+        });
+
+        const uploadJson = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) {
+          throw new Error(uploadJson?.message || "Upload ảnh thất bại.");
+        }
+
+        testimonialId = uploadJson?.data?.testimonialId || testimonialId;
+        avatarUrl = uploadJson?.data?.avatarUrl || avatarUrl;
+        setUploadingAvatar(false);
+      }
+
       const payload = {
-        id: editor.id || undefined,
+        id: testimonialId || undefined,
         fullName: editor.fullName,
-        avatarUrl: editor.avatarUrl,
+        avatarUrl,
         positions: editor.positionsText,
         message: editor.message,
         isPublished: editor.isPublished,
@@ -157,6 +147,7 @@ export function BlogTestimonialsAdmin({ adminPassword }: { adminPassword: string
     } catch (e) {
       setError(String(e));
     } finally {
+      setUploadingAvatar(false);
       setSaving(false);
     }
   };
@@ -254,12 +245,7 @@ export function BlogTestimonialsAdmin({ adminPassword }: { adminPassword: string
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-semibold">Ảnh đại diện (URL)</label>
-            <Input
-              value={editor.avatarUrl}
-              onChange={(e) => setEditor((prev) => ({ ...prev, avatarUrl: e.target.value }))}
-              placeholder="https://..."
-            />
+            <label className="text-sm font-semibold">Ảnh đại diện (upload file)</label>
             <Input
               type="file"
               accept="image/*"
@@ -277,25 +263,16 @@ export function BlogTestimonialsAdmin({ adminPassword }: { adminPassword: string
                 />
               </div>
             )}
-            <div className="flex gap-2 flex-wrap">
+            {editor.avatarFile && (
               <Button
                 type="button"
-                variant="outline"
-                onClick={uploadAvatar}
-                disabled={!editor.avatarFile || uploadingAvatar}
+                variant="ghost"
+                className="w-fit"
+                onClick={() => setEditor((prev) => ({ ...prev, avatarFile: null }))}
               >
-                {uploadingAvatar ? "Đang upload..." : "Upload ảnh lên Supabase"}
+                Bỏ ảnh đã chọn
               </Button>
-              {editor.avatarFile && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setEditor((prev) => ({ ...prev, avatarFile: null }))}
-                >
-                  Bỏ ảnh đã chọn
-                </Button>
-              )}
-            </div>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -332,7 +309,7 @@ export function BlogTestimonialsAdmin({ adminPassword }: { adminPassword: string
               Reset
             </Button>
             <Button type="button" onClick={save} disabled={saving}>
-              {saving ? "Đang lưu..." : "Lưu lời gửi gắm"}
+              {saving || uploadingAvatar ? "Đang lưu..." : "Lưu lời gửi gắm"}
             </Button>
           </div>
         </CardContent>

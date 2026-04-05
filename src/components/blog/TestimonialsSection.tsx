@@ -33,7 +33,7 @@ export function TestimonialsSection() {
   }
 
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center">Chưa có lời gửi gắm nào được công khai.</p>;
+    return <p className="text-sm text-muted-foreground text-center">Bạn hãy là người đầu tiên chia sẻ cảm nghĩ của mình nào...</p>;
   }
 
   return (

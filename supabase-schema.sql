@@ -199,6 +199,18 @@ CREATE TABLE IF NOT EXISTS admin_settings (
   last_updated TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+CREATE TABLE IF NOT EXISTS home_settings (
+  id INT PRIMARY KEY,
+  home_image_one TEXT NOT NULL,
+  home_image_two TEXT NOT NULL,
+  home_image_three TEXT NOT NULL,
+  home_youtube_url TEXT NOT NULL DEFAULT '',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE home_settings
+  ADD COLUMN IF NOT EXISTS home_youtube_url TEXT NOT NULL DEFAULT '';
+
 CREATE TABLE IF NOT EXISTS admin_visits (
   id INT PRIMARY KEY,
   visits BIGINT NOT NULL DEFAULT 0,
@@ -206,38 +218,11 @@ CREATE TABLE IF NOT EXISTS admin_visits (
 );
 
 ALTER TABLE admin_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE home_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_visits ENABLE ROW LEVEL SECURITY;
 
--- Seed singleton rows
-INSERT INTO admin_settings (
-  id,
-  youtube_video_id,
-  homepage_title,
-  homepage_description,
-  contact_form_title,
-  contact_form_subtitle,
-  google_sheet_id,
-  google_sheet_range,
-  google_sheet_range_contact,
-  google_sheet_range_comments
-)
-VALUES (
-  1,
-  'dQw4w9WgXcQ',
-  'Đoàn Khoa Tài chính - Ngân hàng',
-  'Cùng nhau xây dựng hành trình Thanh niên tươi sáng.',
-  'Liên hệ với chúng tôi',
-  'Nhập thông tin để gửi tin nhắn',
-  COALESCE(current_setting('app.settings.google_sheet_id', true), 'your_google_sheet_id_here'),
-  COALESCE(current_setting('app.settings.google_sheet_range', true), 'Sheet1!A:Z'),
-  COALESCE(current_setting('app.settings.google_sheet_range_contact', true), 'Contact!A:D'),
-  COALESCE(current_setting('app.settings.google_sheet_range_comments', true), 'Comments!A:F')
-)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO admin_visits (id, visits)
-VALUES (1, 0)
-ON CONFLICT (id) DO NOTHING;
+-- Seed data is intentionally omitted.
+-- Admin rows will be created/updated from the admin UI when needed.
 
 -- ------------------------------------------------------------
 -- Template history — snapshot saved on every create / update
@@ -255,17 +240,6 @@ CREATE INDEX idx_template_history_template_id ON application_form_template_histo
 CREATE INDEX idx_template_history_changed_at   ON application_form_template_history(changed_at DESC);
 
 ALTER TABLE application_form_template_history ENABLE ROW LEVEL SECURITY;
-
--- ------------------------------------------------------------
--- Migration helpers (run only when upgrading an existing DB)
--- ------------------------------------------------------------
--- ALTER TABLE application_form_submissions
---   ADD COLUMN IF NOT EXISTS sheet_write_ok BOOLEAN NOT NULL DEFAULT false,
---   ADD COLUMN IF NOT EXISTS sheet_error TEXT;
---
--- CREATE TABLE IF NOT EXISTS application_form_template_history (
---   ... (same as above)
--- );
 
 -- ------------------------------------------------------------
 -- Achievements content (managed in /admin, rendered in /achievements)
@@ -311,7 +285,10 @@ EXECUTE FUNCTION set_achievements_updated_at();
 CREATE TABLE IF NOT EXISTS activities (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
+  subtitle TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
+  icon_url TEXT NOT NULL DEFAULT '',
+  target_href TEXT NOT NULL DEFAULT '',
   images JSONB NOT NULL DEFAULT '[]'::jsonb,
   activity_type TEXT NOT NULL DEFAULT 'program' CHECK (activity_type IN ('category', 'program')),
   is_published BOOLEAN NOT NULL DEFAULT true,
@@ -322,6 +299,15 @@ CREATE TABLE IF NOT EXISTS activities (
 
 ALTER TABLE activities
   ADD COLUMN IF NOT EXISTS activity_type TEXT NOT NULL DEFAULT 'program';
+
+ALTER TABLE activities
+  ADD COLUMN IF NOT EXISTS subtitle TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE activities
+  ADD COLUMN IF NOT EXISTS icon_url TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE activities
+  ADD COLUMN IF NOT EXISTS target_href TEXT NOT NULL DEFAULT '';
 
 DO $$
 BEGIN
@@ -357,6 +343,52 @@ CREATE TRIGGER trg_activities_updated_at
 BEFORE UPDATE ON activities
 FOR EACH ROW
 EXECUTE FUNCTION set_activities_updated_at();
+
+-- Youth page cards (managed in /admin Youth tab, rendered in /youth)
+CREATE TABLE IF NOT EXISTS youth_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  subtitle TEXT NOT NULL DEFAULT '',
+  icon_url TEXT NOT NULL DEFAULT '',
+  target_href TEXT NOT NULL DEFAULT '',
+  launch_status TEXT NOT NULL DEFAULT 'active' CHECK (launch_status IN ('active', 'coming_soon', 'ended')),
+  is_published BOOLEAN NOT NULL DEFAULT true,
+  display_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_youth_items_published_order
+  ON youth_items(is_published, display_order, created_at DESC);
+
+ALTER TABLE youth_items
+  ADD COLUMN IF NOT EXISTS launch_status TEXT NOT NULL DEFAULT 'active';
+
+ALTER TABLE youth_items
+  DROP CONSTRAINT IF EXISTS youth_items_launch_status_check;
+
+ALTER TABLE youth_items
+  ADD CONSTRAINT youth_items_launch_status_check
+  CHECK (launch_status IN ('active', 'coming_soon', 'ended'));
+
+ALTER TABLE youth_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read published youth items" ON youth_items
+  FOR SELECT USING (is_published = true);
+
+CREATE OR REPLACE FUNCTION set_youth_items_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_youth_items_updated_at ON youth_items;
+CREATE TRIGGER trg_youth_items_updated_at
+BEFORE UPDATE ON youth_items
+FOR EACH ROW
+EXECUTE FUNCTION set_youth_items_updated_at();
 
 -- Partners/Collaborators (managed in /admin, rendered in /activities)
 CREATE TABLE IF NOT EXISTS partners (
@@ -471,6 +503,7 @@ VALUES
   ('activities', 'activities', true),
   ('partners', 'partners', true),
   ('structure', 'structure', true),
+  ('home-images', 'home-images', true),
   ('submission-images', 'submission-images', true)
 ON CONFLICT (id) DO UPDATE
 SET

@@ -18,6 +18,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ApplicationFormsAdmin } from '@/components/admin/ApplicationFormsAdmin';
 import { AchievementsAdmin } from '@/components/admin/AchievementsAdmin';
 import { ActivitiesAdmin } from '@/components/admin/ActivitiesAdmin';
+import { YouthAdmin } from '@/components/admin/YouthAdmin';
 import { PartnersAdmin } from '@/components/admin/PartnersAdmin';
 import { StructureAdmin } from '@/components/admin/StructureAdmin';
 import { BlogTestimonialsAdmin } from '@/components/admin/BlogTestimonialsAdmin';
@@ -27,8 +28,8 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieCh
 import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
-  ImagePlus, Video, PlusCircle, Database, Bot, FileSpreadsheet, ShieldCheck,
-  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X,
+  Database, Bot, FileSpreadsheet, ShieldCheck,
+  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X, Upload,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -95,6 +96,7 @@ type AdminTab =
   | 'category-structure'
   | 'category-achievements'
   | 'category-activities'
+  | 'category-youth'
   | 'category-apply'
   | 'category-partners'
   | 'category-blog-testimonials'
@@ -444,6 +446,15 @@ export default function AdminPage() {
                 }}
               />
               <SidebarBtn
+                icon={Bot}
+                label="Tuổi trẻ"
+                active={activeTab === 'category-youth'}
+                onClick={() => {
+                  setActiveTab('category-youth');
+                  setSidebarOpen(false);
+                }}
+              />
+              <SidebarBtn
                 icon={FileText}
                 label="Đơn đăng ký"
                 active={activeTab === 'category-apply'}
@@ -556,10 +567,11 @@ export default function AdminPage() {
             {activeTab === 'schema' && (
               <SchemaPanel authHeaders={authHeaders} />
             )}
-            {activeTab === 'category-home' && <CategoryHomePanel />}
+            {activeTab === 'category-home' && <CategoryHomePanel authHeaders={authHeaders} />}
             {activeTab === 'category-structure' && <CategoryStructurePanel adminPassword={password} />}
             {activeTab === 'category-achievements' && <CategoryAchievementsPanel adminPassword={password} />}
             {activeTab === 'category-activities' && <CategoryActivitiesPanel adminPassword={password} />}
+            {activeTab === 'category-youth' && <CategoryYouthPanel adminPassword={password} />}
             {activeTab === 'category-apply' && (
               <ApplicationFormsAdmin adminPassword={password} />
             )}
@@ -1964,7 +1976,7 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
       onTest: async () => {
-        const res = await fetch('/api/admin/settings', { headers: authHeaders });
+        const res = await fetch('/api/admin/home-settings', { headers: authHeaders });
         return {
           ok: res.ok,
           msg: res.ok ? 'Admin API xác thực thành công' : await getErrorMessage(res),
@@ -2569,7 +2581,158 @@ function Breadcrumb({ label }: { label: string }) {
 // Panel: Category — Home
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CategoryHomePanel() {
+function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string> }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploadingSlot, setUploadingSlot] = useState<'1' | '2' | '3' | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [imageFiles, setImageFiles] = useState<{ one: File | null; two: File | null; three: File | null }>({
+    one: null,
+    two: null,
+    three: null,
+  });
+  const [settings, setSettings] = useState({
+    homeImageOne: '',
+    homeImageTwo: '',
+    homeImageThree: '',
+    youtubeVideoUrl: '',
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadHomeSettings = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/admin/home-settings', { headers: authHeaders });
+        if (!res.ok) throw new Error('Không thể tải dữ liệu trang chủ');
+
+        const data = await res.json();
+        if (!mounted) return;
+
+        setSettings((prev) => ({
+          ...prev,
+          homeImageOne: data.homeImageOne ?? prev.homeImageOne,
+          homeImageTwo: data.homeImageTwo ?? prev.homeImageTwo,
+          homeImageThree: data.homeImageThree ?? prev.homeImageThree,
+          youtubeVideoUrl: data.youtubeVideoUrl ?? prev.youtubeVideoUrl,
+        }));
+      } catch (error) {
+        if (!mounted) return;
+        setSaveError(error instanceof Error ? error.message : 'Không thể tải dữ liệu trang chủ');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadHomeSettings();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authHeaders]);
+
+  const handleSave = async () => {
+    setSaveError(null);
+    setSaveSuccess(false);
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/home-settings', {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          homeImageOne: settings.homeImageOne.trim(),
+          homeImageTwo: settings.homeImageTwo.trim(),
+          homeImageThree: settings.homeImageThree.trim(),
+          youtubeVideoUrl: settings.youtubeVideoUrl.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.message || 'Lưu cài đặt thất bại');
+      }
+
+      setSaveSuccess(true);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Lưu cài đặt thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const uploadHomeImage = async (slot: '1' | '2' | '3') => {
+    const file = slot === '1' ? imageFiles.one : slot === '2' ? imageFiles.two : imageFiles.three;
+    if (!file) {
+      setSaveError(`Vui lòng chọn file cho ảnh ${slot} trước khi upload.`);
+      return;
+    }
+
+    setSaveError(null);
+    setSaveSuccess(false);
+    setUploadingSlot(slot);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('slot', slot);
+
+      const res = await fetch('/api/admin/home/upload-image', {
+        method: 'POST',
+        headers: authHeaders,
+        body: formData,
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(payload?.message || 'Upload ảnh thất bại');
+      }
+
+      const imageUrl = String(payload?.data?.imageUrl || '').trim();
+      if (!imageUrl) {
+        throw new Error('Upload thành công nhưng không nhận được URL ảnh');
+      }
+
+      const imageFieldKey = slot === '1' ? 'homeImageOne' : slot === '2' ? 'homeImageTwo' : 'homeImageThree';
+
+      const persistRes = await fetch('/api/admin/home-settings', {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ [imageFieldKey]: imageUrl }),
+      });
+
+      if (!persistRes.ok) {
+        const persistPayload = await persistRes.json().catch(() => ({}));
+        throw new Error(persistPayload?.message || 'Upload thành công nhưng lưu ảnh vào cài đặt thất bại');
+      }
+
+      setSettings((prev) => ({
+        ...prev,
+        ...(slot === '1' ? { homeImageOne: imageUrl } : {}),
+        ...(slot === '2' ? { homeImageTwo: imageUrl } : {}),
+        ...(slot === '3' ? { homeImageThree: imageUrl } : {}),
+      }));
+
+      setImageFiles((prev) => ({
+        ...prev,
+        ...(slot === '1' ? { one: null } : {}),
+        ...(slot === '2' ? { two: null } : {}),
+        ...(slot === '3' ? { three: null } : {}),
+      }));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Upload ảnh thất bại');
+    } finally {
+      setUploadingSlot(null);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -2578,57 +2741,116 @@ function CategoryHomePanel() {
         <p className="text-sm text-slate-500 mt-1">Chỉnh sửa nội dung hiển thị trên trang chủ website</p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        {/* Banner image */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-orange-50 rounded-lg flex items-center justify-center">
-                <ImagePlus className="w-4 h-4 text-orange-500" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Hình ảnh Banner</CardTitle>
-                <CardDescription className="text-xs mt-0.5">Ảnh nền và carousel trang chủ</CardDescription>
-              </div>
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Cài đặt media trang chủ</CardTitle>
+          <CardDescription className="text-xs">Upload ảnh vào bucket để thay đổi giao diện trang chủ</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? (
+            <div className="text-sm text-slate-500 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Đang tải dữ liệu...
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 h-28 flex flex-col items-center justify-center mb-3">
-              <ImagePlus className="w-7 h-7 text-slate-300 mb-1.5" />
-              <p className="text-xs text-slate-400">Chức năng đang phát triển</p>
-            </div>
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <ImagePlus className="w-4 h-4 mr-2" />
-              Chỉnh sửa hình ảnh
-            </Button>
-          </CardContent>
-        </Card>
+          ) : (
+            <>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-slate-700">Hình ảnh 1 (upload)</p>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFiles((prev) => ({ ...prev, one: e.target.files?.[0] || null }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!imageFiles.one || uploadingSlot === '1'}
+                    onClick={() => uploadHomeImage('1')}
+                  >
+                    {uploadingSlot === '1' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Upload ảnh 1
+                  </Button>
+                  <p className="text-xs text-slate-500 break-all">{settings.homeImageOne || 'Chưa có ảnh'}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-slate-700">Hình ảnh 2 (upload)</p>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFiles((prev) => ({ ...prev, two: e.target.files?.[0] || null }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!imageFiles.two || uploadingSlot === '2'}
+                    onClick={() => uploadHomeImage('2')}
+                  >
+                    {uploadingSlot === '2' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Upload ảnh 2
+                  </Button>
+                  <p className="text-xs text-slate-500 break-all">{settings.homeImageTwo || 'Chưa có ảnh'}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-slate-700">Hình ảnh 3 (upload)</p>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFiles((prev) => ({ ...prev, three: e.target.files?.[0] || null }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!imageFiles.three || uploadingSlot === '3'}
+                    onClick={() => uploadHomeImage('3')}
+                  >
+                    {uploadingSlot === '3' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Upload ảnh 3
+                  </Button>
+                  <p className="text-xs text-slate-500 break-all">{settings.homeImageThree || 'Chưa có ảnh'}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-slate-700">Link YouTube</p>
+                  <Input
+                    value={settings.youtubeVideoUrl}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, youtubeVideoUrl: e.target.value }))}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+              </div>
 
-        {/* Featured video */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center">
-                <Video className="w-4 h-4 text-red-500" />
+              <div className="grid sm:grid-cols-3 gap-3">
+                {[settings.homeImageOne, settings.homeImageTwo, settings.homeImageThree].map((src, idx) => (
+                  <div key={`home-image-preview-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                    <p className="text-xs text-slate-500 mb-2">Preview ảnh {idx + 1}</p>
+                    <img src={src} alt={`Home image ${idx + 1}`} className="w-full h-24 object-cover rounded-md border border-slate-200 bg-white" />
+                  </div>
+                ))}
               </div>
-              <div>
-                <CardTitle className="text-base">Video nổi bật</CardTitle>
-                <CardDescription className="text-xs mt-0.5">Video YouTube hiển thị trên trang chủ</CardDescription>
+
+              {saveError && <p className="text-sm text-red-600">{saveError}</p>}
+              {saveSuccess && <p className="text-sm text-green-600">Đã lưu cài đặt trang chủ thành công.</p>}
+
+              <div className="flex justify-end">
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Đang lưu...
+                    </>
+                  ) : (
+                    'Lưu cài đặt trang chủ'
+                  )}
+                </Button>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 h-28 flex flex-col items-center justify-center mb-3">
-              <Video className="w-7 h-7 text-slate-300 mb-1.5" />
-              <p className="text-xs text-slate-400">Chức năng đang phát triển</p>
-            </div>
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <Video className="w-4 h-4 mr-2" />
-              Chỉnh sửa video
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
@@ -2683,6 +2905,24 @@ function CategoryActivitiesPanel({ adminPassword }: { adminPassword: string }) {
       </div>
 
       <ActivitiesAdmin adminPassword={adminPassword} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category — Youth
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryYouthPanel({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Tuổi trẻ" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Trang Tuổi trẻ</h1>
+        <p className="text-sm text-slate-500 mt-1">Nhập hướng dẫn ở đây</p>
+      </div>
+
+      <YouthAdmin adminPassword={adminPassword} />
     </div>
   );
 }

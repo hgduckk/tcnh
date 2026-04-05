@@ -26,7 +26,7 @@ export default function BlogPage() {
             </div>
 
             {/* Testimonials */}
-            <h2 className="text-2xl md:text-4xl font-anton font-medium mb-8 text-primary text-center mt-12">Đôi lời gửi gắm từ cựu thành viên</h2>
+            <h2 className="text-2xl md:text-4xl font-anton font-medium mb-8 text-primary text-center mt-12">Góc chia sẻ</h2>
             <TestimonialsSection />
             
 

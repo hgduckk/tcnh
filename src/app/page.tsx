@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { ArrowRight } from 'lucide-react';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { Footer } from '@/components/layout/Footer';
 import { useEffect, useRef, useState } from "react";
@@ -23,11 +22,15 @@ export default function Home() {
   const [isMuted, setIsMuted] = useState(true);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [settings, setSettings] = useState({
-    youtubeVideoId: 'gAAYHpoEwyY',
-    homepageTitle: 'Đoàn Khoa Tài chính - Ngân hàng',
+    homeImageOne: '',
+    homeImageTwo: '',
+    homeImageThree: '',
+    youtubeVideoUrl: '',
     contactFormTitle: 'Liên hệ với chúng tôi',
     contactFormSubtitle: 'Xin vui lòng cung cấp thông tin',
   });
+
+  const fixedHomepageTitle = 'Đoàn Khoa Tài chính - Ngân hàng';
 
   const parseYouTubeId = (value: string) => {
     const urlMatch = value.match(/(?:youtube\.com\/.*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -36,7 +39,7 @@ export default function Home() {
     return value;
   };
 
-  const videoId = parseYouTubeId(settings.youtubeVideoId || 'gAAYHpoEwyY');
+  const videoId = parseYouTubeId(settings.youtubeVideoUrl || '');
   const youtubeEmbedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&rel=0&modestbranding=1`;
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export default function Home() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const res = await fetch('/api/admin/settings');
+        const res = await fetch('/api/home-settings', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setSettings((prev) => ({ ...prev, ...data }));
@@ -170,21 +173,27 @@ export default function Home() {
               <div className="flex flex-col md:flex-row items-center gap-12 ">
                 <div className="md:w-1/2 space-y-4 text-center">
                   <h2 className="text-3xl md:text-4xl font-anton font-medium text-primary">
-                    <span className="block md:inline">{settings.homepageTitle || 'Đoàn Khoa'}</span>{' '}
+                    <span className="block md:inline">{fixedHomepageTitle}</span>{' '}
                   </h2> 
                   <p className="font-nunito text-muted-foreground text-lg text-justify">
                     Đoàn Khoa Tài chính - Ngân hàng tự hào là lực lượng tiên phong trong công tác Đoàn và phong trào thanh niên tại Trường Đại học Kinh tế - Luật. Dưới sự dẫn dắt của Đoàn Trường và Chi ủy - Ban Chủ nhiệm Khoa, Đoàn Khoa Tài chính - Ngân hàng luôn đem đến những hoạt động năng động, nhiệt huyết, với sự tham gia và cống hiến của đông đảo sinh viên.
                   </p>
                 </div>
                 <div className="md:w-1/2">
-                  <Image
-                    src="/images/doankhoa1.jpg"
-                    alt="Group of students"
-                    width={700}
-                    height={500}
-                    className="rounded-xl shadow-2xl"
-                    data-ai-hint="students collaborating"
-                  />
+                  {settings.homeImageOne ? (
+                    <Image
+                      src={settings.homeImageOne}
+                      alt="Group of students"
+                      width={700}
+                      height={500}
+                      className="rounded-xl shadow-2xl"
+                      data-ai-hint="students collaborating"
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 h-[320px] flex items-center justify-center text-slate-400">
+                      Chưa cập nhật hình ảnh 1
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -197,14 +206,20 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="md:w-1/2">
-                  <Image
-                    src="/images/doankhoa2.jpg"
-                    alt="Group of students"
-                    width={700}
-                    height={500}
-                    className="rounded-xl shadow-2xl"
-                    data-ai-hint="students collaborating"
-                  />
+                  {settings.homeImageTwo ? (
+                    <Image
+                      src={settings.homeImageTwo}
+                      alt="Group of students"
+                      width={700}
+                      height={500}
+                      className="rounded-xl shadow-2xl"
+                      data-ai-hint="students collaborating"
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 h-[320px] flex items-center justify-center text-slate-400">
+                      Chưa cập nhật hình ảnh 2
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -215,14 +230,20 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="md:w-1/2">
-                  <Image
-                    src="/images/doankhoa3.jpg"
-                    alt="Group of students"
-                    width={700}
-                    height={500}
-                    className="rounded-xl shadow-2xl"
-                    data-ai-hint="students collaborating"
-                  />
+                  {settings.homeImageThree ? (
+                    <Image
+                      src={settings.homeImageThree}
+                      alt="Group of students"
+                      width={700}
+                      height={500}
+                      className="rounded-xl shadow-2xl"
+                      data-ai-hint="students collaborating"
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 h-[320px] flex items-center justify-center text-slate-400">
+                      Chưa cập nhật hình ảnh 3
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -244,7 +265,7 @@ export default function Home() {
                 {isMuted ? 'Unmute' : 'Mute'}
               </button>
             </div>
-            {videoInView ? (
+            {videoInView && videoId ? (
               <iframe
                 className="w-full h-full rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300"
                 src={youtubeEmbedUrl}
@@ -254,7 +275,7 @@ export default function Home() {
               />
             ) : (
               <div className="w-full h-full rounded-xl bg-black flex items-center justify-center text-white">
-                Cuộn xuống để phát video.
+                {videoId ? 'Cuộn xuống để phát video.' : 'Chưa cập nhật link video YouTube.'}
               </div>
             )}
           </div>

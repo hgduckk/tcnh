@@ -87,10 +87,7 @@ export async function readAdminSettings(): Promise<AdminSettings> {
 
     if (error) throw error;
 
-    if (!data) {
-      const seeded = await saveAdminSettings(DEFAULT_SETTINGS);
-      return seeded;
-    }
+    if (!data) return DEFAULT_SETTINGS;
 
     return rowToSettings(data as Partial<AdminSettingsRow>);
   } catch (error) {
