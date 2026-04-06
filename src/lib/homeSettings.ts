@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdminClient';
 import { serializeError } from '@/lib/utils';
 
 export interface HomeSettings {
+  homeBannerImage: string;
   homeImageOne: string;
   homeImageTwo: string;
   homeImageThree: string;
@@ -10,6 +11,7 @@ export interface HomeSettings {
 }
 
 const DEFAULT_HOME_SETTINGS: HomeSettings = {
+  homeBannerImage: '',
   homeImageOne: '',
   homeImageTwo: '',
   homeImageThree: '',
@@ -21,6 +23,7 @@ const HOME_SETTINGS_ROW_ID = 1;
 
 type HomeSettingsRow = {
   id: number;
+  home_banner_image: string;
   home_image_one: string;
   home_image_two: string;
   home_image_three: string;
@@ -30,6 +33,7 @@ type HomeSettingsRow = {
 
 function rowToSettings(row: Partial<HomeSettingsRow>): HomeSettings {
   return {
+    homeBannerImage: row.home_banner_image || DEFAULT_HOME_SETTINGS.homeBannerImage,
     homeImageOne: row.home_image_one || DEFAULT_HOME_SETTINGS.homeImageOne,
     homeImageTwo: row.home_image_two || DEFAULT_HOME_SETTINGS.homeImageTwo,
     homeImageThree: row.home_image_three || DEFAULT_HOME_SETTINGS.homeImageThree,
@@ -40,6 +44,7 @@ function rowToSettings(row: Partial<HomeSettingsRow>): HomeSettings {
 
 function settingsToRow(settings: Partial<HomeSettings>): Partial<HomeSettingsRow> {
   const row: Partial<HomeSettingsRow> = {};
+  if (settings.homeBannerImage !== undefined) row.home_banner_image = settings.homeBannerImage;
   if (settings.homeImageOne !== undefined) row.home_image_one = settings.homeImageOne;
   if (settings.homeImageTwo !== undefined) row.home_image_two = settings.homeImageTwo;
   if (settings.homeImageThree !== undefined) row.home_image_three = settings.homeImageThree;
@@ -78,8 +83,7 @@ export async function saveHomeSettings(settings: Partial<HomeSettings>): Promise
   };
 
   if (!supabaseAdmin) {
-    console.warn('Supabase admin client is not configured; cannot persist home settings.');
-    return merged;
+    throw new Error('Supabase admin client is not configured on the server. Missing SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SECRET_KEY.');
   }
 
   const payload: Partial<HomeSettingsRow> = {
@@ -93,8 +97,22 @@ export async function saveHomeSettings(settings: Partial<HomeSettings>): Promise
     .upsert(payload, { onConflict: 'id' });
 
   if (error) {
-    console.warn('Error saving home settings to Supabase:', serializeError(error));
+    throw new Error(`Error saving home settings to Supabase: ${serializeError(error)}`);
   }
 
-  return merged;
+  const { data: verifyData, error: verifyError } = await supabaseAdmin
+    .from(HOME_SETTINGS_TABLE)
+    .select('*')
+    .eq('id', HOME_SETTINGS_ROW_ID)
+    .maybeSingle();
+
+  if (verifyError) {
+    throw new Error(`Saved but failed to verify home settings from Supabase: ${serializeError(verifyError)}`);
+  }
+
+  if (!verifyData) {
+    throw new Error('Saved but verification failed: row id=1 not found in home_settings.');
+  }
+
+  return rowToSettings(verifyData as Partial<HomeSettingsRow>);
 }

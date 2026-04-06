@@ -2584,20 +2584,32 @@ function Breadcrumb({ label }: { label: string }) {
 function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string> }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingSlot, setUploadingSlot] = useState<'1' | '2' | '3' | null>(null);
+  const [uploadingSlot, setUploadingSlot] = useState<'1' | '2' | '3' | 'banner' | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [imageFiles, setImageFiles] = useState<{ one: File | null; two: File | null; three: File | null }>({
+  const [imageFiles, setImageFiles] = useState<{ banner: File | null; one: File | null; two: File | null; three: File | null }>({
+    banner: null,
     one: null,
     two: null,
     three: null,
   });
   const [settings, setSettings] = useState({
+    homeBannerImage: '',
     homeImageOne: '',
     homeImageTwo: '',
     homeImageThree: '',
     youtubeVideoUrl: '',
   });
+
+  const handleSelectImageFile = (slot: '1' | '2' | '3' | 'banner', file: File | null) => {
+    setImageFiles((prev) => ({
+      ...prev,
+      ...(slot === 'banner' ? { banner: file } : {}),
+      ...(slot === '1' ? { one: file } : {}),
+      ...(slot === '2' ? { two: file } : {}),
+      ...(slot === '3' ? { three: file } : {}),
+    }));
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -2613,6 +2625,7 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
 
         setSettings((prev) => ({
           ...prev,
+          homeBannerImage: data.homeBannerImage ?? prev.homeBannerImage,
           homeImageOne: data.homeImageOne ?? prev.homeImageOne,
           homeImageTwo: data.homeImageTwo ?? prev.homeImageTwo,
           homeImageThree: data.homeImageThree ?? prev.homeImageThree,
@@ -2645,6 +2658,7 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          homeBannerImage: settings.homeBannerImage.trim(),
           homeImageOne: settings.homeImageOne.trim(),
           homeImageTwo: settings.homeImageTwo.trim(),
           homeImageThree: settings.homeImageThree.trim(),
@@ -2654,7 +2668,7 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
 
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.message || 'Lưu cài đặt thất bại');
+        throw new Error(payload?.error ? `${payload?.message || 'Lưu cài đặt thất bại'}: ${payload.error}` : (payload?.message || 'Lưu cài đặt thất bại'));
       }
 
       setSaveSuccess(true);
@@ -2665,8 +2679,8 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
     }
   };
 
-  const uploadHomeImage = async (slot: '1' | '2' | '3') => {
-    const file = slot === '1' ? imageFiles.one : slot === '2' ? imageFiles.two : imageFiles.three;
+  const uploadHomeImage = async (slot: '1' | '2' | '3' | 'banner') => {
+    const file = slot === 'banner' ? imageFiles.banner : slot === '1' ? imageFiles.one : slot === '2' ? imageFiles.two : imageFiles.three;
     if (!file) {
       setSaveError(`Vui lòng chọn file cho ảnh ${slot} trước khi upload.`);
       return;
@@ -2697,7 +2711,14 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
         throw new Error('Upload thành công nhưng không nhận được URL ảnh');
       }
 
-      const imageFieldKey = slot === '1' ? 'homeImageOne' : slot === '2' ? 'homeImageTwo' : 'homeImageThree';
+      const imageFieldKey =
+        slot === 'banner'
+          ? 'homeBannerImage'
+          : slot === '1'
+            ? 'homeImageOne'
+            : slot === '2'
+              ? 'homeImageTwo'
+              : 'homeImageThree';
 
       const persistRes = await fetch('/api/admin/home-settings', {
         method: 'POST',
@@ -2710,11 +2731,16 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
 
       if (!persistRes.ok) {
         const persistPayload = await persistRes.json().catch(() => ({}));
-        throw new Error(persistPayload?.message || 'Upload thành công nhưng lưu ảnh vào cài đặt thất bại');
+        throw new Error(
+          persistPayload?.error
+            ? `${persistPayload?.message || 'Upload thành công nhưng lưu ảnh vào cài đặt thất bại'}: ${persistPayload.error}`
+            : (persistPayload?.message || 'Upload thành công nhưng lưu ảnh vào cài đặt thất bại')
+        );
       }
 
       setSettings((prev) => ({
         ...prev,
+        ...(slot === 'banner' ? { homeBannerImage: imageUrl } : {}),
         ...(slot === '1' ? { homeImageOne: imageUrl } : {}),
         ...(slot === '2' ? { homeImageTwo: imageUrl } : {}),
         ...(slot === '3' ? { homeImageThree: imageUrl } : {}),
@@ -2722,6 +2748,7 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
 
       setImageFiles((prev) => ({
         ...prev,
+        ...(slot === 'banner' ? { banner: null } : {}),
         ...(slot === '1' ? { one: null } : {}),
         ...(slot === '2' ? { two: null } : {}),
         ...(slot === '3' ? { three: null } : {}),
@@ -2738,13 +2765,12 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
       <div className="mb-6">
         <Breadcrumb label="Trang chủ" />
         <h1 className="text-2xl font-bold text-slate-800">Quản lý Trang chủ</h1>
-        <p className="text-sm text-slate-500 mt-1">Chỉnh sửa nội dung hiển thị trên trang chủ website</p>
       </div>
 
       <Card className="mb-4">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cài đặt media trang chủ</CardTitle>
-          <CardDescription className="text-xs">Upload ảnh vào bucket để thay đổi giao diện trang chủ</CardDescription>
+          <CardTitle className="text-base">Cài đặt Giao diện trang chủ</CardTitle>
+          <CardDescription className="text-xs italic">Lưu ý: Tỷ lệ kích thước hình Banner là 16:9, Hình phần nội dung là 4:3.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
@@ -2755,12 +2781,32 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
           ) : (
             <>
               <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <p className="text-sm font-medium text-slate-700">Hình ảnh 1 (upload)</p>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <p className="text-sm font-medium text-slate-700">Banner trang chủ</p>
                   <Input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setImageFiles((prev) => ({ ...prev, one: e.target.files?.[0] || null }))}
+                    onChange={(e) => handleSelectImageFile('banner', e.target.files?.[0] || null)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!imageFiles.banner || uploadingSlot === 'banner'}
+                    onClick={() => uploadHomeImage('banner')}
+                  >
+                    {uploadingSlot === 'banner' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Cập nhật ảnh banner
+                  </Button>
+                  <p className="text-xs text-slate-500 break-all">{settings.homeBannerImage || 'Chưa có ảnh banner'}</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-slate-700">Hình 1</p>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleSelectImageFile('1', e.target.files?.[0] || null)}
                   />
                   <Button
                     type="button"
@@ -2770,16 +2816,16 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
                     onClick={() => uploadHomeImage('1')}
                   >
                     {uploadingSlot === '1' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                    Upload ảnh 1
+                    Nhấn để cập nhật
                   </Button>
                   <p className="text-xs text-slate-500 break-all">{settings.homeImageOne || 'Chưa có ảnh'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-sm font-medium text-slate-700">Hình ảnh 2 (upload)</p>
+                  <p className="text-sm font-medium text-slate-700">Hình 2</p>
                   <Input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setImageFiles((prev) => ({ ...prev, two: e.target.files?.[0] || null }))}
+                    onChange={(e) => handleSelectImageFile('2', e.target.files?.[0] || null)}
                   />
                   <Button
                     type="button"
@@ -2789,16 +2835,16 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
                     onClick={() => uploadHomeImage('2')}
                   >
                     {uploadingSlot === '2' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                    Upload ảnh 2
+                    Nhấn để cập nhật
                   </Button>
                   <p className="text-xs text-slate-500 break-all">{settings.homeImageTwo || 'Chưa có ảnh'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-sm font-medium text-slate-700">Hình ảnh 3 (upload)</p>
+                  <p className="text-sm font-medium text-slate-700">Hình 3</p>
                   <Input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setImageFiles((prev) => ({ ...prev, three: e.target.files?.[0] || null }))}
+                    onChange={(e) => handleSelectImageFile('3', e.target.files?.[0] || null)}
                   />
                   <Button
                     type="button"
@@ -2808,12 +2854,12 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
                     onClick={() => uploadHomeImage('3')}
                   >
                     {uploadingSlot === '3' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                    Upload ảnh 3
+                    Nhấn để cập nhật
                   </Button>
                   <p className="text-xs text-slate-500 break-all">{settings.homeImageThree || 'Chưa có ảnh'}</p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-sm font-medium text-slate-700">Link YouTube</p>
+                  <p className="text-sm font-medium text-slate-700">Link YouTube video</p>
                   <Input
                     value={settings.youtubeVideoUrl}
                     onChange={(e) => setSettings((prev) => ({ ...prev, youtubeVideoUrl: e.target.value }))}
@@ -2823,16 +2869,42 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
               </div>
 
               <div className="grid sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 sm:col-span-3">
+                  <p className="text-xs text-slate-500 mb-2">Preview Banner</p>
+                  {settings.homeBannerImage?.trim() ? (
+                    <div className="h-52 md:h-72 overflow-hidden rounded-md border border-slate-200 bg-white relative">
+                      <img src={settings.homeBannerImage} alt="Home banner preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/45" />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center text-white">
+                        <p className="text-base md:text-2xl font-semibold tracking-wide">CHAO MUNG DEN VOI</p>
+                        <p className="mt-2 text-lg md:text-4xl font-bold">DOAN KHOA TAI CHINH - NGAN HANG</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-52 md:h-72 w-full rounded-md border border-dashed border-slate-300 bg-white flex items-center justify-center text-xs text-slate-400">
+                      Chưa có ảnh banner
+                    </div>
+                  )}
+                </div>
+
                 {[settings.homeImageOne, settings.homeImageTwo, settings.homeImageThree].map((src, idx) => (
                   <div key={`home-image-preview-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                    <p className="text-xs text-slate-500 mb-2">Preview ảnh {idx + 1}</p>
-                    <img src={src} alt={`Home image ${idx + 1}`} className="w-full h-24 object-cover rounded-md border border-slate-200 bg-white" />
+                    <p className="text-xs text-slate-500 mb-2">Preview Hình {idx + 1}</p>
+                    {src?.trim() ? (
+                      <div className="aspect-[4/3] overflow-hidden rounded-md border border-slate-200 bg-white">
+                        <img src={src} alt={`Home image ${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="aspect-[4/3] w-full rounded-md border border-dashed border-slate-300 bg-white flex items-center justify-center text-xs text-slate-400">
+                        Chưa có ảnh
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
 
               {saveError && <p className="text-sm text-red-600">{saveError}</p>}
-              {saveSuccess && <p className="text-sm text-green-600">Đã lưu cài đặt trang chủ thành công.</p>}
+              {saveSuccess && <p className="text-sm text-green-600">Đã lưu thành công.</p>}
 
               <div className="flex justify-end">
                 <Button onClick={handleSave} disabled={saving}>

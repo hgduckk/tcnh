@@ -22,15 +22,19 @@ export default function Home() {
   const [isMuted, setIsMuted] = useState(true);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [settings, setSettings] = useState({
+    homeBannerImage: '',
     homeImageOne: '',
     homeImageTwo: '',
     homeImageThree: '',
     youtubeVideoUrl: '',
+    lastUpdated: '',
     contactFormTitle: 'Liên hệ với chúng tôi',
     contactFormSubtitle: 'Xin vui lòng cung cấp thông tin',
   });
 
   const fixedHomepageTitle = 'Đoàn Khoa Tài chính - Ngân hàng';
+  const fixedBannerTitle = 'CHÀO MỪNG ĐẾN VỚI';
+  const fixedBannerSubtitle = 'ĐOÀN KHOA TÀI CHÍNH - NGÂN HÀNG';
 
   const parseYouTubeId = (value: string) => {
     const urlMatch = value.match(/(?:youtube\.com\/.*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -41,6 +45,11 @@ export default function Home() {
 
   const videoId = parseYouTubeId(settings.youtubeVideoUrl || '');
   const youtubeEmbedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&rel=0&modestbranding=1`;
+  const imageVersion = settings.lastUpdated ? encodeURIComponent(settings.lastUpdated) : '';
+  const withVersion = (src: string) => {
+    if (!src || !imageVersion) return src;
+    return src.includes('?') ? `${src}&v=${imageVersion}` : `${src}?v=${imageVersion}`;
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -140,28 +149,23 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Banner Section */}
-      <section className="relative w-full text-center">
-        
-        <div className="relative">
-          <Image
-            src="/images/backkipu.jpg"
-            alt="Finance - Banking Faculty Union"
-            width={1920}
-            height={600}
-            className="w-full h-auto object-cover mt-0"
-            data-ai-hint="university campus"
-          />
-          {/* <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-4">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-headline font-bold mb-4 drop-shadow-lg">
-              CHÀO MỪNG ĐẾN VỚI 
-            </h1>
-            <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-headline font-extrabold mb-4 drop-shadow-lg">
-              ĐOÀN KHOA TÀI CHÍNH - NGÂN HÀNG
-            </h1>
-            <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl max-w-4xl mx-auto drop-shadow-md font-semibold italic">
-              Nơi trái tim gọi là "Nhà"
-            </p>
-          </div> */}
+      <section className="relative w-full text-center h-screen h-dvh overflow-hidden">
+        <Image
+          src={withVersion(settings.homeBannerImage || '/images/backkipu.jpg')}
+          alt="Finance - Banking Faculty Union"
+          fill
+          className="object-cover"
+          priority
+          data-ai-hint="university campus"
+        />
+        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-4">
+          <h1 className="tracking-wider text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-headline mb-3 drop-shadow-lg font-anton">
+            {fixedBannerTitle}
+          </h1>
+          <h2 className="tracking-wider text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-headline font-anton drop-shadow-lg max-w-6xl">
+            {fixedBannerSubtitle}
+          </h2>
         </div>
       </section>
 
@@ -181,16 +185,17 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageOne ? (
-                    <Image
-                      src={settings.homeImageOne}
-                      alt="Group of students"
-                      width={700}
-                      height={500}
-                      className="rounded-xl shadow-2xl"
-                      data-ai-hint="students collaborating"
-                    />
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                      <Image
+                        src={withVersion(settings.homeImageOne)}
+                        alt="Group of students"
+                        fill
+                        className="object-cover"
+                        data-ai-hint="students collaborating"
+                      />
+                    </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-slate-300 h-[320px] flex items-center justify-center text-slate-400">
+                    <div className="rounded-xl border border-dashed border-slate-300 aspect-[4/3] flex items-center justify-center text-slate-400">
                       Chưa cập nhật hình ảnh 1
                     </div>
                   )}
@@ -207,16 +212,17 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageTwo ? (
-                    <Image
-                      src={settings.homeImageTwo}
-                      alt="Group of students"
-                      width={700}
-                      height={500}
-                      className="rounded-xl shadow-2xl"
-                      data-ai-hint="students collaborating"
-                    />
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                      <Image
+                        src={withVersion(settings.homeImageTwo)}
+                        alt="Group of students"
+                        fill
+                        className="object-cover"
+                        data-ai-hint="students collaborating"
+                      />
+                    </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-slate-300 h-[320px] flex items-center justify-center text-slate-400">
+                    <div className="rounded-xl border border-dashed border-slate-300 aspect-[4/3] flex items-center justify-center text-slate-400">
                       Chưa cập nhật hình ảnh 2
                     </div>
                   )}
@@ -231,16 +237,17 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageThree ? (
-                    <Image
-                      src={settings.homeImageThree}
-                      alt="Group of students"
-                      width={700}
-                      height={500}
-                      className="rounded-xl shadow-2xl"
-                      data-ai-hint="students collaborating"
-                    />
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                      <Image
+                        src={withVersion(settings.homeImageThree)}
+                        alt="Group of students"
+                        fill
+                        className="object-cover"
+                        data-ai-hint="students collaborating"
+                      />
+                    </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-slate-300 h-[320px] flex items-center justify-center text-slate-400">
+                    <div className="rounded-xl border border-dashed border-slate-300 aspect-[4/3] flex items-center justify-center text-slate-400">
                       Chưa cập nhật hình ảnh 3
                     </div>
                   )}

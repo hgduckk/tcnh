@@ -201,6 +201,7 @@ CREATE TABLE IF NOT EXISTS admin_settings (
 
 CREATE TABLE IF NOT EXISTS home_settings (
   id INT PRIMARY KEY,
+  home_banner_image TEXT NOT NULL DEFAULT '',
   home_image_one TEXT NOT NULL,
   home_image_two TEXT NOT NULL,
   home_image_three TEXT NOT NULL,
@@ -209,7 +210,25 @@ CREATE TABLE IF NOT EXISTS home_settings (
 );
 
 ALTER TABLE home_settings
+  ALTER COLUMN home_banner_image SET DEFAULT '',
+  ALTER COLUMN home_image_one SET DEFAULT '',
+  ALTER COLUMN home_image_two SET DEFAULT '',
+  ALTER COLUMN home_image_three SET DEFAULT '';
+
+ALTER TABLE home_settings
+  ADD COLUMN IF NOT EXISTS home_banner_image TEXT NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS home_youtube_url TEXT NOT NULL DEFAULT '';
+
+INSERT INTO home_settings (
+  id,
+  home_banner_image,
+  home_image_one,
+  home_image_two,
+  home_image_three,
+  home_youtube_url
+)
+VALUES (1, '', '', '', '', '')
+ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS admin_visits (
   id INT PRIMARY KEY,
@@ -492,23 +511,23 @@ DROP POLICY IF EXISTS "Public can delete submissions" ON submissions;
 CREATE POLICY "Public can delete submissions" ON submissions
   FOR DELETE USING (true);
 
--- ------------------------------------------------------------
 -- Storage buckets used by website + admin
--- ------------------------------------------------------------
 
-INSERT INTO storage.buckets (id, name, public)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
-  ('blog-testimonials', 'blog-testimonials', true),
-  ('achievements', 'achievements', true),
-  ('activities', 'activities', true),
-  ('partners', 'partners', true),
-  ('structure', 'structure', true),
-  ('home-images', 'home-images', true),
-  ('submission-images', 'submission-images', true)
+  ('blog-testimonials', 'blog-testimonials', true, 8388608, ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']::text[]),
+  ('achievements', 'achievements', true, 8388608, ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']::text[]),
+  ('activities', 'activities', true, 10485760, ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4']::text[]),
+  ('partners', 'partners', true, 8388608, ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml']::text[]),
+  ('structure', 'structure', true, 8388608, ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']::text[]),
+  ('home-images', 'home-images', true, 8388608, ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']::text[]),
+  ('submission-images', 'submission-images', true, 8388608, ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']::text[])
 ON CONFLICT (id) DO UPDATE
 SET
   name = EXCLUDED.name,
-  public = EXCLUDED.public;
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 -- Storage policies for public A80 uploads (API uses anon client key)
 DROP POLICY IF EXISTS "Public can view submission images" ON storage.objects;
