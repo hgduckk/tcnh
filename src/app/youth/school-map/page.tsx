@@ -1,85 +1,294 @@
 "use client";
 
-import { PageBanner } from "@/components/shared/PageBanner";
-import { Footer } from "@/components/layout/Footer";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { MapPinned, School, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+
+type MapNote = {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  action: "info" | "scene";
+  description?: string;
+  targetId?: string;
+};
+
+type Scene = {
+  id: string;
+  image: string;
+  imageAlt: string;
+  title: string;
+  parentId?: string;
+  notes: MapNote[];
+};
+
+const overviewScene: Scene = {
+  id: "overview",
+  image: "/images/map.png",
+  imageAlt: "Bản đồ tổng quan khuôn viên",
+  title: "Tổng quan khuôn viên",
+  notes: [
+    {
+      id: "building-main",
+      label: "Tòa nhà chính",
+      x: 39,
+      y: 49,
+      action: "scene",
+      targetId: "main-building",
+    },
+    {
+      id: "overview-water",
+      label: "Kênh nước",
+      x: 31,
+      y: 67,
+      action: "info",
+      description: "Khu vực cảnh quan bao quanh tòa nhà.",
+    },
+    {
+      id: "overview-hill",
+      label: "Đồi cây xanh",
+      x: 63,
+      y: 17,
+      action: "info",
+      description: "Không gian xanh phía sau khu giảng đường.",
+    },
+  ],
+};
+
+const scenes: Record<string, Scene> = {
+  overview: overviewScene,
+  "main-building": {
+    id: "main-building",
+    image: "/images/floor.png",
+    imageAlt: "Sảnh và phân tầng tòa nhà chính",
+    title: "Tòa nhà chính",
+    parentId: "overview",
+    notes: [
+      {
+        id: "floor-1",
+        label: "Tầng 1",
+        x: 46,
+        y: 60,
+        action: "scene",
+        targetId: "main-floor-1",
+      },
+      {
+        id: "floor-2",
+        label: "Tầng 2",
+        x: 46,
+        y: 52,
+        action: "scene",
+        targetId: "main-floor-2",
+      },
+      {
+        id: "helpdesk-info",
+        label: "Bàn hỗ trợ",
+        x: 38,
+        y: 65,
+        action: "info",
+        description: "Điểm hỗ trợ sinh viên tại sảnh tòa nhà.",
+      },
+    ],
+  },
+  "main-floor-1": {
+    id: "main-floor-1",
+    image: "/images/floor.png",
+    imageAlt: "Mặt bằng tầng 1",
+    title: "Tầng 1",
+    parentId: "main-building",
+    notes: [
+      {
+        id: "room-101",
+        label: "P.101",
+        x: 44,
+        y: 64,
+        action: "scene",
+        targetId: "room-101-detail",
+      },
+      {
+        id: "room-102",
+        label: "P.102",
+        x: 52,
+        y: 64,
+        action: "scene",
+        targetId: "room-102-detail",
+      },
+    ],
+  },
+  "main-floor-2": {
+    id: "main-floor-2",
+    image: "/images/floor.png",
+    imageAlt: "Mặt bằng tầng 2",
+    title: "Tầng 2",
+    parentId: "main-building",
+    notes: [
+      {
+        id: "room-201",
+        label: "P.201",
+        x: 44,
+        y: 56,
+        action: "scene",
+        targetId: "room-201-detail",
+      },
+      {
+        id: "room-202",
+        label: "P.202",
+        x: 52,
+        y: 56,
+        action: "scene",
+        targetId: "room-202-detail",
+      },
+    ],
+  },
+  "room-101-detail": {
+    id: "room-101-detail",
+    image: "/images/room-1.png",
+    imageAlt: "Phòng 101",
+    title: "Phòng 101",
+    parentId: "main-floor-1",
+    notes: [
+      {
+        id: "room-101-info",
+        label: "Thông tin",
+        x: 50,
+        y: 60,
+        action: "info",
+        description: "Phòng tiếp nhận thủ tục sinh viên.",
+      },
+    ],
+  },
+  "room-102-detail": {
+    id: "room-102-detail",
+    image: "/images/room-1.png",
+    imageAlt: "Phòng 102",
+    title: "Phòng 102",
+    parentId: "main-floor-1",
+    notes: [
+      {
+        id: "room-102-info",
+        label: "Thông tin",
+        x: 50,
+        y: 60,
+        action: "info",
+        description: "Phòng hỗ trợ hồ sơ và xác nhận giấy tờ.",
+      },
+    ],
+  },
+  "room-201-detail": {
+    id: "room-201-detail",
+    image: "/images/room-1.png",
+    imageAlt: "Phòng 201",
+    title: "Phòng 201",
+    parentId: "main-floor-2",
+    notes: [
+      {
+        id: "room-201-info",
+        label: "Thông tin",
+        x: 50,
+        y: 60,
+        action: "info",
+        description: "Phòng học lý thuyết.",
+      },
+    ],
+  },
+  "room-202-detail": {
+    id: "room-202-detail",
+    image: "/images/room-1.png",
+    imageAlt: "Phòng 202",
+    title: "Phòng 202",
+    parentId: "main-floor-2",
+    notes: [
+      {
+        id: "room-202-info",
+        label: "Thông tin",
+        x: 50,
+        y: 60,
+        action: "info",
+        description: "Phòng họp nhóm.",
+      },
+    ],
+  },
+};
 
 export default function YouthSchoolMapPage() {
+  const [activeSceneId, setActiveSceneId] = useState<string>("overview");
+  const [activeNoteText, setActiveNoteText] = useState<string>("Chọn một điểm trên ảnh để xem chi tiết.");
+
+  const activeScene = useMemo(() => scenes[activeSceneId] ?? overviewScene, [activeSceneId]);
+
+  const handleNoteClick = (note: MapNote) => {
+    if (note.action === "scene" && note.targetId) {
+      setActiveSceneId(note.targetId);
+      setActiveNoteText(`Đang xem: ${note.label}`);
+      return;
+    }
+
+    if (note.description) {
+      setActiveNoteText(note.description);
+      return;
+    }
+
+    setActiveNoteText(`Thông tin: ${note.label}`);
+  };
+
+  const backToOverview = () => {
+    setActiveSceneId("overview");
+    setActiveNoteText("Chọn một điểm trên ảnh để xem chi tiết.");
+  };
+
+  const backOneLevel = () => {
+    if (activeSceneId === "overview") {
+      return;
+    }
+
+    const currentScene = scenes[activeSceneId];
+    const parentId = currentScene?.parentId ?? "overview";
+
+    setActiveSceneId(parentId);
+    setActiveNoteText(`Đang xem: ${scenes[parentId]?.title ?? "Tổng quan khuôn viên"}`);
+  };
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_80%_10%,#dcfce7,transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]">
-      <PageBanner
-        title="CÔNG TRÌNH THANH NIÊN"
-        subtitle="Bản đồ trường học - bản sơ khảo dành cho sinh viên"
-        imageUrl="/images/back-ocean.jpg"
-        imageHint="school map"
-      />
+    <div className="min-h-screen bg-[#f2f3f5] px-3 py-4 md:px-6 md:py-6">
+      <main className="mx-auto max-w-[1240px] space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={backToOverview}
+            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Tổng quan
+          </button>
+          <button
+            type="button"
+            onClick={backOneLevel}
+            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Quay lại
+          </button>
+          <p className="text-xs font-medium text-slate-700">{activeScene.title}</p>
+          <p className="text-xs text-slate-500">{activeNoteText}</p>
+        </div>
 
-      <main className="container mx-auto px-4 md:px-8 py-12 md:py-16 space-y-8">
-        <Card className="rounded-3xl border border-slate-200 bg-white shadow-xl">
-          <CardContent className="p-7 md:p-10 space-y-7">
-            <div className="space-y-2">
-              <p className="uppercase tracking-[0.18em] text-xs md:text-sm text-slate-500">Sơ khảo giao diện</p>
-              <h1 className="text-3xl md:text-5xl font-anton text-slate-900">Bản đồ trường học</h1>
-              <p className="text-slate-600 max-w-3xl">
-                Trang này là bản sơ khảo để duyệt hướng thiết kế trước khi nối dữ liệu thật.
-                Mục tiêu là giúp sinh viên mới tìm khu học, khu dịch vụ và điểm hỗ trợ nhanh hơn.
-              </p>
-            </div>
+        <div className="relative overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+          <img
+            src={activeScene.image}
+            alt={activeScene.imageAlt}
+            className="w-full h-auto block"
+          />
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-6">
-              <div className="rounded-2xl border bg-slate-50 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold text-slate-800">Preview bản đồ khuôn viên</h2>
-                  <Badge variant="outline">Wireframe</Badge>
-                </div>
-                <div className="aspect-[16/10] rounded-xl bg-[linear-gradient(135deg,#f8fafc_0%,#e0f2fe_45%,#dbeafe_100%)] border relative overflow-hidden">
-                  <div className="absolute left-[12%] top-[16%] rounded-lg px-3 py-2 bg-white shadow border text-xs">A Block</div>
-                  <div className="absolute left-[36%] top-[38%] rounded-lg px-3 py-2 bg-white shadow border text-xs">Library</div>
-                  <div className="absolute right-[15%] top-[25%] rounded-lg px-3 py-2 bg-white shadow border text-xs">Canteen</div>
-                  <div className="absolute left-[28%] bottom-[16%] rounded-lg px-3 py-2 bg-white shadow border text-xs">Student Service</div>
-                  <div className="absolute right-[18%] bottom-[22%] rounded-lg px-3 py-2 bg-white shadow border text-xs">Parking</div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-2xl border p-4 bg-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <School className="w-4 h-4 text-sky-600" />
-                    <p className="font-semibold text-slate-800">Giai đoạn 1</p>
-                  </div>
-                  <p className="text-sm text-slate-600">Chuẩn hóa dữ liệu tòa nhà, phòng ban và dịch vụ sinh viên.</p>
-                </div>
-
-                <div className="rounded-2xl border p-4 bg-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPinned className="w-4 h-4 text-sky-600" />
-                    <p className="font-semibold text-slate-800">Giai đoạn 2</p>
-                  </div>
-                  <p className="text-sm text-slate-600">Tìm đường từ vị trí hiện tại tới lớp học hoặc địa điểm cần đến.</p>
-                </div>
-
-                <div className="rounded-2xl border p-4 bg-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-sky-600" />
-                    <p className="font-semibold text-slate-800">Giai đoạn 3</p>
-                  </div>
-                  <p className="text-sm text-slate-600">Cho phép sinh viên góp ý bổ sung địa điểm mới trên bản đồ.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button className="bg-sky-600 hover:bg-sky-700 text-white">Duyệt sơ khảo</Button>
-              <Button variant="outline">Bổ sung địa điểm mẫu</Button>
-            </div>
-          </CardContent>
-        </Card>
+          {activeScene.notes.map((note) => (
+            <button
+              key={note.id}
+              type="button"
+              onClick={() => handleNoteClick(note)}
+              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white/95 px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow hover:bg-white"
+              style={{ left: `${note.x}%`, top: `${note.y}%` }}
+            >
+              {note.label}
+            </button>
+          ))}
+        </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

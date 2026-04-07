@@ -16,7 +16,6 @@ const navItems = [
   { href: '/blog', label: 'Diễn đàn' },
   { href: '/apply', label: 'Ứng tuyển' },
   { href: '/youth', label: 'Tuổi trẻ' },
-  { href: '/updating', label: 'Chatbot' },
 ];
 
 export function Header() {

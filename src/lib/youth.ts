@@ -33,6 +33,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 export const YOUTH_TARGET_LINK_OPTIONS = [
   { value: "/youth/a80", label: "Rang Ro Viet Nam" },
   { value: "/youth/school-map", label: "UEL Campus Map" },
+  { value: "/youth/document-format", label: "The Thuc Van Ban" },
 ];
 
 function normalizeLaunchStatus(value: unknown): YouthLaunchStatus {

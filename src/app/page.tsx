@@ -33,7 +33,6 @@ export default function Home() {
   });
 
   const fixedHomepageTitle = 'Đoàn Khoa Tài chính - Ngân hàng';
-  const fixedBannerTitle = 'CHÀO MỪNG ĐẾN VỚI';
   const fixedBannerSubtitle = 'ĐOÀN KHOA TÀI CHÍNH - NGÂN HÀNG';
 
   const parseYouTubeId = (value: string) => {
@@ -149,24 +148,16 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Banner Section */}
-      <section className="relative w-full text-center h-screen h-dvh overflow-hidden">
+      <section className="relative w-full text-center overflow-hidden">
         <Image
           src={withVersion(settings.homeBannerImage || '/images/backkipu.jpg')}
           alt="Finance - Banking Faculty Union"
-          fill
-          className="object-cover"
+          width={1920}
+          height={1080}
+          className="w-full h-auto object-contain"
           priority
           data-ai-hint="university campus"
         />
-        <div className="absolute inset-0 bg-black/45" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-4">
-          <h1 className="tracking-wider text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-headline mb-3 drop-shadow-lg font-anton">
-            {fixedBannerTitle}
-          </h1>
-          <h2 className="tracking-wider text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-headline font-anton drop-shadow-lg max-w-6xl">
-            {fixedBannerSubtitle}
-          </h2>
-        </div>
       </section>
 
       {/* Introduction Section */}
