@@ -28,7 +28,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieCh
 import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
-  Database, Bot, FileSpreadsheet, ShieldCheck,
+  Database, Bot, FileSpreadsheet, ShieldCheck, GraduationCap,
   LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X, Upload,
 } from 'lucide-react';
 
@@ -96,7 +96,8 @@ type AdminTab =
   | 'category-structure'
   | 'category-achievements'
   | 'category-activities'
-  | 'category-youth'
+  | 'category-youth-activities'
+  | 'category-youth-student-info'
   | 'category-apply'
   | 'category-partners'
   | 'category-blog-testimonials'
@@ -247,6 +248,7 @@ export default function AdminPage() {
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [categoryOpen, setCategoryOpen] = useState(true);
+  const [youthSubOpen, setYouthSubOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const authHeaders = useMemo(() => ({ 'x-admin-password': password }), [password]);
@@ -445,15 +447,50 @@ export default function AdminPage() {
                   setSidebarOpen(false);
                 }}
               />
-              <SidebarBtn
-                icon={Bot}
-                label="Tuổi trẻ"
-                active={activeTab === 'category-youth'}
-                onClick={() => {
-                  setActiveTab('category-youth');
-                  setSidebarOpen(false);
-                }}
-              />
+              {/* Youth — collapsible sub-menu */}
+              <div>
+                <button
+                  onClick={() => setYouthSubOpen((o) => !o)}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-left ${
+                    activeTab === 'category-youth-activities' || activeTab === 'category-youth-student-info'
+                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Bot className={`w-4 h-4 flex-shrink-0 ${
+                      activeTab === 'category-youth-activities' || activeTab === 'category-youth-student-info'
+                        ? 'text-blue-600' : ''
+                    }`} />
+                    Tuổi trẻ
+                  </span>
+                  {youthSubOpen
+                    ? <ChevronDown className="w-3.5 h-3.5" />
+                    : <ChevronRight className="w-3.5 h-3.5" />}
+                </button>
+                {youthSubOpen && (
+                  <div className="mt-1 space-y-0.5 pl-4">
+                    <SidebarBtn
+                      icon={Activity}
+                      label="Thêm mới"
+                      active={activeTab === 'category-youth-activities'}
+                      onClick={() => {
+                        setActiveTab('category-youth-activities');
+                        setSidebarOpen(false);
+                      }}
+                    />
+                    <SidebarBtn
+                      icon={GraduationCap}
+                      label="Thông tin sinh viên"
+                      active={activeTab === 'category-youth-student-info'}
+                      onClick={() => {
+                        setActiveTab('category-youth-student-info');
+                        setSidebarOpen(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
               <SidebarBtn
                 icon={FileText}
                 label="Đơn đăng ký"
@@ -571,7 +608,8 @@ export default function AdminPage() {
             {activeTab === 'category-structure' && <CategoryStructurePanel adminPassword={password} />}
             {activeTab === 'category-achievements' && <CategoryAchievementsPanel adminPassword={password} />}
             {activeTab === 'category-activities' && <CategoryActivitiesPanel adminPassword={password} />}
-            {activeTab === 'category-youth' && <CategoryYouthPanel adminPassword={password} />}
+            {activeTab === 'category-youth-activities' && <CategoryYouthPanel adminPassword={password} />}
+            {activeTab === 'category-youth-student-info' && <CategoryStudentInfoPanel />}
             {activeTab === 'category-apply' && (
               <ApplicationFormsAdmin adminPassword={password} />
             )}
@@ -2989,12 +3027,41 @@ function CategoryYouthPanel({ adminPassword }: { adminPassword: string }) {
   return (
     <div>
       <div className="mb-6">
-        <Breadcrumb label="Tuổi trẻ" />
-        <h1 className="text-2xl font-bold text-slate-800">Quản lý Trang Tuổi trẻ</h1>
-        <p className="text-sm text-slate-500 mt-1">Nhập hướng dẫn ở đây</p>
+        <Breadcrumb label="Tuổi trẻ / Thêm mới" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Hoạt động Tuổi trẻ</h1>
+        <p className="text-sm text-slate-500 mt-1">Thêm, sửa và quản lý các mục hiển thị trên trang Tuổi trẻ</p>
       </div>
 
       <YouthAdmin adminPassword={adminPassword} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category — Student Info
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CategoryStudentInfoPanel() {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Tuổi trẻ / Thông tin sinh viên" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Thông tin sinh viên</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Quản lý danh sách lớp, cố vấn học tập và thông tin sinh viên trong khoa.
+        </p>
+      </div>
+
+      <Card className="border-slate-100 bg-white shadow-sm">
+        <CardContent className="p-10 flex flex-col items-center justify-center text-center gap-3">
+          <GraduationCap className="w-12 h-12 text-slate-300" />
+          <p className="text-slate-700 font-medium">Tính năng đang được phát triển</p>
+          <p className="text-sm text-slate-400 max-w-sm">
+            Cấu trúc dữ liệu cho mục Thông tin sinh viên (lớp, cố vấn, tra cứu sinh viên)
+            sẽ được hoàn thiện trong thời gian tới.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
