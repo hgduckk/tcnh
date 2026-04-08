@@ -23,13 +23,14 @@ import { PartnersAdmin } from '@/components/admin/PartnersAdmin';
 import { StructureAdmin } from '@/components/admin/StructureAdmin';
 import { BlogTestimonialsAdmin } from '@/components/admin/BlogTestimonialsAdmin';
 import { BlogDiscussionAdmin } from '@/components/admin/BlogDiscussionAdmin';
+import { SchoolMapAdmin } from '@/components/admin/SchoolMapAdmin';
 import { formatDateTime } from '@/lib/utils';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
-  Database, Bot, FileSpreadsheet, ShieldCheck, GraduationCap,
-  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X, Upload,
+  Database, Bot, ShieldCheck, GraduationCap,
+  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X, Upload, MapPinned,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -98,6 +99,7 @@ type AdminTab =
   | 'category-activities'
   | 'category-youth-activities'
   | 'category-youth-student-info'
+  | 'category-youth-school-map'
   | 'category-apply'
   | 'category-partners'
   | 'category-blog-testimonials'
@@ -452,14 +454,14 @@ export default function AdminPage() {
                 <button
                   onClick={() => setYouthSubOpen((o) => !o)}
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-left ${
-                    activeTab === 'category-youth-activities' || activeTab === 'category-youth-student-info'
+                    activeTab === 'category-youth-activities' || activeTab === 'category-youth-student-info' || activeTab === 'category-youth-school-map'
                       ? 'bg-blue-50 text-blue-700 font-medium'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
                     <Bot className={`w-4 h-4 flex-shrink-0 ${
-                      activeTab === 'category-youth-activities' || activeTab === 'category-youth-student-info'
+                      activeTab === 'category-youth-activities' || activeTab === 'category-youth-student-info' || activeTab === 'category-youth-school-map'
                         ? 'text-blue-600' : ''
                     }`} />
                     Tuổi trẻ
@@ -485,6 +487,15 @@ export default function AdminPage() {
                       active={activeTab === 'category-youth-student-info'}
                       onClick={() => {
                         setActiveTab('category-youth-student-info');
+                        setSidebarOpen(false);
+                      }}
+                    />
+                    <SidebarBtn
+                      icon={MapPinned}
+                      label="School Map"
+                      active={activeTab === 'category-youth-school-map'}
+                      onClick={() => {
+                        setActiveTab('category-youth-school-map');
                         setSidebarOpen(false);
                       }}
                     />
@@ -610,6 +621,7 @@ export default function AdminPage() {
             {activeTab === 'category-activities' && <CategoryActivitiesPanel adminPassword={password} />}
             {activeTab === 'category-youth-activities' && <CategoryYouthPanel adminPassword={password} />}
             {activeTab === 'category-youth-student-info' && <CategoryStudentInfoPanel />}
+            {activeTab === 'category-youth-school-map' && <CategoryYouthSchoolMapPanel adminPassword={password} />}
             {activeTab === 'category-apply' && (
               <ApplicationFormsAdmin adminPassword={password} />
             )}
@@ -1864,7 +1876,7 @@ function OverviewPanel({
 
 function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> }) {
   const [statuses, setStatuses] = useState<Record<string, ServiceStatus>>({
-    supabase: 'idle', sheets: 'idle', drive: 'idle', ai: 'idle', admin: 'idle',
+    supabase: 'idle', ai: 'idle', admin: 'idle',
   });
   const [messages, setMessages] = useState<Record<string, string>>({});
   const [pageStatuses, setPageStatuses] = useState<Record<string, ServiceStatus>>({
@@ -1954,36 +1966,6 @@ function FunctionPanel({ authHeaders }: { authHeaders: Record<string, string> })
         return {
           ok: res.ok,
           msg: res.ok ? 'Kết nối Supabase thành công' : await getErrorMessage(res),
-        };
-      },
-    },
-    {
-      key: 'sheets',
-      icon: FileSpreadsheet,
-      label: 'Google Sheets',
-      desc: 'Kiểm tra kết nối Google Sheets API',
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-      onTest: async () => {
-        const res = await fetch('/api/admin/form-submissions', { headers: authHeaders });
-        return {
-          ok: res.ok,
-          msg: res.ok ? 'Kết nối Google Sheets thành công' : await getErrorMessage(res),
-        };
-      },
-    },
-    {
-      key: 'drive',
-      icon: FolderOpen,
-      label: 'Google Drive',
-      desc: 'Kiểm tra kết nối Google Drive API',
-      bgColor: 'bg-amber-50',
-      iconColor: 'text-amber-600',
-      onTest: async () => {
-        const res = await fetch('/api/admin/drive-check', { headers: authHeaders });
-        return {
-          ok: res.ok,
-          msg: res.ok ? 'Kết nối Google Drive thành công' : await getErrorMessage(res),
         };
       },
     },
@@ -2808,7 +2790,7 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
       <Card className="mb-4">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Cài đặt Giao diện trang chủ</CardTitle>
-          <CardDescription className="text-xs italic">Lưu ý: Tỷ lệ kích thước hình Banner là 16:9, Hình phần nội dung là 4:3.</CardDescription>
+          <CardDescription className="text-xs italic">Lưu ý: Banner hiển thị full chiều ngang và giữ chiều cao theo tỷ lệ ảnh gốc; Hình phần nội dung là 4:3.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
@@ -2910,8 +2892,8 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 sm:col-span-3">
                   <p className="text-xs text-slate-500 mb-2">Preview Banner</p>
                   {settings.homeBannerImage?.trim() ? (
-                    <div className="h-52 md:h-72 overflow-hidden rounded-md border border-slate-200 bg-white relative">
-                      <img src={settings.homeBannerImage} alt="Home banner preview" className="w-full h-full object-cover" />
+                    <div className="rounded-md border border-slate-200 bg-white relative">
+                      <img src={settings.homeBannerImage} alt="Home banner preview" className="block w-full h-auto" />
                       <div className="absolute inset-0 bg-black/45" />
                       <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center text-white">
                         <p className="text-base md:text-2xl font-semibold tracking-wide">CHAO MUNG DEN VOI</p>
@@ -2919,7 +2901,7 @@ function CategoryHomePanel({ authHeaders }: { authHeaders: Record<string, string
                       </div>
                     </div>
                   ) : (
-                    <div className="h-52 md:h-72 w-full rounded-md border border-dashed border-slate-300 bg-white flex items-center justify-center text-xs text-slate-400">
+                    <div className="h-24 w-full rounded-md border border-dashed border-slate-300 bg-white flex items-center justify-center text-xs text-slate-400">
                       Chưa có ảnh banner
                     </div>
                   )}
@@ -3062,6 +3044,22 @@ function CategoryStudentInfoPanel() {
           </p>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function CategoryYouthSchoolMapPanel({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Tuổi trẻ / School Map" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý School Map</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Quản lý cấu trúc tòa nhà, tầng, phòng và điểm tương tác trên ảnh.
+        </p>
+      </div>
+
+      <SchoolMapAdmin adminPassword={adminPassword} />
     </div>
   );
 }

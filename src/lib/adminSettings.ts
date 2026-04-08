@@ -7,10 +7,6 @@ export interface AdminSettings {
   homepageDescription: string;
   contactFormTitle: string;
   contactFormSubtitle: string;
-  googleSheetId: string;
-  googleSheetRange: string;
-  googleSheetRangeContact: string;
-  googleSheetRangeComments: string;
   lastUpdated?: string;
 }
 
@@ -20,10 +16,6 @@ const DEFAULT_SETTINGS: AdminSettings = {
   homepageDescription: 'Cùng nhau xây dựng hành trình Thanh niên tươi sáng.',
   contactFormTitle: 'Liên hệ với chúng tôi',
   contactFormSubtitle: 'Nhập thông tin để gửi tin nhắn',
-  googleSheetId: process.env.GOOGLE_SHEET_ID || 'your_google_sheet_id_here',
-  googleSheetRange: process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A:Z',
-  googleSheetRangeContact: process.env.GOOGLE_SHEET_RANGE_CONTACT || 'Contact!A:D',
-  googleSheetRangeComments: process.env.GOOGLE_SHEET_RANGE_COMMENTS || 'Comments!A:F',
 };
 
 const SETTINGS_TABLE = 'admin_settings';
@@ -36,10 +28,6 @@ type AdminSettingsRow = {
   homepage_description: string;
   contact_form_title: string;
   contact_form_subtitle: string;
-  google_sheet_id: string;
-  google_sheet_range: string;
-  google_sheet_range_contact: string;
-  google_sheet_range_comments: string;
   last_updated?: string | null;
 };
 
@@ -50,10 +38,6 @@ function rowToSettings(row: Partial<AdminSettingsRow>): AdminSettings {
     homepageDescription: row.homepage_description || DEFAULT_SETTINGS.homepageDescription,
     contactFormTitle: row.contact_form_title || DEFAULT_SETTINGS.contactFormTitle,
     contactFormSubtitle: row.contact_form_subtitle || DEFAULT_SETTINGS.contactFormSubtitle,
-    googleSheetId: row.google_sheet_id || DEFAULT_SETTINGS.googleSheetId,
-    googleSheetRange: row.google_sheet_range || DEFAULT_SETTINGS.googleSheetRange,
-    googleSheetRangeContact: row.google_sheet_range_contact || DEFAULT_SETTINGS.googleSheetRangeContact,
-    googleSheetRangeComments: row.google_sheet_range_comments || DEFAULT_SETTINGS.googleSheetRangeComments,
     lastUpdated: row.last_updated || undefined,
   };
 }
@@ -65,10 +49,6 @@ function settingsToRow(settings: Partial<AdminSettings>): Partial<AdminSettingsR
   if (settings.homepageDescription !== undefined) row.homepage_description = settings.homepageDescription;
   if (settings.contactFormTitle !== undefined) row.contact_form_title = settings.contactFormTitle;
   if (settings.contactFormSubtitle !== undefined) row.contact_form_subtitle = settings.contactFormSubtitle;
-  if (settings.googleSheetId !== undefined) row.google_sheet_id = settings.googleSheetId;
-  if (settings.googleSheetRange !== undefined) row.google_sheet_range = settings.googleSheetRange;
-  if (settings.googleSheetRangeContact !== undefined) row.google_sheet_range_contact = settings.googleSheetRangeContact;
-  if (settings.googleSheetRangeComments !== undefined) row.google_sheet_range_comments = settings.googleSheetRangeComments;
   return row;
 }
 

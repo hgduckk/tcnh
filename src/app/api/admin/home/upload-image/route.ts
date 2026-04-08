@@ -5,10 +5,6 @@ import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { serializeError } from "@/lib/utils";
 
 const HOME_IMAGES_BUCKET = "home-images";
-const INTRO_TARGET_WIDTH = 1600;
-const INTRO_TARGET_HEIGHT = 1200;
-const BANNER_TARGET_WIDTH = 1920;
-const BANNER_TARGET_HEIGHT = 1080;
 
 async function ensureHomeImagesBucket() {
   if (!supabaseAdmin) return;
@@ -79,30 +75,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, message: "Invalid image dimensions." }, { status: 400 });
       }
 
-      const targetWidth = slotRaw === "banner" ? BANNER_TARGET_WIDTH : INTRO_TARGET_WIDTH;
-      const targetHeight = slotRaw === "banner" ? BANNER_TARGET_HEIGHT : INTRO_TARGET_HEIGHT;
-      const targetRatio = targetWidth / targetHeight;
-      const sourceRatio = originalWidth / originalHeight;
-
-      let baseCropWidth = originalWidth;
-      let baseCropHeight = originalHeight;
-
-      if (sourceRatio > targetRatio) {
-        baseCropHeight = originalHeight;
-        baseCropWidth = Math.round(originalHeight * targetRatio);
-      } else {
-        baseCropWidth = originalWidth;
-        baseCropHeight = Math.round(originalWidth / targetRatio);
-      }
-
-      const cropWidth = Math.max(1, baseCropWidth);
-      const cropHeight = Math.max(1, baseCropHeight);
-      const left = Math.max(0, Math.round((originalWidth - cropWidth) / 2));
-      const top = Math.max(0, Math.round((originalHeight - cropHeight) / 2));
-
       webpBuffer = await sharp(inputBuffer)
-        .extract({ left, top, width: cropWidth, height: cropHeight })
-        .resize(targetWidth, targetHeight, { fit: "fill" })
         .webp({ quality: 84 })
         .toBuffer();
     } catch {

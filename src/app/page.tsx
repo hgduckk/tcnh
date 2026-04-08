@@ -148,16 +148,20 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Banner Section */}
-      <section className="relative w-full text-center overflow-hidden">
-        <Image
-          src={withVersion(settings.homeBannerImage || '/images/backkipu.jpg')}
-          alt="Finance - Banking Faculty Union"
-          width={1920}
-          height={1080}
-          className="w-full h-auto object-contain"
-          priority
-          data-ai-hint="university campus"
-        />
+      <section className="relative w-full text-center">
+        {settings.homeBannerImage?.trim() ? (
+          <Image
+            src={withVersion(settings.homeBannerImage)}
+            alt="Finance - Banking Faculty Union"
+            width={1920}
+            height={1080}
+            className="block w-full h-auto"
+            priority
+            data-ai-hint="university campus"
+          />
+        ) : (
+          <div className="w-full h-0 bg-transparent" aria-hidden="true" />
+        )}
       </section>
 
       {/* Introduction Section */}

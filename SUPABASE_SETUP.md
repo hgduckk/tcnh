@@ -91,6 +91,8 @@ ALTER publication supabase_realtime ADD TABLE submissions;
 
 For the current website content management features, also run the schema in [supabase-schema.sql](supabase-schema.sql).
 
+If you already have an older database deployed, run the upgrade migration in [docs/sql/2026-04-08_remove-google-legacy-columns.sql](docs/sql/2026-04-08_remove-google-legacy-columns.sql) before deploying the latest code. This removes legacy Google Drive and Google Sheets columns that are no longer used by the app.
+
 Minimum extra resources required by the current codebase:
 
 1. Tables:
@@ -99,6 +101,10 @@ Minimum extra resources required by the current codebase:
   - `partners`
   - `structure_departments`
 2. Public Storage buckets:
+  - `home-images`
+  - `submission-images`
+  - `application-form-images`
+  - `application-form-photos`
   - `achievements`
   - `activities`
   - `partners`
@@ -109,6 +115,10 @@ Create the buckets in Supabase Storage UI, or run:
 ```sql
 insert into storage.buckets (id, name, public)
 values
+  ('home-images', 'home-images', true),
+  ('submission-images', 'submission-images', true),
+  ('application-form-images', 'application-form-images', true),
+  ('application-form-photos', 'application-form-photos', true),
   ('achievements', 'achievements', true),
   ('activities', 'activities', true),
   ('partners', 'partners', true),
@@ -118,10 +128,25 @@ on conflict (id) do nothing;
 
 Image storage layout used by the app:
 
-1. `achievements`: `achievementId/image.webp`
-2. `activities`: `activityId/image-0.webp`, `image-1.webp`, ...
-3. `partners`: `partnerId/logo.webp`
-4. `structure`: `departmentId/image-0.webp`, `image-1.webp`, ...
+1. `home-images`: `banner/...` or `intro/...`
+2. `submission-images`: `timestamp-random.webp`
+3. `application-form-images`: `slot/timestamp-uuid.webp`
+4. `application-form-photos`: `templateId/timestamp-uuid.webp`
+5. `achievements`: `achievementId/image.webp`
+6. `activities`: `activityId/image-0.webp`, `image-1.webp`, ...
+7. `partners`: `partnerId/logo.webp`
+8. `structure`: `departmentId/image-0.webp`, `image-1.webp`, ...
+
+## 3.1 Upgrade Existing Projects
+
+If your Supabase project was created before the Google Drive and Google Sheets cleanup, apply this order:
+
+1. Run the latest base schema from [supabase-schema.sql](supabase-schema.sql) if those tables do not exist yet.
+2. Run the upgrade migration in [docs/sql/2026-04-08_remove-google-legacy-columns.sql](docs/sql/2026-04-08_remove-google-legacy-columns.sql).
+3. Create any missing storage buckets listed above.
+4. Redeploy the app with the current Supabase-only environment variables.
+
+The current runtime no longer reads or writes any Google Drive or Google Sheets settings.
 
 ## 4. Test the System
 

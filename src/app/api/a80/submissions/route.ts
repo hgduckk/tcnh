@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
+import sharp from 'sharp';
 
 if (!supabase) {
   console.warn('Supabase client is not configured. APIs depending on supabase will be disabled.');
@@ -47,6 +48,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new submission
 export async function POST(request: NextRequest) {
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
+  }
+
   try {
     const formData = await request.formData();
     
@@ -67,21 +72,36 @@ export async function POST(request: NextRequest) {
 
     // Handle image upload if present
     if (image && image.size > 0) {
-      const fileExt = image.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('submission-images')
-        .upload(fileName, image);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+      const inputBuffer = Buffer.from(await image.arrayBuffer());
 
-      if (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        // Continue without image rather than failing the entire submission
-      } else {
-        const { data: { publicUrl } } = supabase.storage
+      let webpBuffer: Buffer;
+      try {
+        webpBuffer = await sharp(inputBuffer)
+          .webp({ quality: 82 })
+          .toBuffer();
+      } catch (error) {
+        console.error('Error converting image to webp:', error);
+        webpBuffer = Buffer.alloc(0);
+      }
+
+      if (webpBuffer.length > 0) {
+        const { error: uploadError } = await supabase.storage
           .from('submission-images')
-          .getPublicUrl(fileName);
-        imageUrl = publicUrl;
+          .upload(fileName, webpBuffer, {
+            contentType: 'image/webp',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          // Continue without image rather than failing the entire submission
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('submission-images')
+            .getPublicUrl(fileName);
+          imageUrl = publicUrl;
+        }
       }
     }
 

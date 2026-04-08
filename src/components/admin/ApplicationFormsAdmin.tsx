@@ -51,7 +51,6 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
   const [name, setName] = useState("Đơn đăng ký ứng tuyển");
   const [openAt, setOpenAt] = useState<string>("");
   const [closeAt, setCloseAt] = useState<string>("");
-  const [driveFolderUrl, setDriveFolderUrl] = useState<string>("");
 
   const [optionalPersonalQuestions, setOptionalPersonalQuestions] = useState<string[]>(
     defaultOptionalPersonalQuestions()
@@ -102,7 +101,6 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
       setName(t.name || "");
       setOpenAt(isoToDatetimeLocal(t.open_at));
       setCloseAt(isoToDatetimeLocal(t.close_at));
-      setDriveFolderUrl(t.drive_folder_url || "");
       setOptionalPersonalQuestions(
         Array.from({ length: 5 }).map((_, i) => String(t.optional_personal_questions?.[i] ?? ""))
       );
@@ -136,7 +134,6 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
     setName("Đơn đăng ký ứng tuyển");
     setOpenAt("");
     setCloseAt("");
-    setDriveFolderUrl("");
     setOptionalPersonalQuestions(defaultOptionalPersonalQuestions());
     setDepartmentQuestions(defaultDepartmentQuestions());
     setIllustrations([]);
@@ -149,14 +146,12 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
     // basic check
     if (!name.trim()) return setError("Vui lòng nhập tên form.");
     if (!openAt || !closeAt) return setError("Vui lòng nhập thời gian mở/đóng đơn.");
-    if (!driveFolderUrl.trim()) return setError("Vui lòng nhập Drive folder link.");
 
     const payload = {
       id: templateId ?? undefined,
       name,
       openAt: datetimeLocalToIso(openAt),
       closeAt: datetimeLocalToIso(closeAt),
-      driveFolderUrl,
       optionalPersonalQuestions,
       departmentQuestions,
       illustrations,
@@ -180,7 +175,6 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
 
   const uploadImages = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    if (!driveFolderUrl.trim()) return setError("Vui lòng nhập Drive folder link trước khi upload.");
 
     setError(null);
     setUploading(true);
@@ -188,7 +182,6 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
       for (const file of Array.from(files)) {
         const fd = new FormData();
         fd.append("file", file);
-        fd.append("driveFolderUrl", driveFolderUrl);
         fd.append("slot", uploadSlot);
         fd.append("title", file.name);
 
@@ -281,11 +274,6 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
               </div>
             </div>
 
-            <div className="grid gap-3">
-              <label className="font-semibold">Link drive để lưu ảnh ứng viên</label>
-              <Input value={driveFolderUrl} onChange={(e) => setDriveFolderUrl(e.target.value)} placeholder="https://drive.google.com/drive/folders/..." />
-            </div>
-
             {/* Class options */}
             <div className="space-y-3">
               <h3 className="font-semibold">Lớp</h3>
@@ -358,7 +346,7 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
                   </Select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="font-semibold text-sm">Upload ảnh lên Drive</label>
+                  <label className="font-semibold text-sm">Upload ảnh lên Supabase</label>
                   <Input
                     type="file"
                     accept="image/*"

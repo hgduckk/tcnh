@@ -71,7 +71,7 @@ function IllustrationList({ illustrations }: { illustrations: ApplicationFormIll
     <div className="space-y-4">
       {illustrations.map((img) => (
         <div key={img.id} className="flex justify-center">
-          {/* External images (Drive) => use plain <img> */}
+          {/* External images from Supabase/public URLs => use plain <img> */}
           <img
             src={img.url}
             alt={img.title || "illustration"}

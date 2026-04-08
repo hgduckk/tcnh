@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
-import { extractDriveFolderId } from "@/lib/google-drive";
 import { DEPARTMENTS, type Department } from "@/lib/applicationForms";
 import { assertAdminRequest } from "@/lib/adminAuth";
 import { serializeError } from "@/lib/utils";
@@ -52,20 +51,14 @@ export async function POST(req: Request) {
       name,
       openAt,
       closeAt,
-      driveFolderUrl,
       optionalPersonalQuestions,
       departmentQuestions,
       illustrations,
       classOptions,
     } = body || {};
 
-    if (!name || !openAt || !closeAt || !driveFolderUrl) {
+    if (!name || !openAt || !closeAt) {
       return NextResponse.json({ success: false, message: "Missing required fields." }, { status: 400 });
-    }
-
-    const folderId = extractDriveFolderId(String(driveFolderUrl));
-    if (!folderId) {
-      return NextResponse.json({ success: false, message: "Invalid Drive folder link." }, { status: 400 });
     }
 
     const optionalQs = Array.from({ length: 5 }).map((_, i) => String(optionalPersonalQuestions?.[i] ?? ""));
@@ -80,8 +73,6 @@ export async function POST(req: Request) {
       name: String(name),
       open_at: openIso,
       close_at: closeIso,
-      drive_folder_url: String(driveFolderUrl),
-      drive_folder_id: folderId,
       optional_personal_questions: optionalQs,
       department_questions: deptQs,
       illustrations: Array.isArray(illustrations) ? illustrations : [],
@@ -96,8 +87,6 @@ export async function POST(req: Request) {
           name: payload.name,
           open_at: payload.open_at,
           close_at: payload.close_at,
-          drive_folder_url: payload.drive_folder_url,
-          drive_folder_id: payload.drive_folder_id,
           optional_personal_questions: payload.optional_personal_questions,
           department_questions: payload.department_questions,
           illustrations: payload.illustrations,
@@ -126,8 +115,6 @@ export async function POST(req: Request) {
         name: payload.name,
         open_at: payload.open_at,
         close_at: payload.close_at,
-        drive_folder_url: payload.drive_folder_url,
-        drive_folder_id: payload.drive_folder_id,
         optional_personal_questions: payload.optional_personal_questions,
         department_questions: payload.department_questions,
         illustrations: payload.illustrations,

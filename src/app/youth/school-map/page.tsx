@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type MapNote = {
   id: string;
@@ -21,204 +21,96 @@ type Scene = {
   notes: MapNote[];
 };
 
-const overviewScene: Scene = {
-  id: "overview",
+const fallbackScene: Scene = {
+  id: "fallback",
   image: "/images/map.png",
-  imageAlt: "Bản đồ tổng quan khuôn viên",
-  title: "Tổng quan khuôn viên",
-  notes: [
-    {
-      id: "building-main",
-      label: "Tòa nhà chính",
-      x: 39,
-      y: 49,
-      action: "scene",
-      targetId: "main-building",
-    },
-    {
-      id: "overview-water",
-      label: "Kênh nước",
-      x: 31,
-      y: 67,
-      action: "info",
-      description: "Khu vực cảnh quan bao quanh tòa nhà.",
-    },
-    {
-      id: "overview-hill",
-      label: "Đồi cây xanh",
-      x: 63,
-      y: 17,
-      action: "info",
-      description: "Không gian xanh phía sau khu giảng đường.",
-    },
-  ],
-};
-
-const scenes: Record<string, Scene> = {
-  overview: overviewScene,
-  "main-building": {
-    id: "main-building",
-    image: "/images/floor.png",
-    imageAlt: "Sảnh và phân tầng tòa nhà chính",
-    title: "Tòa nhà chính",
-    parentId: "overview",
-    notes: [
-      {
-        id: "floor-1",
-        label: "Tầng 1",
-        x: 46,
-        y: 60,
-        action: "scene",
-        targetId: "main-floor-1",
-      },
-      {
-        id: "floor-2",
-        label: "Tầng 2",
-        x: 46,
-        y: 52,
-        action: "scene",
-        targetId: "main-floor-2",
-      },
-      {
-        id: "helpdesk-info",
-        label: "Bàn hỗ trợ",
-        x: 38,
-        y: 65,
-        action: "info",
-        description: "Điểm hỗ trợ sinh viên tại sảnh tòa nhà.",
-      },
-    ],
-  },
-  "main-floor-1": {
-    id: "main-floor-1",
-    image: "/images/floor.png",
-    imageAlt: "Mặt bằng tầng 1",
-    title: "Tầng 1",
-    parentId: "main-building",
-    notes: [
-      {
-        id: "room-101",
-        label: "P.101",
-        x: 44,
-        y: 64,
-        action: "scene",
-        targetId: "room-101-detail",
-      },
-      {
-        id: "room-102",
-        label: "P.102",
-        x: 52,
-        y: 64,
-        action: "scene",
-        targetId: "room-102-detail",
-      },
-    ],
-  },
-  "main-floor-2": {
-    id: "main-floor-2",
-    image: "/images/floor.png",
-    imageAlt: "Mặt bằng tầng 2",
-    title: "Tầng 2",
-    parentId: "main-building",
-    notes: [
-      {
-        id: "room-201",
-        label: "P.201",
-        x: 44,
-        y: 56,
-        action: "scene",
-        targetId: "room-201-detail",
-      },
-      {
-        id: "room-202",
-        label: "P.202",
-        x: 52,
-        y: 56,
-        action: "scene",
-        targetId: "room-202-detail",
-      },
-    ],
-  },
-  "room-101-detail": {
-    id: "room-101-detail",
-    image: "/images/room-1.png",
-    imageAlt: "Phòng 101",
-    title: "Phòng 101",
-    parentId: "main-floor-1",
-    notes: [
-      {
-        id: "room-101-info",
-        label: "Thông tin",
-        x: 50,
-        y: 60,
-        action: "info",
-        description: "Phòng tiếp nhận thủ tục sinh viên.",
-      },
-    ],
-  },
-  "room-102-detail": {
-    id: "room-102-detail",
-    image: "/images/room-1.png",
-    imageAlt: "Phòng 102",
-    title: "Phòng 102",
-    parentId: "main-floor-1",
-    notes: [
-      {
-        id: "room-102-info",
-        label: "Thông tin",
-        x: 50,
-        y: 60,
-        action: "info",
-        description: "Phòng hỗ trợ hồ sơ và xác nhận giấy tờ.",
-      },
-    ],
-  },
-  "room-201-detail": {
-    id: "room-201-detail",
-    image: "/images/room-1.png",
-    imageAlt: "Phòng 201",
-    title: "Phòng 201",
-    parentId: "main-floor-2",
-    notes: [
-      {
-        id: "room-201-info",
-        label: "Thông tin",
-        x: 50,
-        y: 60,
-        action: "info",
-        description: "Phòng học lý thuyết.",
-      },
-    ],
-  },
-  "room-202-detail": {
-    id: "room-202-detail",
-    image: "/images/room-1.png",
-    imageAlt: "Phòng 202",
-    title: "Phòng 202",
-    parentId: "main-floor-2",
-    notes: [
-      {
-        id: "room-202-info",
-        label: "Thông tin",
-        x: 50,
-        y: 60,
-        action: "info",
-        description: "Phòng họp nhóm.",
-      },
-    ],
-  },
+  imageAlt: "Bản đồ tổng quan",
+  title: "Tổng quan",
+  notes: [],
 };
 
 export default function YouthSchoolMapPage() {
-  const [activeSceneId, setActiveSceneId] = useState<string>("overview");
-  const [activeNoteText, setActiveNoteText] = useState<string>("Chọn một điểm trên ảnh để xem chi tiết.");
+  const [activeSceneId, setActiveSceneId] = useState<string>("");
+  const [activeNoteText, setActiveNoteText] = useState<string>("");
+  const [scenes, setScenes] = useState<Record<string, Scene>>({});
+  const [overviewId, setOverviewId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const activeScene = useMemo(() => scenes[activeSceneId] ?? overviewScene, [activeSceneId]);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/school-map", { cache: "no-store" });
+        if (!res.ok) throw new Error("Không thể tải dữ liệu school map.");
+        const json = await res.json();
+        const nodes = Array.isArray(json?.data?.nodes) ? json.data.nodes : [];
+        const hotspots = Array.isArray(json?.data?.hotspots) ? json.data.hotspots : [];
+
+        const sceneMap: Record<string, Scene> = {};
+        let detectedOverviewId = "";
+
+        for (const node of nodes) {
+          if (!["overview", "building", "floor"].includes(String(node?.node_type || ""))) continue;
+
+          const sceneId = String(node.id || "").trim();
+          if (!sceneId) continue;
+
+          if (String(node.node_type) === "overview" && !detectedOverviewId) {
+            detectedOverviewId = sceneId;
+          }
+
+          sceneMap[sceneId] = {
+            id: sceneId,
+            image: String(node.image_url || "").trim() || "/images/map.png",
+            imageAlt: String(node.image_alt || "").trim() || String(node.name || "Bản đồ"),
+            title: String(node.name || "Scene"),
+            parentId: node.parent_id ? String(node.parent_id) : undefined,
+            notes: [],
+          };
+        }
+
+        for (const hotspot of hotspots) {
+          const sceneId = String(hotspot.scene_node_id || "").trim();
+          if (!sceneMap[sceneId]) continue;
+
+          sceneMap[sceneId].notes.push({
+            id: String(hotspot.id || "").trim(),
+            label: String(hotspot.label || "Điểm"),
+            x: Number(hotspot.x_percent || 50),
+            y: Number(hotspot.y_percent || 50),
+            action: String(hotspot.action_type) === "info" ? "info" : "scene",
+            description: String(hotspot.description || "").trim() || undefined,
+            targetId: hotspot.target_node_id ? String(hotspot.target_node_id) : undefined,
+          });
+        }
+
+        setScenes(sceneMap);
+        setOverviewId(detectedOverviewId || Object.keys(sceneMap)[0] || "");
+        setActiveSceneId(detectedOverviewId || Object.keys(sceneMap)[0] || "");
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  const activeScene = useMemo(() => scenes[activeSceneId] ?? fallbackScene, [activeSceneId, scenes]);
+  const parentScene = useMemo(() => (activeScene.parentId ? scenes[activeScene.parentId] : null), [activeScene.parentId, scenes]);
 
   const handleNoteClick = (note: MapNote) => {
     if (note.action === "scene" && note.targetId) {
-      setActiveSceneId(note.targetId);
-      setActiveNoteText(`Đang xem: ${note.label}`);
+      if (scenes[note.targetId]) {
+        setActiveSceneId(note.targetId);
+        setActiveNoteText(`Bạn đang ở: ${note.label}`);
+        return;
+      }
+
+      setActiveNoteText(note.description || `Thông tin: ${note.label}`);
       return;
     }
 
@@ -231,63 +123,76 @@ export default function YouthSchoolMapPage() {
   };
 
   const backToOverview = () => {
-    setActiveSceneId("overview");
-    setActiveNoteText("Chọn một điểm trên ảnh để xem chi tiết.");
+    if (!overviewId) return;
+    setActiveSceneId(overviewId);
   };
 
   const backOneLevel = () => {
-    if (activeSceneId === "overview") {
+    if (!activeScene.parentId) {
       return;
     }
 
-    const currentScene = scenes[activeSceneId];
-    const parentId = currentScene?.parentId ?? "overview";
+    const parentId = activeScene.parentId;
 
     setActiveSceneId(parentId);
-    setActiveNoteText(`Đang xem: ${scenes[parentId]?.title ?? "Tổng quan khuôn viên"}`);
+    setActiveNoteText(`Bạn đang ở: ${scenes[parentId]?.title ?? "Tổng quan"}`);
   };
 
   return (
-    <div className="min-h-screen bg-[#f2f3f5] px-3 py-4 md:px-6 md:py-6">
-      <main className="mx-auto max-w-[1240px] space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="h-[100dvh] overflow-hidden bg-white">
+      <main className="mx-auto flex h-full w-full max-w-[1920px] flex-col gap-3 px-0 py-3 md:gap-4 md:py-4">
+        <div className="px-3 md:px-6">
+          <h1 className="font-anton text-[clamp(1.25rem,2.5vw,2rem)] text-slate-900">UEL Campus Map</h1>
+          <p className="text-xs md:text-sm text-slate-500">{activeNoteText}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 px-3 md:px-6">
           <button
             type="button"
             onClick={backToOverview}
-            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            disabled={!overviewId || activeSceneId === overviewId}
+            className="rounded-full bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Tổng quan
+            Về tổng quan
           </button>
           <button
             type="button"
             onClick={backOneLevel}
-            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            disabled={!activeScene.parentId}
+            className="rounded-full bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Quay lại
+            {parentScene ? `Quay lại ${parentScene.title}` : "Quay lại"}
           </button>
-          <p className="text-xs font-medium text-slate-700">{activeScene.title}</p>
-          <p className="text-xs text-slate-500">{activeNoteText}</p>
+
+          <p className="rounded-full bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">{activeScene.title}</p>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
-          <img
-            src={activeScene.image}
-            alt={activeScene.imageAlt}
-            className="w-full h-auto block"
-          />
+        {loading ? <p className="px-3 text-sm text-slate-500 md:px-6">Đang tải bản đồ...</p> : null}
+        {error ? <p className="px-3 text-sm text-red-600 md:px-6">{error}</p> : null}
 
-          {activeScene.notes.map((note) => (
-            <button
-              key={note.id}
-              type="button"
-              onClick={() => handleNoteClick(note)}
-              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white/95 px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow hover:bg-white"
-              style={{ left: `${note.x}%`, top: `${note.y}%` }}
-            >
-              {note.label}
-            </button>
-          ))}
+        <div className="flex min-h-0 w-full flex-1 items-center justify-center bg-white px-3 md:px-6">
+          <div className="relative inline-block max-h-full max-w-full overflow-hidden rounded-xl bg-white">
+            <img
+              src={activeScene.image}
+              alt={activeScene.imageAlt}
+              className="block h-auto max-h-[100%] max-w-full w-auto"
+              style={{ maxHeight: "100%" }}
+            />
+
+            {activeScene.notes.map((note) => (
+              <button
+                key={note.id}
+                type="button"
+                onClick={() => handleNoteClick(note)}
+                className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-slate-900 shadow-[0_6px_24px_rgba(15,23,42,0.14)] backdrop-blur transition hover:scale-[1.02]"
+                style={{ left: `${note.x}%`, top: `${note.y}%` }}
+              >
+                {note.label}
+              </button>
+            ))}
+          </div>
         </div>
+        
       </main>
     </div>
   );

@@ -107,10 +107,6 @@ CREATE TABLE application_form_templates (
   open_at TIMESTAMP WITH TIME ZONE NOT NULL,
   close_at TIMESTAMP WITH TIME ZONE NOT NULL,
 
-  -- Google Drive folder where admin uploads illustrations + applicant photos
-  drive_folder_url TEXT NOT NULL,
-  drive_folder_id TEXT NOT NULL,
-
   -- Fixed set of questions, but labels are customizable by admin.
   -- optional_personal_questions: array of 5 strings
   optional_personal_questions JSONB NOT NULL,
@@ -163,11 +159,7 @@ CREATE TABLE application_form_submissions (
   optional_personal_answers JSONB NOT NULL DEFAULT '[]'::jsonb,
 
   -- dept_optional_answers: array of 3 strings (for the selected department)
-  dept_optional_answers JSONB NOT NULL DEFAULT '[]'::jsonb,
-
-  -- Google Sheets write result (primary storage is Sheets; Supabase is backup)
-  sheet_write_ok BOOLEAN NOT NULL DEFAULT false,
-  sheet_error TEXT
+  dept_optional_answers JSONB NOT NULL DEFAULT '[]'::jsonb
 );
 
 CREATE INDEX idx_application_form_submissions_template_id ON application_form_submissions(template_id);
@@ -192,10 +184,6 @@ CREATE TABLE IF NOT EXISTS admin_settings (
   homepage_description TEXT NOT NULL,
   contact_form_title TEXT NOT NULL,
   contact_form_subtitle TEXT NOT NULL,
-  google_sheet_id TEXT NOT NULL,
-  google_sheet_range TEXT NOT NULL,
-  google_sheet_range_contact TEXT NOT NULL,
-  google_sheet_range_comments TEXT NOT NULL,
   last_updated TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

@@ -4,10 +4,57 @@ import { z } from 'zod';
 // import { moderateBlogComments } from '@/ai/flows/moderate-blog-comments';
 // import { analyzeApplication } from '@/ai/flows/analyze-application';
 import { ContactFormSchema, CommentFormSchema, ApplicationFormSubmissionStrictSchema, type ContactFormState, type CommentFormState, type ApplicationFormState } from '@/lib/definitions';
-import { appendContactToSheet, appendSubmissionToSheet } from '@/lib/google-sheets';
 import { supabase } from "@/lib/supabaseClient";
 import { supabaseAdmin } from '@/lib/supabaseAdminClient';
-import { uploadFileToDrive } from '@/lib/google-drive';
+import sharp from 'sharp';
+import { randomUUID } from 'crypto';
+
+const APPLICATION_PHOTOS_BUCKET = 'application-form-photos';
+
+async function ensureApplicationPhotosBucket() {
+  if (!supabaseAdmin) return;
+
+  const { data: bucket, error: getBucketError } = await supabaseAdmin.storage.getBucket(APPLICATION_PHOTOS_BUCKET);
+  if (!getBucketError && bucket) return;
+
+  const missingBucket = getBucketError && /not\s*found|does\s*not\s*exist/i.test(getBucketError.message);
+  if (getBucketError && !missingBucket) throw getBucketError;
+
+  const { error: createBucketError } = await supabaseAdmin.storage.createBucket(APPLICATION_PHOTOS_BUCKET, {
+    public: true,
+    fileSizeLimit: '8MB',
+    allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  });
+
+  if (createBucketError && !/already\s*exists|duplicate/i.test(createBucketError.message)) {
+    throw createBucketError;
+  }
+}
+
+async function uploadApplicantPhoto(photoFile: File, templateId: string): Promise<string> {
+  if (!supabaseAdmin) return '';
+
+  const inputBuffer = Buffer.from(await photoFile.arrayBuffer());
+  const webpBuffer = await sharp(inputBuffer).webp({ quality: 82 }).toBuffer();
+
+  await ensureApplicationPhotosBucket();
+
+  const objectPath = `${templateId}/${Date.now()}-${randomUUID()}.webp`;
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(APPLICATION_PHOTOS_BUCKET)
+    .upload(objectPath, webpBuffer, {
+      contentType: 'image/webp',
+      upsert: false,
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data: publicUrlData } = supabaseAdmin.storage
+    .from(APPLICATION_PHOTOS_BUCKET)
+    .getPublicUrl(objectPath);
+
+  return publicUrlData?.publicUrl || '';
+}
 
 export async function submitContactForm(
   prevState: ContactFormState,
@@ -33,15 +80,17 @@ export async function submitContactForm(
 
   const { name, email, message } = validatedFields.data;
 
-  try {
-    // Ghi dữ liệu vào Google Sheet
-    await appendContactToSheet({ name, email, message });
-    
-    return { message: `Thank you, ${name}! Your message has been received and saved.` };
-  } catch (error) {
-    console.error("Error saving to Google Sheet:", error);
-    return { message: `Thank you, ${name}! Your message has been received.` };
+  if (supabaseAdmin) {
+    try {
+      // Optional persistence table for contact messages if it exists in Supabase.
+      await supabaseAdmin.from('contact_messages').insert({ name, email, message });
+      return { message: `Thank you, ${name}! Your message has been received and saved.` };
+    } catch (error) {
+      console.warn('Could not persist contact message to Supabase:', error);
+    }
   }
+
+  return { message: `Thank you, ${name}! Your message has been received.` };
 }
 
 export async function submitComment(
@@ -174,10 +223,9 @@ export async function submitApplication(
     const templateId = validatedFields.data.templateId;
     const photoFile = validatedFields.data.photo as File | undefined;
 
-    // Template must exist; Drive folder is optional when photo upload is skipped/fails.
     const { data: template, error: templateError } = await supabaseAdmin
       .from("application_form_templates")
-      .select("id, drive_folder_id")
+      .select("id")
       .eq("id", templateId)
       .single();
 
@@ -189,25 +237,12 @@ export async function submitApplication(
     }
 
     let photoUrl = "";
-    let photoUploadWarning: string | null = null;
 
     if (photoFile && typeof (photoFile as any).arrayBuffer === "function") {
-      if (!template.drive_folder_id) {
-        photoUploadWarning = "Không có thư mục Drive cho form, ảnh tạm thời chưa được lưu.";
-      } else {
-        try {
-          const buffer = Buffer.from(await photoFile.arrayBuffer());
-          const uploadRes = await uploadFileToDrive({
-            folderId: template.drive_folder_id,
-            filename: photoFile.name || "photo",
-            mimeType: photoFile.type || "image/jpeg",
-            buffer,
-          });
-          photoUrl = uploadRes.url || "";
-        } catch (uploadError) {
-          console.error("Photo upload failed, continue without photo:", uploadError);
-          photoUploadWarning = "Ảnh tạm thời chưa tải lên được, dữ liệu đơn vẫn đã được lưu.";
-        }
+      try {
+        photoUrl = await uploadApplicantPhoto(photoFile, templateId);
+      } catch (uploadError) {
+        console.error('Photo upload to Supabase failed, continue without photo:', uploadError);
       }
     }
 
@@ -225,22 +260,6 @@ export async function submitApplication(
       validatedFields.data.deptOptional3 ?? "",
     ];
 
-    // -- Primary: write to Google Sheets --
-    const sheetResult = await appendSubmissionToSheet({
-      templateId,
-      fullName: validatedFields.data.fullName,
-      birthDate: validatedFields.data.birthDate,
-      className: validatedFields.data.className,
-      studentId: validatedFields.data.studentId,
-      email: validatedFields.data.email,
-      gender: validatedFields.data.gender,
-      department: validatedFields.data.department,
-      photoUrl,
-      optionalPersonalAnswers: optionalPersonalAnswers,
-      deptOptionalAnswers: deptOptionalAnswers,
-    });
-
-    // -- Backup: save to Supabase regardless of Sheets result --
     const { error: insertError } = await supabaseAdmin
       .from("application_form_submissions")
       .insert({
@@ -255,8 +274,6 @@ export async function submitApplication(
         department: validatedFields.data.department,
         optional_personal_answers: optionalPersonalAnswers,
         dept_optional_answers: deptOptionalAnswers,
-        sheet_write_ok: sheetResult.success,
-        sheet_error: sheetResult.success ? null : sheetResult.message,
       });
 
     if (insertError) {
@@ -267,9 +284,7 @@ export async function submitApplication(
     }
 
     return {
-      message: photoUploadWarning
-        ? `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn đã được gửi thành công. ${photoUploadWarning}`
-        : `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`,
+      message: `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`,
       issues: undefined,
     };
 

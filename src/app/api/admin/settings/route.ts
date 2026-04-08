@@ -26,10 +26,6 @@ export async function POST(request: Request) {
       'homepageDescription',
       'contactFormTitle',
       'contactFormSubtitle',
-      'googleSheetId',
-      'googleSheetRange',
-      'googleSheetRangeContact',
-      'googleSheetRangeComments',
     ];
 
     const update: Record<string, any> = {};

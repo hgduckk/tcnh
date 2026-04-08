@@ -21,8 +21,6 @@ export type ApplicationFormTemplate = {
   name: string;
   open_at: string;
   close_at: string;
-  drive_folder_url: string;
-  drive_folder_id: string;
   optional_personal_questions: string[]; // length 5
   department_questions: Record<Department, string[]>; // each length 3
   illustrations: ApplicationFormIllustration[];
@@ -51,8 +49,6 @@ export function normalizeTemplateShape(input: any): ApplicationFormTemplate {
     name: String(input?.name ?? ""),
     open_at: String(input?.open_at ?? ""),
     close_at: String(input?.close_at ?? ""),
-    drive_folder_url: String(input?.drive_folder_url ?? ""),
-    drive_folder_id: String(input?.drive_folder_id ?? ""),
     optional_personal_questions: optionalFixed,
     department_questions: deptFixed,
     illustrations: illustrations.map((img: any) => ({

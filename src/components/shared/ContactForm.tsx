@@ -111,7 +111,7 @@ export function ContactForm() {
             </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-            Lưu ý: Biểu mẫu này là một bản trình diễn. Tích hợp backend (ví dụ: với Google Sheets) cần được quản trị viên trang web định cấu hình.
+            Lưu ý: Biểu mẫu này là một bản trình diễn. Tích hợp backend với Supabase cần được quản trị viên trang web định cấu hình.
         </p>
       </form>
     </Form>

@@ -8,9 +8,7 @@ This is a website for Finance and Banking Club, including:
 - Admin page for settings, form template management, and submission review
 - Template-driven application form flow
 - A80 submission flow with image upload and Excel export
-- Google Sheets integration for contact and optional legacy submission reading
-- Google Drive upload for application photos
-- Supabase for submissions, comments, and A80 data
+- Supabase for submissions, comments, form images, and A80 data
 - Sanity for site configuration fallback
 - AI chat endpoint for advisor support
 
@@ -18,7 +16,6 @@ This is a website for Finance and Banking Club, including:
 
 - Next.js 15 + React 18 + TypeScript
 - Supabase (public + admin clients)
-- Google APIs (Sheets and Drive via service account)
 - Sanity CMS
 - Genkit/Gemini for AI chat
 - Tailwind + shadcn-style UI components
@@ -41,20 +38,6 @@ Required:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ADMIN_PASSWORD`
 
-Google Sheets / Drive credentials (choose one supported credential strategy):
-
-- `GOOGLE_SERVICE_ACCOUNT_KEY_JSON`
-- `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64`
-- `GOOGLE_CLIENT_EMAIL` + `GOOGLE_PRIVATE_KEY`
-- `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` (supported in Drive helper)
-
-Sheets config:
-
-- `GOOGLE_SHEET_ID`
-- `GOOGLE_SHEET_RANGE`
-- `GOOGLE_SHEET_RANGE_CONTACT`
-- `GOOGLE_SHEET_RANGE_COMMENTS` (optional)
-
 Sanity:
 
 - `NEXT_PUBLIC_SANITY_PROJECT_ID`
@@ -76,9 +59,8 @@ Sanity:
 - UI fetches active template from `/api/forms/active`
 - User submits template-driven form
 - Server action validates payload
-- Photo uploads to Google Drive
-- Submission writes to Google Sheets (best effort)
-- Submission writes to Supabase `application_form_submissions` (authoritative backup)
+- Photo uploads to Supabase Storage (`application-form-photos`)
+- Submission writes to Supabase `application_form_submissions`
 
 ### Admin Forms Flow
 
@@ -86,7 +68,6 @@ Sanity:
 - CRUD template endpoints under `/api/admin/forms`
 - Optional image upload endpoint under `/api/admin/forms/upload-image`
 - Submissions listed from `/api/admin/application-form-submissions`
-- Optional Google Sheets test path still exists via `/api/admin/form-submissions`
 
 ### A80 Flow
 
@@ -101,13 +82,11 @@ Sanity:
 
 ### Contact Flow
 
-- `submitContactForm` validates and appends to Google Sheets contact range
+- `submitContactForm` validates and (optionally) persists to Supabase table if configured
 
 ## 7) Data and Integrations
 
 - Supabase tables include comments, submissions, `application_form_templates`, `application_form_submissions`
-- Google Drive stores application photos
-- Google Sheets used for contact and legacy-style read/testing utilities
 - Sanity site config endpoint returns CMS config or fallback defaults
 - Local JSON files are used for admin settings and visit metrics
 
@@ -130,7 +109,6 @@ Sanity:
 ## 10) Deployment Readiness Checklist
 
 - Supabase env set and reachable
-- Google APIs enabled and service account shared correctly
 - Admin password set to secure value
 - No secret files tracked in git
 - Optional test routes removed or protected
