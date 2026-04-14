@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { ContactFormSchema, CommentFormSchema, ApplicationFormSubmissionStrictSchema, type ContactFormState, type CommentFormState, type ApplicationFormState } from '@/lib/definitions';
 import { supabase } from "@/lib/supabaseClient";
 import { supabaseAdmin } from '@/lib/supabaseAdminClient';
-import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 
 const APPLICATION_PHOTOS_BUCKET = 'application-form-photos';
@@ -35,6 +34,7 @@ async function uploadApplicantPhoto(photoFile: File, templateId: string): Promis
   if (!supabaseAdmin) return '';
 
   const inputBuffer = Buffer.from(await photoFile.arrayBuffer());
+  const { default: sharp } = await import('sharp');
   const webpBuffer = await sharp(inputBuffer).webp({ quality: 82 }).toBuffer();
 
   await ensureApplicationPhotosBucket();

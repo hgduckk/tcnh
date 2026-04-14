@@ -12,6 +12,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
   const isA80Page = pathname === '/a80';
   const isAdminPage = pathname === '/admin';
+  const isSchoolMapPage = pathname === '/youth/school-map';
 
   if (isAdminPage) {
     // Admin page renders its own shell
@@ -24,6 +25,18 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-grow overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
+  if (isSchoolMapPage) {
+    // School map stays in a single viewport (no footer, no page scroll)
+    return (
+      <div className="h-screen flex flex-col overflow-hidden">
+        <Header />
+        <main className="h-[calc(100dvh-4rem)] overflow-hidden">
           {children}
         </main>
       </div>

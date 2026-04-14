@@ -25,9 +25,10 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   productionBrowserSourceMaps: false,
+  serverExternalPackages: ['sharp'],
   onDemandEntries: {
-    maxInactiveAge: 15000,
-    pagesBufferLength: 2,
+    maxInactiveAge: 60000,
+    pagesBufferLength: 5,
   },
   images: {
     remotePatterns: [
