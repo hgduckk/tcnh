@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
+import { getMetadataBaseUrl } from '@/lib/publicUrls';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:9002'),
+  metadataBase: getMetadataBaseUrl(),
   title: 'ĐK-TCNH',
   description: 'Trang web của Đoàn khoa Tài chính - Ngân hàng',
   openGraph: {

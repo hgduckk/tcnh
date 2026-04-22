@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { assertAdminRequest } from '@/lib/adminAuth';
-import { readHomeSettings, saveHomeSettings } from '@/lib/homeSettings';
+import { readHomeSettings, saveHomeSettings, type HomeSettings } from '@/lib/homeSettings';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = await request.json();
-    const update: Record<string, string> = {};
+    const update: Partial<HomeSettings> = {};
 
     if (payload.homeBannerImage !== undefined) update.homeBannerImage = String(payload.homeBannerImage || '');
     if (payload.homeImageOne !== undefined) update.homeImageOne = String(payload.homeImageOne || '');
@@ -33,9 +33,9 @@ export async function POST(request: Request) {
 
     const saved = await saveHomeSettings(update);
 
-    const mismatchKeys = Object.entries(update)
-      .filter(([key, value]) => String((saved as Record<string, unknown>)[key] ?? '') !== String(value))
-      .map(([key]) => key);
+    const mismatchKeys = (Object.keys(update) as (keyof HomeSettings)[])
+      .filter((key) => String(saved[key] ?? '') !== String(update[key] ?? ''))
+      .map(String);
 
     if (mismatchKeys.length > 0) {
       return NextResponse.json(

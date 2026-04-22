@@ -1,3 +1,5 @@
+import { getAdminUrlString, getFrontendUrlString } from "@/lib/publicUrls"
+
 export interface SiteConfig {
   title: string
   frontendUrl: string
@@ -8,8 +10,8 @@ export interface SiteConfig {
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   title: 'Đoàn Khoa Tài chính - Ngân hàng',
-  frontendUrl: process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000',
-  adminPageUrl: process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3000/admin',
+  frontendUrl: getFrontendUrlString(),
+  adminPageUrl: getAdminUrlString(),
   showAdminLink: true,
   adminLinkLabel: 'Admin Dashboard',
 }

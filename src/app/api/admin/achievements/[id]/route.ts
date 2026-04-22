@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { assertAdminRequest } from "@/lib/adminAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { serializeError } from "@/lib/utils";
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const authError = assertAdminRequest(req);
     if (authError) return authError;
@@ -12,21 +15,22 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       return NextResponse.json({ success: false, message: "Supabase admin client not configured." }, { status: 500 });
     }
 
-    const id = String(params.id || "").trim();
-    if (!id) {
+    const { id } = await params;
+    const achievementId = String(id || "").trim();
+    if (!achievementId) {
       return NextResponse.json({ success: false, message: "Missing achievement id." }, { status: 400 });
     }
 
     // Delete image from Storage (ignore if doesn't exist)
     await supabaseAdmin.storage
       .from("achievements")
-      .remove([`${id}/image.webp`])
+      .remove([`${achievementId}/image.webp`])
       .catch(() => {
         // Silently ignore if file doesn't exist
       });
 
     // Delete record from database
-    const { error } = await supabaseAdmin.from("achievements").delete().eq("id", id);
+    const { error } = await supabaseAdmin.from("achievements").delete().eq("id", achievementId);
     if (error) throw error;
 
     return NextResponse.json({ success: true });
