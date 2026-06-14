@@ -1,5 +1,3 @@
-import * as jaeger from '@opentelemetry/exporter-jaeger';
-console.log('Telemetry status:', jaeger ? 'Loaded' : 'Failed');
 import { NextRequest, NextResponse } from 'next/server';
 import { personalAdvisorChat } from '@/ai/flows/personal-advisor-chat';
 export async function POST(request: NextRequest) {
