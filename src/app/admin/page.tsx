@@ -2,7 +2,7 @@
 // Admin Page — redesigned with Overview / Function / Category structure
 // ─────────────────────────────────────────────────────────────────────────────
 "use client";
-
+export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';

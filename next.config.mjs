@@ -1,4 +1,4 @@
-import type {NextConfig} from 'next';
+/** @type {import('next').NextConfig} */
 
 const supabaseHostname = (() => {
   try {
@@ -16,7 +16,7 @@ if (process.env.NODE_ENV !== 'production') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
   },
   productionBrowserSourceMaps: false,
   serverExternalPackages: ['sharp'],
+  
+  transpilePackages: ['sanity', '@sanity/vision'],
+
   onDemandEntries: {
     maxInactiveAge: 60000,
     pagesBufferLength: 5,
@@ -41,7 +44,7 @@ const nextConfig: NextConfig = {
       ...(supabaseHostname
         ? [
             {
-              protocol: 'https' as const,
+              protocol: 'https',
               hostname: supabaseHostname,
               port: '',
               pathname: '/**',

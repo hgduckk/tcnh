@@ -1,5 +1,5 @@
 "use client";
-
+export const dynamic = 'force-dynamic';
 import { useState } from "react";
 import { PageBanner } from "@/components/shared/PageBanner";
 import { Footer } from "@/components/layout/Footer";
