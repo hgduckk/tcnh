@@ -50,7 +50,7 @@ export function Footer() {
 
         {/* Bottom Note */}
         <div className="mt-5 border-t pt-2 text-center text-white text-sm drop-shadow-2xl">
-          <p>For website issue, please contact: tranlequangan2308@gmail.com</p>
+          <p>For website issue, please contact: hoangduc100307@gmail.com</p>
         </div>
       </div>
     </footer>
