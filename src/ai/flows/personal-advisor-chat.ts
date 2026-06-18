@@ -157,58 +157,76 @@ const personalAdvisorChatPrompt = ai.definePrompt({
 - Các hoạt động khác: Bắt trend cùng FBMC
 
 ## THÔNG TIN VỀ NHÂN SỰ ĐOÀN KHOA:
-- BAN TGSK	
-+ K23
-    1	Hoàng Thị Thảo Nguyên	Phó Bí thư, Trưởng ban
-		2	Đặng Mai Hoa	Phó ban, Nguyên UV. BCH
-		3	Nguyễn Tấn Được	CTV Đoàn Khoa
-		4	Bùi Minh Mẫn	CTV Đoàn Khoa
-+ K24	
-    5	Lê Thị Hồng Nhân	CTV Đoàn Khoa
-		6	Nguyễn Hoàng Uyên Như	CTV Đoàn Khoa
-		7	Phạm Mạnh Quyền	CTV Đoàn Khoa
-		8	Vũ Kim Lộc	CTV Đoàn Khoa
-		9	Trần Lê Gia Hân	CTV Đoàn Khoa
+- BAN TGSK:
++ K23:
+	1	Hoàng Thị Thảo Nguyên	Phó Bí thư, Nguyên Trưởng Ban
+	2	Đặng Mai Hoa	Nguyên UV. BCH, Nguyên Phó Ban
+	3	Nguyễn Tấn Được	CTV Đoàn Khoa
+	4	Bùi Minh Mẫn	CTV Đoàn Khoa
++ K24:
+	5	Lê Thị Hồng Nhân	CTV Đoàn Khoa
+	6	Nguyễn Hoàng Uyên Như	Phó Ban
+	7	Phạm Mạnh Quyền	CTV Đoàn Khoa
+	8	Vũ Kim Lộc	UV. BCH, Trưởng Ban
+	9	Trần Lê Gia Hân	CTV Đoàn Khoa
++ K25:
+	10	Lê Khánh Chi	CTV Đoàn Khoa
+	11	Nguyễn Thị Thùy Dung	CTV Đoàn Khoa
+	12	Võ Lê Hồng Phúc	CTV Đoàn Khoa
+	13	Trần Thu Hường	CTV Đoàn Khoa
+
 - BAN TTKT:
 + K22:
-    10	Lâm Hồng Minh Quân Nguyên Trưởng ban
-		11	Võ Hoàng Uyên Nhy	Nguyên Phó ban
+	14	Lâm Hồng Minh Quân	Nguyên Phó Bí thư, Nguyên Trưởng ban
+	15	Võ Hoàng Uyên Nhy	Nguyên Phó ban
 + K23:
-    12	Nguyễn Ngọc Khánh Nhi	UV. BCH, Trưởng ban
-		13	Bùi Thị Trúc Mai	UV. BCH, Phó ban
+	16	Nguyễn Ngọc Khánh Nhi	UV. BCH, Nguyên Trưởng ban
+	17	Bùi Thị Trúc Mai	UV. BCH, Nguyên Phó ban
 + K24:
-    14	Lê Nữ Khánh Linh	CTV Đoàn Khoa
-		15	Nguyễn Mạnh Dũng	CTV Đoàn Khoa
-		16	Nguyễn Minh Trí	CTV Đoàn Khoa
-		17	Phan Nguyễn Thùy Dương	CTV Đoàn Khoa
-		18	Hoàng Thu Ngân	CTV Đoàn Khoa
-		19	Huỳnh Nguyễn Thảo Vy	CTV Đoàn Khoa
+	18	Nguyễn Mạnh Dũng	CTV Đoàn Khoa
+	19	Nguyễn Minh Trí	UV. BCH, Trưởng ban
+	20	Phan Nguyễn Thùy Dương	Phó ban
+	21	Hoàng Thu Ngân	CTV Đoàn Khoa
+	22	Huỳnh Nguyễn Thảo Vy	CTV Đoàn Khoa
++ K25:
+	23	Phan Lê Như Quỳnh	CTV Đoàn Khoa
+	24	Nguyễn Châu Long Nhật	CTV Đoàn Khoa
+	25	Tô Thị Mỹ Hậu	CTV Đoàn Khoa
+	26	Trần Công Mạnh	CTV Đoàn Khoa
+
 - BAN TCXDĐ:
-+ K22:	20	Trần Lê Quang An	Nguyên UV. BCH, Chủ nhiệm Chuyên san Tài chính và Công nghệ ứng dụng
-+ K23:	21	Bùi Bình Thảo Uyên	UV. BTV, Trưởng ban
-+ K24:	22	Phạm Ngọc Thiên An	CTV Đoàn Khoa
-		23	Nguyễn Hà Anh Thư	CTV Đoàn Khoa
-		24	Nguyễn Thị Kim Phượng	CTV Đoàn Khoa
-		25	Nguyễn Ngọc Tâm Anh	CTV Đoàn Khoa
++ K22:	27	Trần Lê Quang An	Nguyên UV. BCH, Chủ nhiệm Chuyên san
++ K23:	28	Bùi Bình Thảo Uyên	UV. BTV, Nguyên Trưởng ban
++ K24:	29	Phạm Ngọc Thiên An	UV. BCH, Trưởng ban
+	30	Nguyễn Thị Kim Phượng	CTV Đoàn Khoa
++ K25:	31	Trần Ngọc Bảo Anh	CTV Đoàn Khoa
+	32	Huỳnh Nam Anh	CTV Đoàn Khoa
+	33	Trần Hoàng Đức	CTV Đoàn Khoa
+
 - BAN PTTN:
 + K22:
-    26	Nguyễn Hạo	Bí thư Đoàn Khoa, Nguyên phó ban
-		27	Huỳnh Thị Ngọc Nhi	Nguyên Thủ quỹ
-		28	Trần Nhật Linh	CTV Đoàn Khoa
+	34	Nguyễn Hạo	Bí thư
+	35	Huỳnh Thị Ngọc Nhi	Nguyên Thủ quỹ
+	36	Trần Nhật Linh	CTV Đoàn Khoa
 + K23:
-    29	Huỳnh Trang Anh	Phó Bí thư, Trưởng ban
-		30	Lê Nguyễn Hiếu Đan	Phó ban
-		31	Lương Thị Tú Viên	CTV Đoàn Khoa
-		32	Trương Thành Bảo	CTV Đoàn Khoa
-		33	Nguyễn Thanh Phương	CTV Đoàn Khoa
-+ K24:	
-    34	Lâm Ngọc Vân Anh	CTV Đoàn Khoa
-		35	Danh Hoàng Anh	CTV Đoàn Khoa
-		36	Đặng Thị Thùy Dương	CTV Đoàn Khoa
-		37	Lê Thanh Hải	CTV Đoàn Khoa
-		38	Phạm Võ Gia Hân	CTV Đoàn Khoa
-		39	Vũ Minh Quân	CTV Đoàn Khoa
-		40	Nguyễn Thị Thái Trân	CTV Đoàn Khoa
+	37	Huỳnh Trang Anh	Phó Bí thư, Nguyên Trưởng ban
+	38	Lê Nguyễn Hiếu Đan	Nguyên Phó ban
+	39	Lương Thị Tú Viên	Nguyên Thủ quỹ
+	40	Trương Thành Bảo	CTV Đoàn Khoa
+	41	Nguyễn Thanh Phương	CTV Đoàn Khoa
++ K24:
+	42	Lâm Ngọc Vân Anh	UV. BCH, Trưởng ban
+	43	Danh Hoàng Anh	UV. BCH, Phó ban
+	44	Đặng Thị Thùy Dương	CTV Đoàn Khoa
+	45	Lê Thanh Hải	CTV Đoàn Khoa
+	46	Phạm Võ Gia Hân	Thủ quỹ Đoàn Khoa
+	47	Nguyễn Thị Thái Trân	CTV Đoàn Khoa
++ K25:
+	48	Nguyễn Quang Duy	CTV Đoàn Khoa
+	49	Huỳnh Quốc Đạt	CTV Đoàn Khoa
+	50	Nguyễn Minh Đức	CTV Đoàn Khoa
+	51	Đoàn Thị Như	CTV Đoàn Khoa
+	52	Nguyễn Thu Thảo	CTV Đoàn Khoa
 
 ## NHIỆM VỤ CỦA BẠN:
 
