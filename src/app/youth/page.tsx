@@ -1,9 +1,5 @@
 "use client";
-import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Tuổi trẻ',
-};
 export const dynamic = 'force-dynamic';
 import { useEffect, useState } from "react";
 import Link from "next/link";

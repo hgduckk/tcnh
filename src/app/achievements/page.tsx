@@ -1,9 +1,5 @@
 "use client";
-import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Thành tích',
-};
 import { PageBanner } from '@/components/shared/PageBanner';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';

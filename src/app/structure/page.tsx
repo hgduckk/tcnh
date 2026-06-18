@@ -1,9 +1,5 @@
 "use client";
-import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Cơ cấu tổ chức',
-};
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { PageBanner } from '@/components/shared/PageBanner';

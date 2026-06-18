@@ -1,9 +1,5 @@
 "use client"; // BẮT BUỘC THÊM DÒNG NÀY
-import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Ứng tuyển',
-};
 import { PageBanner } from '@/components/shared/PageBanner';
 import { TemplateDrivenApplicationForm } from '@/components/apply/TemplateDrivenApplicationForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

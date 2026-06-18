@@ -2,11 +2,7 @@
 // Admin Page — redesigned with Overview / Function / Category structure
 // ─────────────────────────────────────────────────────────────────────────────
 "use client";
-import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Hệ thống Quản trị',
-};
 export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
