@@ -79,7 +79,7 @@ export default function Home() {
       }
 
       try {
-        await fetch('/api/admin/visits', { method: 'POST' });
+        await fetch('/api/visits', { method: 'POST' });
       } catch {
         // ignore
       }
