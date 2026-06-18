@@ -24,7 +24,7 @@ export function Footer() {
             </Link>
             <p className="text-white mb-2 drop-shadow-xl">&quot;Nơi trái tim gọi là Nhà&quot;</p>
             <p className="text-white drop-shadow-2xl">
-              &copy; {new Date().getFullYear()} Đoàn khoa Tài chính - Ngân hàng, Trường Đại học Kinh tế - Luật, ĐHQG-TPHCM.
+              &copy; {new Date().getFullYear()} Đoàn khoa Tài chính - Ngân hàng, Trường Đại học Kinh tế - Luật, ĐHQG-HCM.
             </p>
           </div>
 
@@ -43,7 +43,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-3">
               <MapPin className="text-white h-5 w-5" />
-              <span className="text-white text-sm sm:text-sm drop-shadow-2xl">669 Đỗ Mười, Phường Linh Xuân, TP. Hồ Chí Minh</span>
+              <span className="text-white text-sm sm:text-sm drop-shadow-2xl">Số 669 Đỗ Mười, Khu phố 13, Phường Linh Xuân, TP. Hồ Chí Minh</span>
             </div>
           </div>
         </div>
