@@ -1,4 +1,9 @@
 "use client";
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Hoạt động',
+};
 export const dynamic = 'force-dynamic';
 import Image from 'next/image';
 import { PageBanner } from '@/components/shared/PageBanner';

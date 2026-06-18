@@ -6,12 +6,16 @@ import { getMetadataBaseUrl } from '@/lib/publicUrls';
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBaseUrl(),
-  title: 'ĐK-TCNH',
+  // Sửa lại title thành object chứa template và default
+  title: {
+    template: '%s | Đoàn khoa Tài chính - Ngân hàng',
+    default: 'Đoàn khoa Tài chính - Ngân hàng',
+  },
   description: 'Trang web của Đoàn khoa Tài chính - Ngân hàng',
   openGraph: {
     title: 'Đoàn khoa Tài chính - Ngân hàng',
     description: 'Trang web chính thức của Đoàn khoa Tài chính - Ngân hàng',
-    siteName: 'ĐK-TCNH',
+    siteName: 'Đoàn khoa Tài chính - Ngân hàng',
     images: [
       {
         url: '/images/backkipu.jpg',

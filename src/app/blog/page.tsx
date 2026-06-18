@@ -1,3 +1,8 @@
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Diễn đàn',
+};
 export const dynamic = 'force-dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
