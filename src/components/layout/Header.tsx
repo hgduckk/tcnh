@@ -42,9 +42,9 @@ export function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/80 supports-[backdrop-filter]:bg-white/90">
+    <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/80">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 hover-glow">
+        <Link href="/" className="flex items-center gap-2">
           <img src="/images/logo.png" alt="ĐKTCNH Logo" className="h-8 w-auto" />
         </Link>
 
@@ -57,14 +57,13 @@ export function Header() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-6 w-6" />
-                <span className="sr-only">Chuyển đổi Menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
               <div className="p-4">
-                <Link href="/" className="flex items-center gap-2 mb-8">
+                <Link href="/" className="flex items-center gap-2 mb-8" onClick={() => setMobileMenuOpen(false)}>
                   <University className="h-6 w-6 text-primary" />
-                  <span className="font-headline text-xl font-bold"></span>
+                  <span className="font-bold text-lg">ĐK-TCNH</span>
                 </Link>
                 <NavLinks className="flex-col items-start gap-4" />
               </div>
