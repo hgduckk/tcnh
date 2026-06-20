@@ -180,7 +180,7 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageOne ? (
-                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
+                    <div className="relative w-full aspect-video overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
                     <Image
                       src={withVersion(settings.homeImageOne)}
                       alt="Group of students"
@@ -216,7 +216,7 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageTwo ? (
-                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
+                    <div className="relative w-full aspect-video overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
                       <Image
                         src={withVersion(settings.homeImageTwo)}
                         alt="Group of students"
@@ -242,7 +242,7 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageThree ? (
-                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
+                    <div className="relative w-full aspect-video overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
                       <Image
                         src={withVersion(settings.homeImageThree)}
                         alt="Group of students"
