@@ -180,8 +180,8 @@ export default function YouthSchoolMapPage() {
         </div>
 
         <div className="relative flex min-h-0 w-full flex-1 items-start justify-center overflow-hidden">
-          <div className="absolute top-4 left-4 z-50 w-[min(90%,32rem)] rounded-xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur-md">            
-            <p className="text-sm font-medium text-slate-700">              
+          <div className="absolute left-2 top-2 z-30 w-[min(92%,40rem)] rounded-xl border border-slate-200 bg-white/92 p-3 shadow-[0_10px_35px_rgba(15,23,42,0.12)] backdrop-blur-md md:left-4 md:top-4 md:p-3.5">
+            <p className="mb-2 text-xs md:text-sm text-slate-600 min-h-[1.25rem]">
               {loading ? "Đang tải bản đồ..." : error ? error : activeNoteText || locationText}
             </p>
 
@@ -208,7 +208,7 @@ export default function YouthSchoolMapPage() {
           </div>
 
           <div
-            className={`relative w-full max-w-6xl z-10 overflow-hidden rounded-xl bg-white ${animClass}`}
+            className={`relative w-full max-w-6xl overflow-hidden rounded-xl bg-white ${animClass}`}
             style={{ aspectRatio: "16 / 9", maxHeight: "100%" }}
           >
             <img
