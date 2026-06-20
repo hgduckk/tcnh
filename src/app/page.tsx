@@ -202,7 +202,7 @@ export default function Home() {
               className="text-5xl md:text-5xl font-passions font-medium mt-0 text-center italic" 
               style={{ 
                 color: '#f05a23', 
-                textShadow: '0 0 10px #f05a23, 0 0 20px #f05a23, 0 0 30px #f05a23, 0 0 40px #f05a23' 
+                textShadow: '0 0 10px #FFD700, 0 0 20px #FFD700, 0 0 30px #FFD700, 0 0 40px #FFD700' 
               }}
             >                
               "Giữa muôn vàn lựa chọn, chúng ta đã chọn cùng nhau đi qua những tháng năm rực rỡ nhất."
@@ -263,17 +263,6 @@ export default function Home() {
             </div>
           </ScrollReveal>
         </div>
-        <div className="flex justify-center mt-8">
-  <Link href="/apply">
-    <Button 
-      className="px-8 py-6 text-xl font-bold rounded-full transition-all duration-300 hover:scale-105"
-      style={{ backgroundColor: '#00aeef', 
-      color: '#ffffff', boxShadow: '0 4px 15px rgba(0, 174, 239, 0.5)' }}
-    >
-      Ứng tuyển ngay!
-    </Button>
-  </Link>
-</div>
       </section>
       
       <h2 className="text-center text-2xl md:text-5xl font-anton font-medium text-primary mt-0">LÀ MỘT TÂN SINH VIÊN, BẠN SẼ CHỌN GÌ?</h2>
@@ -304,6 +293,17 @@ export default function Home() {
             )}
           </div>
         </div>
+<div className="flex justify-center mt-8">
+  <Link href="/apply">
+    <Button 
+      className="px-8 py-6 text-xl font-bold rounded-full transition-all duration-300 hover:scale-105"
+      style={{ backgroundColor: '#00aeef', 
+      color: '#ffffff', boxShadow: '0 4px 15px rgba(0, 174, 239, 0.5)' }}
+    >
+      Ứng tuyển ngay!
+    </Button>
+  </Link>
+</div>
       </section>
 
       {/* Carousel Section */}
