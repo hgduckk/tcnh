@@ -41,8 +41,8 @@ export default function ApplyPage() {
               <div className="flex items-center gap-3">
                 <Sparkles className="w-8 h-8 text-blue-600" />
                 <div>
-                  <h4 className="font-bold text-blue-900">Bạn còn phân vân chưa biết chọn ban nào?</h4>
-                  <p className="text-sm text-blue-700">Hãy để AI của Đoàn Khoa tư vấn ban phù hợp nhất dựa trên tính cách của bạn.</p>
+                  <h4 className="font-bold text-blue-900">Bạn còn phân vân chưa biết chọn Ban nào?</h4>
+                  <p className="text-sm text-blue-700">Hãy để FABI tư vấn ban phù hợp nhất dựa trên tính cách của bạn.</p>
                 </div>
               </div>
               <Button 
