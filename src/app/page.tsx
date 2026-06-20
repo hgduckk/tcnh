@@ -198,7 +198,9 @@ export default function Home() {
                 </div>
               </div>
 
-              <h2 className="text-5xl md:text-5xl font-passions font-medium text-primary mt-0 text-center italic">"Giữa muôn vàn lựa chọn, chúng ta đã chọn cùng nhau đi qua những tháng năm rực rỡ nhất."</h2>
+              <h2 className="text-5xl md:text-5xl font-passions font-medium mt-0 text-center italic" style={{ color: '#f05a23' }}>
+                "Giữa muôn vàn lựa chọn, chúng ta đã chọn cùng nhau đi qua những tháng năm rực rỡ nhất."
+              </h2>
               
               <div className="flex flex-col md:flex-row-reverse items-center gap-12">
                 <div className="md:w-1/2 space-y-4 text-center">
