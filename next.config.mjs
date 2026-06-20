@@ -45,7 +45,7 @@ const nextConfig = {
         ? [
             {
               protocol: 'https',
-              hostname: 'pfqykhgmkwdvwryptiqi.supabase.co',
+              hostname: '*.supabase.co',
               port: '',
               pathname: '/storage/v1/object/public/**',
             },
