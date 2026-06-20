@@ -180,13 +180,14 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageOne ? (
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
-                      <Image
-                        src={withVersion(settings.homeImageOne)}
-                        alt="Group of students"
-                        fill
-                        className="object-cover"
-                        data-ai-hint="students collaborating"
+                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
+                    <Image
+                      src={withVersion(settings.homeImageOne)}
+                      alt="Group of students"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
+                      data-ai-hint="students collaborating"
                       />
                     </div>
                   ) : (
@@ -215,11 +216,12 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageTwo ? (
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
                       <Image
                         src={withVersion(settings.homeImageTwo)}
                         alt="Group of students"
                         fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover"
                         data-ai-hint="students collaborating"
                       />
@@ -240,11 +242,12 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageThree ? (
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl min-h-[250px]">
                       <Image
                         src={withVersion(settings.homeImageThree)}
                         alt="Group of students"
                         fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover"
                         data-ai-hint="students collaborating"
                       />
