@@ -32,7 +32,7 @@ export default function Home() {
     contactFormSubtitle: 'Xin vui lòng cung cấp thông tin',
   });
 
-  const fixedHomepageTitle = 'Đoàn Khoa Tài chính - Ngân hàng';
+  const fixedHomepageTitle = 'Đoàn khoa Tài chính - Ngân hàng';
   const fixedBannerSubtitle = 'ĐOÀN KHOA TÀI CHÍNH - NGÂN HÀNG';
 
   const parseYouTubeId = (value: string) => {
@@ -175,7 +175,7 @@ export default function Home() {
                     <span className="block md:inline">{fixedHomepageTitle}</span>{' '}
                   </h2> 
                   <p className="font-nunito text-muted-foreground text-lg text-justify">
-                    Đoàn Khoa Tài chính - Ngân hàng tự hào là lực lượng tiên phong trong công tác Đoàn và phong trào thanh niên tại Trường Đại học Kinh tế - Luật. Dưới sự dẫn dắt của Đoàn Trường và Chi ủy - Ban Chủ nhiệm Khoa, Đoàn Khoa Tài chính - Ngân hàng luôn đem đến những hoạt động năng động, nhiệt huyết, với sự tham gia và cống hiến của đông đảo sinh viên.
+                    Đoàn khoa Tài chính - Ngân hàng tự hào là lực lượng tiên phong trong công tác Đoàn và phong trào thanh niên tại Trường Đại học Kinh tế - Luật. Dưới sự dẫn dắt của Đoàn Trường và Chi ủy - Ban Chủ nhiệm Khoa, Đoàn khoa Tài chính - Ngân hàng luôn đem đến những hoạt động năng động, nhiệt huyết, với sự tham gia và cống hiến của đông đảo sinh viên.
                   </p>
                 </div>
                 <div className="md:w-1/2">
