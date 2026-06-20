@@ -305,10 +305,12 @@
   z-index: -1;
 }
 
-html, body {
+html {
   height: 100%;
+}
+body {
   min-height: 100%;
-  overflow-x: hidden; /* tránh xuất hiện thanh cuộn ngang ngoài ý muốn */
+  overflow-x: hidden; /* Chỉ ẩn thanh cuộn ngang ở body thôi */
 }
 
 body {
@@ -325,11 +327,7 @@ body {
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
   }
-  
-  /* Reduce blur effects on mobile */
-  .backdrop-blur-sm {
-    backdrop-filter: none !important;
-  }
+
   
   /* Simplify gradients on mobile */
   .bg-gradient-to-b,
