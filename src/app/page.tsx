@@ -180,16 +180,15 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageOne ? (
-                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
                       <Image
                         src={withVersion(settings.homeImageOne)}
                         alt="Group of students"
                         fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover"
                         data-ai-hint="students collaborating"
-                    />
-                  </div>
+                      />
+                    </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-slate-300 aspect-[4/3] flex items-center justify-center text-slate-400">
                       Chưa cập nhật hình ảnh 1
@@ -216,16 +215,15 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageTwo ? (
-                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
                       <Image
                         src={withVersion(settings.homeImageTwo)}
                         alt="Group of students"
                         fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover"
                         data-ai-hint="students collaborating"
-                    />
-                  </div>
+                      />
+                    </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-slate-300 aspect-[4/3] flex items-center justify-center text-slate-400">
                       Chưa cập nhật hình ảnh 2
@@ -242,16 +240,15 @@ export default function Home() {
                 </div>
                 <div className="md:w-1/2">
                   {settings.homeImageThree ? (
-                    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl shadow-2xl">
                       <Image
                         src={withVersion(settings.homeImageThree)}
                         alt="Group of students"
                         fill
-                        sizes="(max-width: 768px) 100vw, 50vw"
                         className="object-cover"
                         data-ai-hint="students collaborating"
-                    />
-                  </div>
+                      />
+                    </div>
                   ) : (
                     <div className="rounded-xl border border-dashed border-slate-300 aspect-[4/3] flex items-center justify-center text-slate-400">
                       Chưa cập nhật hình ảnh 3
