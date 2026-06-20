@@ -13,36 +13,32 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const isAdminPage = pathname === '/admin';
   const isSchoolMapPage = pathname === '/youth/school-map';
 
-  // 1. Trang Admin: Không dùng Header/Footer
+  // 1. Trang Admin: Render thẳng nội dung (thường có dashboard riêng)
   if (isAdminPage) {
     return <>{children}</>;
   }
 
-  // 2. Trang Bản đồ: Để Header dính nhưng không chặn scroll của map
-  // Đã sửa để bỏ overflow-hidden làm hỏng sticky của Header
+  // 2. Trang Bản đồ: Không Footer, không padding-top dư thừa để lấy không gian full-screen
   if (isSchoolMapPage) {
     return (
-      // Sử dụng min-h-dvh cho full height viewport mượt mà trên mobile
       <div className="min-h-dvh flex flex-col">
-        {/* Header nằm trong flex container chuẩn để sticky top-0 hoạt động */}
         <Header />
-        {/* Main vẫn chiếm phần còn lại, relative giúp map và floating elements nằm đúng vị trí */}
-        <main className="flex-grow relative z-0"> 
+        {/* Main dùng flex-grow để chiếm toàn bộ không gian còn lại */}
+        <main className="flex-grow relative z-0">
           {children}
         </main>
       </div>
     );
   }
 
-  // 3. Normal Layout (Trang chủ, blog, v.v.): Có Header + Footer + padding-top
+  // 3. Normal Layout (Trang chủ, blog, v.v.):
+  // Thêm pt-16 (64px) - đây chính là chiều cao của Header để nội dung không bị che khuất
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      {/* Thêm pt-16 (tương ứng chiều cao Header) để không bị đè */}
       <main className="flex-grow pt-16 relative z-0">
         {children}
       </main>
-      <Footer />
     </div>
   );
 }

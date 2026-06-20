@@ -327,7 +327,15 @@ body {
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
   }
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
 
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
   
   /* Simplify gradients on mobile */
   .bg-gradient-to-b,

@@ -42,21 +42,27 @@ export function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/80">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+    // z-[100] đảm bảo Header luôn nằm trên cùng
+    // pointer-events-none (mobile) kết hợp với pointer-events-auto (nội dung bên trong)
+    // để tránh xung đột thao tác trên di động
+    <header className="sticky top-0 z-[100] w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/80 pointer-events-none md:pointer-events-auto">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 pointer-events-auto">
         <Link href="/" className="flex items-center gap-2">
           <img src="/images/logo.png" alt="ĐKTCNH Logo" className="h-8 w-auto" />
         </Link>
 
+        {/* Menu cho Desktop */}
         <div className="hidden md:flex">
           <NavLinks />
         </div>
 
+        {/* Menu cho Mobile */}
         <div className="md:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-6 w-6" />
+                <span className="sr-only">Menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
