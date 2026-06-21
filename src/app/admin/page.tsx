@@ -944,7 +944,35 @@ function OverviewPanel({
     }
     scrollToSection('forms-analytics-section');
   };
+const ALL_ADDITIONAL_FIELDS = [
+    'student_id',
+    'email',
+    'birth_date',
+    'gender',
+    'phone_number',
+    'facebook_link',
+    'current_address',
+    'transportation',
+    'health_note',
+    'strengths_weaknesses',
+    'special_skills',
+    'submitted_at'
+  ];
 
+  const FIELD_LABEL_MAP: Record<string, string> = {
+    student_id: 'MSSV',
+    email: 'Email',
+    birth_date: 'Ngày sinh',
+    gender: 'Giới tính',
+    phone_number: 'SĐT',
+    facebook_link: 'Facebook',
+    current_address: 'Địa chỉ',
+    transportation: 'Phương tiện',
+    health_note: 'Sức khỏe',
+    strengths_weaknesses: 'Điểm mạnh/yếu',
+    special_skills: 'Kỹ năng đặc biệt',
+    submitted_at: 'Thời gian nộp'
+  };
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-3">
@@ -1131,16 +1159,21 @@ function OverviewPanel({
                   })}
                 </div>
 
-                {/* Table */}
-                <div className="relative overflow-x-auto rounded-lg border bg-white">
-                  <table className="min-w-full table-fixed border-separate border-spacing-0" style={{ width: `${tableWidth}px` }}>
-                    <colgroup>
+{/* Table */}
+<div className="relative overflow-x-auto rounded-lg border bg-white">
+  <table className="min-w-full table-fixed border-separate border-spacing-0" style={{ width: `${tableWidth}px` }}>
+                      <colgroup>
                       <col style={{ width: `${getColumnWidth('submit_index')}px` }} />
                       <col style={{ width: `${getColumnWidth('full_name')}px` }} />
                       <col style={{ width: `${getColumnWidth('class_name')}px` }} />
                       <col style={{ width: `${getColumnWidth('department')}px` }} />
                       <col style={{ width: `${getColumnWidth('status')}px` }} />
-                      {selectedAdditionalFields.map(f => <col key={f} style={{ width: `${getColumnWidth(f)}px` }} />)}
+                      
+                      {/* Duyệt colgroup theo mảng chuẩn để đồng bộ độ rộng */}
+                      {ALL_ADDITIONAL_FIELDS.map(f => (
+                        selectedAdditionalFields.includes(f) && <col key={`col-${f}`} style={{ width: `${getColumnWidth(f)}px` }} />
+                      ))}
+                      
                       <col style={{ width: `${getColumnWidth('details')}px` }} />
                     </colgroup>
                     <thead>
@@ -1150,54 +1183,76 @@ function OverviewPanel({
                         <ResizableTableHeaderCell column="class_name" label="Lớp" width={getColumnWidth('class_name')} onResize={(d) => handleColumnResize('class_name', d)} onSort={() => onHeaderSort('class_name')} isSorted={tableSortBy === 'class_name'} sortOrder={tableSortOrder} />
                         <ResizableTableHeaderCell column="department" label="Ban" width={getColumnWidth('department')} onResize={(d) => handleColumnResize('department', d)} onSort={() => onHeaderSort('department')} isSorted={tableSortBy === 'department'} sortOrder={tableSortOrder} />
                         <ResizableTableHeaderCell column="status" label="Trạng thái" width={getColumnWidth('status')} onResize={(d) => handleColumnResize('status', d)} onSort={() => onHeaderSort('status')} isSorted={tableSortBy === 'status'} sortOrder={tableSortOrder} />
-                        {selectedAdditionalFields.map(f => <ResizableTableHeaderCell key={f} column={f} label={f === 'student_id' ? 'MSSV' : f === 'birth_date' ? 'Ngày sinh' : f === 'gender' ? 'Giới tính' : f === 'submitted_at' ? 'Thời gian nộp' : f} width={getColumnWidth(f)} onResize={(d) => handleColumnResize(f, d)} />)}
+                        
+                        {/* Hiển thị tiêu đề tiếng Việt chuẩn hóa theo mảng cố định */}
+                        {ALL_ADDITIONAL_FIELDS.map(f => {
+                          if (!selectedAdditionalFields.includes(f)) return null;
+                          return (
+                            <ResizableTableHeaderCell 
+                              key={`th-${f}`} 
+                              column={f} 
+                              label={FIELD_LABEL_MAP[f] || f} 
+                              width={getColumnWidth(f)} 
+                              onResize={(d) => handleColumnResize(f, d)} 
+                            />
+                          );
+                        })}
+                        
                         <ResizableTableHeaderCell column="details" label="" width={getColumnWidth('details')} onResize={(d) => handleColumnResize('details', d)} className="sticky right-0 z-20 border-l border-blue-500/30 shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.5)]" />
                       </tr>
                     </thead>
-                    <tbody>
-                      {excelRows.length > 0 ? excelRows.map((row, idx) => {
-                        const cfg = CANDIDATE_STATUS[getEffectiveStatus(row)];
-                        return (
-                          <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-center">
-                            <td className="px-2 py-3 text-xs text-slate-500 whitespace-nowrap">{idx + 1}</td>
-                            <td className="px-2 py-3 text-sm font-medium text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">{row.full_name || 'Unknown'}</td>
-                            <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.class_name || 'N/A'}</td>
-                            <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.department || 'Unknown'}</td>
-                            <td className="px-2 py-3 whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.circleColor}`} />
-                                <span className={`text-xs ${cfg.textColor}`}>{cfg.label}</span>
-                              </div>
-                            </td>
-                            {selectedAdditionalFields.includes('student_id') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.student_id || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('email') && <td className="px-2 py-3 text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{row.email || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('birth_date') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.birth_date || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('gender') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.gender || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('phone_number') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.phone_number || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('facebook_link') && (
-                              <td className="px-2 py-3 text-sm text-blue-600 underline whitespace-nowrap overflow-hidden text-ellipsis">
-                                {row.facebook_link ? <a href={row.facebook_link} target="_blank" rel="noreferrer">Link</a> : 'N/A'}
-                              </td>
-                            )}
-                            {selectedAdditionalFields.includes('current_address') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.current_address || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('transportation') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.transportation || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('health_note') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.health_note || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('strengths_weaknesses') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.strengths_weaknesses || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('special_skills') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.special_skills || 'N/A'}</td>}
-                            {selectedAdditionalFields.includes('submitted_at') && <td className="px-2 py-3 text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{formatDateTime(row.submitted_at)}</td>}
-                            <td className="sticky right-0 z-10 border-b border-l border-slate-100 bg-white px-2 py-3 text-center shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.35)]">
-                              <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Chi tiết</Button>
-                            </td>
-                          </tr>
-                        );
-                      }) : (
-                        <tr>
-                          <td colSpan={6 + selectedAdditionalFields.length} className="text-center text-slate-500 py-8">Không có dữ liệu phù hợp</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+    <tbody>
+      {excelRows.length > 0 ? excelRows.map((row, idx) => {
+        const cfg = CANDIDATE_STATUS[getEffectiveStatus(row)];
+        return (
+          <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-center">
+            <td className="px-2 py-3 text-xs text-slate-500 whitespace-nowrap">{idx + 1}</td>
+            <td className="px-2 py-3 text-sm font-medium text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">{row.full_name || 'Unknown'}</td>
+            <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.class_name || 'N/A'}</td>
+            <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.department || 'Unknown'}</td>
+            <td className="px-2 py-3 whitespace-nowrap">
+              <div className="flex items-center justify-center gap-1.5">
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.circleColor}`} />
+                <span className={`text-xs ${cfg.textColor}`}>{cfg.label}</span>
+              </div>
+            </td>
+
+            {/* 3. ĐỒNG BỘ TBODY: Render động các ô dữ liệu theo chuẩn mảng cấu trúc */}
+                            {ALL_ADDITIONAL_FIELDS.map(f => {
+                              if (!selectedAdditionalFields.includes(f)) return null;
+
+                              if (f === 'student_id') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.student_id || 'N/A'}</td>;
+                              if (f === 'email') return <td key={f} className="px-2 py-3 text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{row.email || 'N/A'}</td>;
+                              if (f === 'birth_date') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.birth_date || 'N/A'}</td>;
+                              if (f === 'gender') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.gender || 'N/A'}</td>;
+                              if (f === 'phone_number') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.phone_number || 'N/A'}</td>;
+                              if (f === 'facebook_link') return (
+                                <td key={f} className="px-2 py-3 text-sm text-blue-600 underline whitespace-nowrap overflow-hidden text-ellipsis">
+                                  {row.facebook_link ? <a href={row.facebook_link} target="_blank" rel="noreferrer">Link</a> : 'N/A'}
+                                </td>
+                              );
+                              if (f === 'current_address') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.current_address || 'N/A'}</td>;
+                              if (f === 'transportation') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.transportation || 'N/A'}</td>;
+                              if (f === 'health_note') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.health_note || 'N/A'}</td>;
+                              if (f === 'strengths_weaknesses') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.strengths_weaknesses || 'N/A'}</td>;
+                              if (f === 'special_skills') return <td key={f} className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.special_skills || 'N/A'}</td>;
+                              if (f === 'submitted_at') return <td key={f} className="px-2 py-3 text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{formatDateTime(row.submitted_at)}</td>;
+                              
+                              return null;
+                            })}
+            <td className="sticky right-0 z-10 border-b border-l border-slate-100 bg-white px-2 py-3 text-center shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.35)]">
+              <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Chi tiết</Button>
+            </td>
+          </tr>
+        );
+      }) : (
+        <tr>
+          <td colSpan={6 + selectedAdditionalFields.length} className="text-center text-slate-500 py-8">Không có dữ liệu phù hợp</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
               </CardContent>
             </Card>
           )}
