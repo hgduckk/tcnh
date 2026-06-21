@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import { getMetadataBaseUrl } from '@/lib/publicUrls';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBaseUrl(),
@@ -50,6 +51,7 @@ export default function RootLayout({
       <body className="font-body antialiased flex flex-col min-h-screen">
         <Toaster />
         <ConditionalLayout>{children}</ConditionalLayout>
+        <Analytics />
       </body>
     </html>
   );
