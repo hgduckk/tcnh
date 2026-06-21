@@ -48,12 +48,19 @@ export async function PATCH(
     if (body.board_comment !== undefined) {
       updateData.board_comment = String(body.board_comment);
     }
+  const newFields = [
+      'phone_number', 'facebook_link', 'current_address', 
+      'transportation', 'health_note', 'strengths_weaknesses', 'special_skills'
+    ];
+
+    newFields.forEach(field => {
+      if (body[field] !== undefined) {
+        updateData[field] = String(body[field]);
+      }
+    });
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json(
-        { success: false, message: "No fields to update." },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, message: "No fields to update." }, { status: 400 });
     }
 
     const { error } = await supabaseAdmin

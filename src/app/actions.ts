@@ -180,7 +180,13 @@ export async function submitApplication(
       email: formData.get('email')?.toString() || '',
       gender: formData.get('gender')?.toString() || '',
       department: formData.get('department')?.toString() || '',
-
+      phoneNumber: formData.get('phoneNumber')?.toString() || '',
+      facebookLink: formData.get('facebookLink')?.toString() || '',
+      currentAddress: formData.get('currentAddress')?.toString() || '',
+      transportation: formData.get('transportation')?.toString() || '',
+      healthNote: formData.get('healthNote')?.toString() || '',
+      strengthsWeaknesses: formData.get('strengthsWeaknesses')?.toString() || '',
+      specialSkills: formData.get('specialSkills')?.toString() || '',
       photo: formData.get('photo'),
 
       optionalPersonal1: formData.get('optionalPersonal1')?.toString() || '',
@@ -188,10 +194,17 @@ export async function submitApplication(
       optionalPersonal3: formData.get('optionalPersonal3')?.toString() || '',
       optionalPersonal4: formData.get('optionalPersonal4')?.toString() || '',
       optionalPersonal5: formData.get('optionalPersonal5')?.toString() || '',
+      optionalPersonal6: formData.get('optionalPersonal6')?.toString() || '',
+      optionalPersonal7: formData.get('optionalPersonal7')?.toString() || '',
+      optionalPersonal8: formData.get('optionalPersonal8')?.toString() || '',
+
 
       deptOptional1: formData.get('deptOptional1')?.toString() || '',
       deptOptional2: formData.get('deptOptional2')?.toString() || '',
       deptOptional3: formData.get('deptOptional3')?.toString() || '',
+      deptOptional4: formData.get('deptOptional4')?.toString() || '',
+      deptOptional5: formData.get('deptOptional5')?.toString() || '',
+      deptOptional6: formData.get('deptOptional6')?.toString() || '',
     });
 
     if (!validatedFields.success) {
@@ -252,12 +265,18 @@ export async function submitApplication(
       validatedFields.data.optionalPersonal3 ?? "",
       validatedFields.data.optionalPersonal4 ?? "",
       validatedFields.data.optionalPersonal5 ?? "",
+      validatedFields.data.optionalPersonal6 ?? "",
+      validatedFields.data.optionalPersonal7 ?? "",
+      validatedFields.data.optionalPersonal8 ?? "",
     ];
 
     const deptOptionalAnswers = [
       validatedFields.data.deptOptional1 ?? "",
       validatedFields.data.deptOptional2 ?? "",
       validatedFields.data.deptOptional3 ?? "",
+      validatedFields.data.deptOptional4 ?? "",
+      validatedFields.data.deptOptional5 ?? "",
+      validatedFields.data.deptOptional6 ?? "",
     ];
 
     const { error: insertError } = await supabaseAdmin
@@ -274,6 +293,13 @@ export async function submitApplication(
         department: validatedFields.data.department,
         optional_personal_answers: optionalPersonalAnswers,
         dept_optional_answers: deptOptionalAnswers,
+        phone_number: validatedFields.data.phoneNumber,
+        facebook_link: validatedFields.data.facebookLink,
+        current_address: validatedFields.data.currentAddress,
+        transportation: validatedFields.data.transportation,
+        health_note: validatedFields.data.healthNote,
+        strengths_weaknesses: validatedFields.data.strengthsWeaknesses,
+        special_skills: validatedFields.data.specialSkills,
       });
 
     if (insertError) {

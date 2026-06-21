@@ -60,6 +60,13 @@ interface FormSubmission {
   status?: string;
   standing_committee_comment?: string;
   board_comment?: string;
+  phone_number?: string;
+  facebook_link?: string;
+  current_address?: string;
+  transportation?: string;
+  health_note?: string;
+  strengths_weaknesses?: string;
+  special_skills?: string;
 }
 
 const CANDIDATE_STATUS = {
@@ -119,6 +126,13 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   birth_date: 120,
   gender: 100,
   submitted_at: 170,
+phone_number: 120,
+  facebook_link: 120,
+  current_address: 200,
+  transportation: 120,
+  health_note: 150,
+  strengths_weaknesses: 200,
+  special_skills: 200,
   details: 96,
 };
 
@@ -640,7 +654,6 @@ export default function AdminPage() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Panel: Overview
 // ─────────────────────────────────────────────────────────────────────────────
-
 function OverviewPanel({
   metrics,
   totalSubmissions,
@@ -668,7 +681,7 @@ function OverviewPanel({
   const [detailSubmission, setDetailSubmission] = useState<FormSubmission | null>(null);
   const [selectedAdditionalFields, setSelectedAdditionalFields] = useState<string[]>([]);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(DEFAULT_COLUMN_WIDTHS);
-
+  
   // ── Inline submission updates (status + comments) ──────────────────────────
   const [submissionUpdates, setSubmissionUpdates] = useState<Record<string, { status: CandidateStatus; standingComment: string; boardComment: string }>>({});
   const [dialogStatus, setDialogStatus] = useState<CandidateStatus>('not_selected');
@@ -693,7 +706,6 @@ function OverviewPanel({
 
   const departmentStats = useMemo(() => {
     const map = new Map<string, { count: number; completionSum: number }>();
-
     for (const item of filteredSubmissions) {
       const key = item.department || 'Unknown';
       const current = map.get(key) || { count: 0, completionSum: 0 };
@@ -704,12 +716,10 @@ function OverviewPanel({
         ? item.dept_optional_answers.slice(0, 3).filter(a => String(a || '').trim()).length
         : 0;
       const completionRate = Math.round(((personalAnswered + deptAnswered) / 8) * 100);
-
       current.count += 1;
       current.completionSum += completionRate;
       map.set(key, current);
     }
-
     return Array.from(map.entries()).map(([department, values]) => ({
       department,
       count: values.count,
@@ -725,7 +735,6 @@ function OverviewPanel({
         const tb = new Date(b.submitted_at).getTime();
         return tableSortOrder === 'desc' ? tb - ta : ta - tb;
       }
-
       if (tableSortBy === 'status') {
         const statusOrder = ['not_selected', 'undecided', 'accepted', 'rejected'];
         const statusA = (a.status as string) || 'not_selected';
@@ -734,13 +743,9 @@ function OverviewPanel({
         const indexB = statusOrder.indexOf(statusB);
         return tableSortOrder === 'desc' ? indexB - indexA : indexA - indexB;
       }
-
       const va = String((a as any)[tableSortBy] ?? '');
       const vb = String((b as any)[tableSortBy] ?? '');
-
-      return tableSortOrder === 'desc'
-        ? vb.localeCompare(va)
-        : va.localeCompare(vb);
+      return tableSortOrder === 'desc' ? vb.localeCompare(va) : va.localeCompare(vb);
     });
     return rows;
   }, [filteredSubmissions, tableSortBy, tableSortOrder]);
@@ -769,31 +774,13 @@ function OverviewPanel({
     return sortedRows.filter((row) => {
       const department = (row.department || 'Unknown').trim() || 'Unknown';
       const className = (row.class_name || 'N/A').trim() || 'N/A';
-
-      if (tableDepartmentFilter !== 'all' && department !== tableDepartmentFilter) {
-        return false;
-      }
-
-      if (tableClassFilter !== 'all' && className !== tableClassFilter) {
-        return false;
-      }
-
-      if (tableStatusFilter !== 'all' && getEffectiveStatus(row) !== tableStatusFilter) {
-        return false;
-      }
-
+      if (tableDepartmentFilter !== 'all' && department !== tableDepartmentFilter) return false;
+      if (tableClassFilter !== 'all' && className !== tableClassFilter) return false;
+      if (tableStatusFilter !== 'all' && getEffectiveStatus(row) !== tableStatusFilter) return false;
       if (!search) return true;
-
-      const haystack = [
-        row.full_name,
-        row.department,
-        row.class_name,
-        row.student_id,
-        row.email,
-      ]
+      const haystack = [row.full_name, row.department, row.class_name, row.student_id, row.email]
         .map((v) => String(v || '').toLowerCase())
         .join(' ');
-
       return haystack.includes(search);
     });
   }, [sortedRows, tableSearch, tableDepartmentFilter, tableClassFilter, tableStatusFilter, submissionUpdates]);
@@ -803,13 +790,11 @@ function OverviewPanel({
       setTableSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
       return;
     }
-
     setTableSortBy(column);
     setTableSortOrder(column === 'submitted_at' ? 'desc' : 'asc');
   };
 
   const getColumnWidth = (column: string) => columnWidths[column] ?? DEFAULT_COLUMN_WIDTHS[column] ?? 120;
-
   const handleColumnResize = (column: string, delta: number) => {
     setColumnWidths(prev => ({
       ...prev,
@@ -818,16 +803,7 @@ function OverviewPanel({
   };
 
   const tableWidth = useMemo(() => {
-    const visibleColumns = [
-      'submit_index',
-      'full_name',
-      'class_name',
-      'department',
-      'status',
-      ...selectedAdditionalFields,
-      'details',
-    ];
-
+    const visibleColumns = ['submit_index', 'full_name', 'class_name', 'department', 'status', ...selectedAdditionalFields, 'details'];
     return visibleColumns.reduce((total, column) => total + getColumnWidth(column), 0);
   }, [columnWidths, selectedAdditionalFields]);
 
@@ -898,7 +874,7 @@ function OverviewPanel({
     setSaveDetailSuccess(false);
     setDetailTemplate(templates.find(t => t.id === row.template_id) ?? null);
     setDetailSubmission(row);
-    // Fetch full template (including question data) in background
+    
     if (row.template_id) {
       setLoadingTemplate(true);
       try {
@@ -926,6 +902,13 @@ function OverviewPanel({
           status: dialogStatus,
           standing_committee_comment: dialogStandingComment,
           board_comment: dialogBoardComment,
+          phone_number: detailSubmission.phone_number,
+          facebook_link: detailSubmission.facebook_link,
+          current_address: detailSubmission.current_address,
+          transportation: detailSubmission.transportation,
+          health_note: detailSubmission.health_note,
+          strengths_weaknesses: detailSubmission.strengths_weaknesses,
+          special_skills: detailSubmission.special_skills,
         }),
       });
       if (!res.ok) {
@@ -950,9 +933,7 @@ function OverviewPanel({
 
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleOpenFormsAnalytics = () => {
@@ -972,9 +953,11 @@ function OverviewPanel({
           <p className="text-sm text-slate-500 mt-1">Thống kê và tổng hợp dữ liệu</p>
         </div>
         <Button variant="outline" size="sm" onClick={onReload} disabled={loadingData} className="shrink-0 mt-1">
-          {loadingData
-            ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang tải…</>
-            : <><svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Reload</>}
+          {loadingData ? (
+            <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Đang tải…</>
+          ) : (
+            <><svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Reload</>
+          )}
         </Button>
       </div>
 
@@ -994,7 +977,6 @@ function OverviewPanel({
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
@@ -1009,7 +991,6 @@ function OverviewPanel({
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-5">
             <div className="flex items-center justify-between">
@@ -1029,43 +1010,28 @@ function OverviewPanel({
       {/* Visual navigation */}
       <h2 className="text-base font-semibold text-slate-700 mb-3">Tính năng</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <button
-          onClick={handleOpenFormsAnalytics}
-          className="p-4 bg-white rounded-xl border hover:border-blue-200 hover:shadow-sm transition-all text-left group"
-        >
+        <button onClick={handleOpenFormsAnalytics} className="p-4 bg-white rounded-xl border hover:border-blue-200 hover:shadow-sm transition-all text-left group">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-blue-50 text-blue-600">
             <FileText className="w-5 h-5" />
           </div>
           <p className="text-sm font-medium text-slate-700 group-hover:text-blue-700">Đơn đăng ký</p>
           <p className="text-xs text-slate-400 mt-0.5">Hiển thị danh sách và phân tích đơn</p>
         </button>
-
-        <button
-          onClick={() => scrollToSection('candidate-stats-section')}
-          className="p-4 bg-white rounded-xl border hover:border-violet-200 hover:shadow-sm transition-all text-left group"
-        >
+        <button onClick={() => scrollToSection('candidate-stats-section')} className="p-4 bg-white rounded-xl border hover:border-violet-200 hover:shadow-sm transition-all text-left group">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-violet-50 text-violet-600">
             <Activity className="w-5 h-5" />
           </div>
           <p className="text-sm font-medium text-slate-700 group-hover:text-violet-700">Dữ liệu ứng viên</p>
           <p className="text-xs text-slate-400 mt-0.5">Theo ban, giới tính và lớp</p>
         </button>
-
-        <button
-          onClick={() => scrollToSection('recruitment-results-section')}
-          className="p-4 bg-white rounded-xl border hover:border-emerald-200 hover:shadow-sm transition-all text-left group"
-        >
+        <button onClick={() => scrollToSection('recruitment-results-section')} className="p-4 bg-white rounded-xl border hover:border-emerald-200 hover:shadow-sm transition-all text-left group">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <p className="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Kết quả tuyển</p>
           <p className="text-xs text-slate-400 mt-0.5">Thống kê trạng thái ứng viên</p>
         </button>
-
-        <button
-          onClick={() => scrollToSection('accepted-candidates-section')}
-          className="p-4 bg-white rounded-xl border hover:border-amber-200 hover:shadow-sm transition-all text-left group"
-        >
+        <button onClick={() => scrollToSection('accepted-candidates-section')} className="p-4 bg-white rounded-xl border hover:border-amber-200 hover:shadow-sm transition-all text-left group">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-amber-50 text-amber-600">
             <ClipboardList className="w-5 h-5" />
           </div>
@@ -1075,555 +1041,341 @@ function OverviewPanel({
       </div>
 
       {showFormsAnalytics && (
-      <div id="forms-analytics-section" className="mt-8">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <h2 className="text-base font-semibold text-slate-700">Dữ liệu đơn đăng ký</h2>
-          </div>
-        </div>
-
-        <Card className="mb-4">
-          <CardContent className="pt-5">
-            <div className="grid md:grid-cols-[1.2fr_1fr_1fr] gap-3">
-              <div>
-                <label className="text-xs text-slate-500">Đơn đăng ký</label>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="all">Chọn form...</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>{template.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-500">Sắp xếp theo</label>
-                <select
-                  value={tableSortBy}
-                  onChange={(e) => setTableSortBy(e.target.value as 'submitted_at' | 'full_name' | 'department' | 'class_name' | 'student_id' | 'email' | 'status')}
-                  className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="submitted_at">Thời gian</option>
-                  <option value="full_name">Tên</option>
-                  <option value="department">Ban</option>
-                  <option value="class_name">Lớp</option>
-                  <option value="student_id">MSSV</option>
-                  <option value="email">Email</option>
-                  <option value="status">Trạng thái</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-500">Thứ tự</label>
-                <select
-                  value={tableSortOrder}
-                  onChange={(e) => setTableSortOrder(e.target.value as 'asc' | 'desc')}
-                  className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="desc">Giảm dần</option>
-                  <option value="asc">Tăng dần</option>
-                </select>
-              </div>
-            </div>
-
-            {selectedTemplate && (
-              <div className="mt-3 text-xs text-slate-500">
-                Đơn đăng ký đã chọn: <span className="font-medium text-slate-700">{selectedTemplate.name}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {selectedTemplateId === 'all' && (
+        <div id="forms-analytics-section" className="mt-8">
+          <h2 className="text-base font-semibold text-slate-700 mb-3">Dữ liệu đơn đăng ký</h2>
           <Card className="mb-4">
-            <CardContent className="py-10 text-center text-slate-500 italic">
-              Chọn một Đơn đăng ký để hiển thị <span className="font-medium text-slate-700">Danh sách câu trả lời</span>.
+            <CardContent className="pt-5">
+              <div className="grid md:grid-cols-[1.2fr_1fr_1fr] gap-3">
+                <div>
+                  <label className="text-xs text-slate-500">Đơn đăng ký</label>
+                  <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="all">Chọn form...</option>
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>{template.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500">Sắp xếp theo</label>
+                  <select value={tableSortBy} onChange={(e) => setTableSortBy(e.target.value as any)} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="submitted_at">Thời gian</option>
+                    <option value="full_name">Tên</option>
+                    <option value="department">Ban</option>
+                    <option value="class_name">Lớp</option>
+                    <option value="student_id">MSSV</option>
+                    <option value="email">Email</option>
+                    <option value="status">Trạng thái</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500">Thứ tự</label>
+                  <select value={tableSortOrder} onChange={(e) => setTableSortOrder(e.target.value as 'asc' | 'desc')} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="desc">Giảm dần</option>
+                    <option value="asc">Tăng dần</option>
+                  </select>
+                </div>
+              </div>
+              {selectedTemplate && (
+                <div className="mt-3 text-xs text-slate-500">
+                  Đơn đăng ký đã chọn: <span className="font-medium text-slate-700">{selectedTemplate.name}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
-        )}
 
-        {selectedTemplateId !== 'all' && (
-          <>
-        <Card className="mt-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Danh sách câu trả lời</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4 grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
-              <Input
-                value={tableSearch}
-                onChange={(e) => setTableSearch(e.target.value)}
-                placeholder="Tìm theo tên, ban, lớp, MSSV, email..."
-              />
+          {selectedTemplateId === 'all' ? (
+            <Card className="mb-4">
+              <CardContent className="py-10 text-center text-slate-500 italic">
+                Chọn một Đơn đăng ký để hiển thị <span className="font-medium text-slate-700">Danh sách câu trả lời</span>.
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="mt-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Danh sách câu trả lời</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4 grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <Input value={tableSearch} onChange={(e) => setTableSearch(e.target.value)} placeholder="Tìm theo tên, ban, lớp, MSSV, email..." />
+                  <select value={tableDepartmentFilter} onChange={(e) => setTableDepartmentFilter(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="all">Ban</option>
+                    {departmentFilterOptions.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select value={tableClassFilter} onChange={(e) => setTableClassFilter(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="all">Lớp</option>
+                    {classFilterOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select value={tableStatusFilter} onChange={(e) => setTableStatusFilter(e.target.value as any)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="all">Trạng thái</option>
+                    {(Object.entries(CANDIDATE_STATUS) as [CandidateStatus, typeof CANDIDATE_STATUS[CandidateStatus]][]).map(([key, config]) => (
+                      <option key={key} value={key}>{config.label}</option>
+                    ))}
+                  </select>
+                  <Button variant="outline" onClick={() => { setTableSearch(''); setTableDepartmentFilter('all'); setTableClassFilter('all'); setTableStatusFilter('all'); }}>Xóa</Button>
+                </div>
 
-              <select
-                value={tableDepartmentFilter}
-                onChange={(e) => setTableDepartmentFilter(e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="all">Ban</option>
-                {departmentFilterOptions.map((department) => (
-                  <option key={department} value={department}>{department}</option>
-                ))}
-              </select>
-
-              <select
-                value={tableClassFilter}
-                onChange={(e) => setTableClassFilter(e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="all">Lớp</option>
-                {classFilterOptions.map((className) => (
-                  <option key={className} value={className}>{className}</option>
-                ))}
-              </select>
-
-              <select
-                value={tableStatusFilter}
-                onChange={(e) => setTableStatusFilter(e.target.value as 'all' | CandidateStatus)}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="all">Trạng thái</option>
-                {(Object.entries(CANDIDATE_STATUS) as [CandidateStatus, typeof CANDIDATE_STATUS[CandidateStatus]][]).map(([key, config]) => (
-                  <option key={key} value={key}>{config.label}</option>
-                ))}
-              </select>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setTableSearch('');
-                  setTableDepartmentFilter('all');
-                  setTableClassFilter('all');
-                  setTableStatusFilter('all');
-                }}
-              >
-                Xóa
-              </Button>
-            </div>
-          
-            {/* Additional Fields Selector */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              {['student_id', 'email', 'birth_date', 'gender', 'submitted_at'].map((field) => {
-                const label = {
-                  'student_id': 'MSSV',
-                  'email': 'Email',
-                  'birth_date': 'Ngày sinh',
-                  'gender': 'Giới tính',
-                  'submitted_at': 'Thời gian nộp',
-                }[field] || field;
-                const isSelected = selectedAdditionalFields.includes(field);
-                return (
-                  <button
-                    key={field}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAdditionalFields(prev =>
-                        isSelected
-                          ? prev.filter(f => f !== field)
-                          : [...prev, field]
-                      );
-                    }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all border ${
-                      isSelected
-                        ? 'bg-blue-100 text-blue-700 border-blue-300'
-                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Resizable Table */}
-            <div className="relative overflow-x-auto rounded-lg border bg-white">
-              <table className="min-w-full table-fixed border-separate border-spacing-0" style={{ width: `${tableWidth}px` }}>
-                <colgroup>
-                  <col style={{ width: `${getColumnWidth('submit_index')}px` }} />
-                  <col style={{ width: `${getColumnWidth('full_name')}px` }} />
-                  <col style={{ width: `${getColumnWidth('class_name')}px` }} />
-                  <col style={{ width: `${getColumnWidth('department')}px` }} />
-                  <col style={{ width: `${getColumnWidth('status')}px` }} />
-                  {selectedAdditionalFields.includes('student_id') && <col style={{ width: `${getColumnWidth('student_id')}px` }} />}
-                  {selectedAdditionalFields.includes('email') && <col style={{ width: `${getColumnWidth('email')}px` }} />}
-                  {selectedAdditionalFields.includes('birth_date') && <col style={{ width: `${getColumnWidth('birth_date')}px` }} />}
-                  {selectedAdditionalFields.includes('gender') && <col style={{ width: `${getColumnWidth('gender')}px` }} />}
-                  {selectedAdditionalFields.includes('submitted_at') && <col style={{ width: `${getColumnWidth('submitted_at')}px` }} />}
-                  <col style={{ width: `${getColumnWidth('details')}px` }} />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-slate-200 text-center text-xl font-semibold text-slate-500 uppercase tracking-wider">
-                    <ResizableTableHeaderCell
-                      column="submit_index"
-                      label="#"
-                      width={getColumnWidth('submit_index')}
-                      onResize={(delta) => handleColumnResize('submit_index', delta)}
-                    />
-                    <ResizableTableHeaderCell
-                      column="full_name"
-                      label="Tên"
-                      width={getColumnWidth('full_name')}
-                      onResize={(delta) => handleColumnResize('full_name', delta)}
-                      onSort={() => onHeaderSort('full_name')}
-                      isSorted={tableSortBy === 'full_name'}
-                      sortOrder={tableSortOrder}
-                    />
-                    <ResizableTableHeaderCell
-                      column="class_name"
-                      label="Lớp"
-                      width={getColumnWidth('class_name')}
-                      onResize={(delta) => handleColumnResize('class_name', delta)}
-                      onSort={() => onHeaderSort('class_name')}
-                      isSorted={tableSortBy === 'class_name'}
-                      sortOrder={tableSortOrder}
-                    />
-                    <ResizableTableHeaderCell
-                      column="department"
-                      label="Ban"
-                      width={getColumnWidth('department')}
-                      onResize={(delta) => handleColumnResize('department', delta)}
-                      onSort={() => onHeaderSort('department')}
-                      isSorted={tableSortBy === 'department'}
-                      sortOrder={tableSortOrder}
-                    />
-                    <ResizableTableHeaderCell
-                      column="status"
-                      label="Trạng thái"
-                      width={getColumnWidth('status')}
-                      onResize={(delta) => handleColumnResize('status', delta)}
-                      onSort={() => onHeaderSort('status')}
-                      isSorted={tableSortBy === 'status'}
-                      sortOrder={tableSortOrder}
-                    />
-                    {selectedAdditionalFields.includes('student_id') && (
-                      <ResizableTableHeaderCell
-                        column="student_id"
-                        label="MSSV"
-                        width={getColumnWidth('student_id')}
-                        onResize={(delta) => handleColumnResize('student_id', delta)}
-                      />
-                    )}
-                    {selectedAdditionalFields.includes('email') && (
-                      <ResizableTableHeaderCell
-                        column="email"
-                        label="Email"
-                        width={getColumnWidth('email')}
-                        onResize={(delta) => handleColumnResize('email', delta)}
-                      />
-                    )}
-                    {selectedAdditionalFields.includes('birth_date') && (
-                      <ResizableTableHeaderCell
-                        column="birth_date"
-                        label="Ngày sinh"
-                        width={getColumnWidth('birth_date')}
-                        onResize={(delta) => handleColumnResize('birth_date', delta)}
-                      />
-                    )}
-                    {selectedAdditionalFields.includes('gender') && (
-                      <ResizableTableHeaderCell
-                        column="gender"
-                        label="Giới tính"
-                        width={getColumnWidth('gender')}
-                        onResize={(delta) => handleColumnResize('gender', delta)}
-                      />
-                    )}
-                    {selectedAdditionalFields.includes('submitted_at') && (
-                      <ResizableTableHeaderCell
-                        column="submitted_at"
-                        label="Thời gian nộp"
-                        width={getColumnWidth('submitted_at')}
-                        onResize={(delta) => handleColumnResize('submitted_at', delta)}
-                      />
-                    )}
-                    <ResizableTableHeaderCell
-                      column="details"
-                      label=""
-                      width={getColumnWidth('details')}
-                      onResize={(delta) => handleColumnResize('details', delta)}
-                      className="sticky right-0 z-20 border-l border-blue-500/30 shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.5)]"
-                    />
-                  </tr>
-                </thead>
-                <tbody>
-                  {excelRows.length > 0 ? excelRows.map((row, idx) => {
-                    const effectiveStatus = getEffectiveStatus(row);
-                    const cfg = CANDIDATE_STATUS[effectiveStatus];
+                {/* Additional Fields */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {['student_id', 'email', 'birth_date', 'gender', 'submitted_at', 'phone_number', 'facebook_link', 'current_address', 'transportation', 'health_note', 'strengths_weaknesses', 'special_skills'].map((field) => {
+                    const labelMap: Record<string, string> = {
+                      student_id: 'MSSV', email: 'Email', birth_date: 'Ngày sinh', gender: 'Giới tính', submitted_at: 'Thời gian nộp',
+                      phone_number: 'SĐT', facebook_link: 'Facebook', current_address: 'Địa chỉ', transportation: 'Phương tiện',
+                      health_note: 'Sức khỏe', strengths_weaknesses: 'Điểm mạnh/yếu', special_skills: 'Kỹ năng đặc biệt'
+                    };
+                    const isSelected = selectedAdditionalFields.includes(field);
                     return (
-                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-center">
-                        <td style={{ width: `${getColumnWidth('submit_index')}px`, minWidth: `${getColumnWidth('submit_index')}px`, maxWidth: `${getColumnWidth('submit_index')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-xs text-slate-500 whitespace-nowrap">
-                          {idx + 1}
-                        </td>
-                        <td style={{ width: `${getColumnWidth('full_name')}px`, minWidth: `${getColumnWidth('full_name')}px`, maxWidth: `${getColumnWidth('full_name')}px` }} className="border-b border-slate-100 px-2 py-3 text-sm font-medium text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">
-                          {row.full_name || 'Unknown'}
-                        </td>
-                        <td style={{ width: `${getColumnWidth('class_name')}px`, minWidth: `${getColumnWidth('class_name')}px`, maxWidth: `${getColumnWidth('class_name')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">
-                          {row.class_name || 'N/A'}
-                        </td>
-                        <td style={{ width: `${getColumnWidth('department')}px`, minWidth: `${getColumnWidth('department')}px`, maxWidth: `${getColumnWidth('department')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">
-                          {row.department || 'Unknown'}
-                        </td>
-                        <td style={{ width: `${getColumnWidth('status')}px`, minWidth: `${getColumnWidth('status')}px`, maxWidth: `${getColumnWidth('status')}px` }} className="border-b border-slate-100 px-2 py-3 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.circleColor}`} />
-                            <span className={`text-xs ${cfg.textColor}`}>{cfg.label}</span>
-                          </div>
-                        </td>
-                        {selectedAdditionalFields.includes('student_id') && (
-                          <td style={{ width: `${getColumnWidth('student_id')}px`, minWidth: `${getColumnWidth('student_id')}px`, maxWidth: `${getColumnWidth('student_id')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {row.student_id || 'N/A'}
-                          </td>
-                        )}
-                        {selectedAdditionalFields.includes('email') && (
-                          <td style={{ width: `${getColumnWidth('email')}px`, minWidth: `${getColumnWidth('email')}px`, maxWidth: `${getColumnWidth('email')}px` }} className="border-b border-slate-100 px-2 py-3 text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {row.email || 'N/A'}
-                          </td>
-                        )}
-                        {selectedAdditionalFields.includes('birth_date') && (
-                          <td style={{ width: `${getColumnWidth('birth_date')}px`, minWidth: `${getColumnWidth('birth_date')}px`, maxWidth: `${getColumnWidth('birth_date')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {row.birth_date || 'N/A'}
-                          </td>
-                        )}
-                        {selectedAdditionalFields.includes('gender') && (
-                          <td style={{ width: `${getColumnWidth('gender')}px`, minWidth: `${getColumnWidth('gender')}px`, maxWidth: `${getColumnWidth('gender')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {row.gender || 'N/A'}
-                          </td>
-                        )}
-                        {selectedAdditionalFields.includes('submitted_at') && (
-                          <td style={{ width: `${getColumnWidth('submitted_at')}px`, minWidth: `${getColumnWidth('submitted_at')}px`, maxWidth: `${getColumnWidth('submitted_at')}px` }} className="border-b border-slate-100 px-2 py-3 text-center text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {formatDateTime(row.submitted_at)}
-                          </td>
-                        )}
-                        <td style={{ width: `${getColumnWidth('details')}px`, minWidth: `${getColumnWidth('details')}px`, maxWidth: `${getColumnWidth('details')}px` }} className="sticky right-0 z-10 border-b border-l border-slate-100 bg-white px-2 py-3 text-center shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.35)]">
-                          <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Chi tiết</Button>
-                        </td>
-                      </tr>
+                      <button key={field} type="button" onClick={() => setSelectedAdditionalFields(prev => isSelected ? prev.filter(f => f !== field) : [...prev, field])} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all border ${isSelected ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white text-slate-600 border-slate-300'}`}>
+                        {labelMap[field] || field}
+                      </button>
                     );
-                  }) : (
-                    <tr>
-                      <td colSpan={6 + selectedAdditionalFields.length} className="text-center text-slate-500 py-8">
-                        Không có dữ liệu phù hợp
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Candidate Data Statistics ─────────────────────────────── */}
-        <Card className="mt-6">
-          <div id="candidate-stats-section" />
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Thống kê dữ liệu ứng viên</CardTitle>
-            <CardDescription className="text-xs">Phân tích đơn đăng ký theo ban, giới tính và lớp</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Bar: registrations by department */}
-              <div>
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Số đăng ký theo ban</p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={departmentStats} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="department" tick={false} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <RechartsTooltip formatter={(value) => [value, 'Số lượng']} />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {departmentStats.map((_, i) => (
-                        <Cell key={`dept-${i}`} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
-                  {departmentStats.map((entry, i) => (
-                    <div key={entry.department} className="flex items-center gap-1">
-                      <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: DEPT_COLORS[i % DEPT_COLORS.length] }} />
-                      <span className="text-xs text-slate-600">{entry.department}</span>
-                    </div>
-                  ))}
+                  })}
                 </div>
-              </div>
 
-              {/* Pie: gender */}
-              <div>
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Giới tính ứng viên</p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={genderStats}
-                      cx="50%"
-                      cy="45%"
-                      outerRadius={72}
-                      dataKey="value"
-                      nameKey="name"
-                    >
-                      {genderStats.map((_, i) => (
-                        <Cell key={`gender-${i}`} fill={GENDER_PIE_COLORS[i % GENDER_PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Bar: class distribution */}
-              <div>
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Số đăng ký theo lớp</p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={classStats.slice(0, 6)} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="className" tick={false} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <RechartsTooltip formatter={(value) => [value, 'Số lượng']} />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {classStats.slice(0, 6).map((_, i) => (
-                        <Cell key={`class-${i}`} fill={BAR_PALETTE[i % BAR_PALETTE.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
-                  {classStats.slice(0, 6).map((entry, i) => (
-                    <div key={entry.className} className="flex items-center gap-1">
-                      <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: BAR_PALETTE[i % BAR_PALETTE.length] }} />
-                      <span className="text-xs text-slate-600">{entry.className}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Application Results Statistics ───────────────────────── */}
-        <Card className="mt-6">
-          <div id="recruitment-results-section" />
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Thống kê kết quả tuyển Cộng tác viên</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-6">
-              {/* 1/3 — Pie: applicant status */}
-              <div>
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Trạng thái ứng viên</p>
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      data={statusStats.filter(s => s.value > 0)}
-                      cx="50%"
-                      cy="42%"
-                      outerRadius={78}
-                      dataKey="value"
-                      nameKey="name"
-                    >
-                      {statusStats.filter(s => s.value > 0).map((entry) => (
-                        <Cell key={`status-${entry.key}`} fill={STATUS_PIE_COLORS[entry.key as CandidateStatus]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* 2/3 — Bar: accepted per department */}
-              <div>
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Số lượng CTV trúng tuyển theo ban</p>
-                {acceptedByDepartment.length === 0 ? (
-                  <div className="flex h-[260px] items-center justify-center text-sm text-slate-400 italic">
-                    Chưa có dữ liệu
-                  </div>
-                ) : (
-                  <>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={acceptedByDepartment} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="department" tick={false} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                        <RechartsTooltip formatter={(value) => [value, 'Đồng ý']} />
-                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                          {acceptedByDepartment.map((_, i) => (
-                            <Cell key={`acc-${i}`} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
-                      {acceptedByDepartment.map((entry, i) => (
-                        <div key={entry.department} className="flex items-center gap-1">
-                          <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: DEPT_COLORS[i % DEPT_COLORS.length] }} />
-                          <span className="text-xs text-slate-600">{entry.department}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Accepted Candidates by Department ────────────────────── */}
-        <Card className="mt-6 mb-2">
-          <div id="accepted-candidates-section" />
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Danh sách Tân cộng tác viên</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {acceptedCandidatesByDept.length === 0 ? (
-              <p className="text-sm text-slate-400 italic py-4 text-center">Chưa có dữ liệu.</p>
-            ) : (
-              <div className="space-y-6">
-                {acceptedCandidatesByDept.map(({ dept, candidates }) => (
-                  <div key={dept}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
-                      <h3 className="font-semibold text-sm text-blue-500">Ban {dept}</h3>
-                      <Badge className="bg-green-100 text-green-700 border border-green-200 hover:bg-green-100 text-xs">
-                        {candidates.length} bạn
-                      </Badge>
-                    </div>
-                    <div className="overflow-x-auto rounded-lg border">
-                      <table className="min-w-full text-sm">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">#</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Họ tên</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">MSSV</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Lớp</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
+                {/* Table */}
+                <div className="relative overflow-x-auto rounded-lg border bg-white">
+                  <table className="min-w-full table-fixed border-separate border-spacing-0" style={{ width: `${tableWidth}px` }}>
+                    <colgroup>
+                      <col style={{ width: `${getColumnWidth('submit_index')}px` }} />
+                      <col style={{ width: `${getColumnWidth('full_name')}px` }} />
+                      <col style={{ width: `${getColumnWidth('class_name')}px` }} />
+                      <col style={{ width: `${getColumnWidth('department')}px` }} />
+                      <col style={{ width: `${getColumnWidth('status')}px` }} />
+                      {selectedAdditionalFields.map(f => <col key={f} style={{ width: `${getColumnWidth(f)}px` }} />)}
+                      <col style={{ width: `${getColumnWidth('details')}px` }} />
+                    </colgroup>
+                    <thead>
+                      <tr className="border-b border-slate-200 text-center text-xl font-semibold text-slate-500 uppercase tracking-wider">
+                        <ResizableTableHeaderCell column="submit_index" label="#" width={getColumnWidth('submit_index')} onResize={(d) => handleColumnResize('submit_index', d)} />
+                        <ResizableTableHeaderCell column="full_name" label="Tên" width={getColumnWidth('full_name')} onResize={(d) => handleColumnResize('full_name', d)} onSort={() => onHeaderSort('full_name')} isSorted={tableSortBy === 'full_name'} sortOrder={tableSortOrder} />
+                        <ResizableTableHeaderCell column="class_name" label="Lớp" width={getColumnWidth('class_name')} onResize={(d) => handleColumnResize('class_name', d)} onSort={() => onHeaderSort('class_name')} isSorted={tableSortBy === 'class_name'} sortOrder={tableSortOrder} />
+                        <ResizableTableHeaderCell column="department" label="Ban" width={getColumnWidth('department')} onResize={(d) => handleColumnResize('department', d)} onSort={() => onHeaderSort('department')} isSorted={tableSortBy === 'department'} sortOrder={tableSortOrder} />
+                        <ResizableTableHeaderCell column="status" label="Trạng thái" width={getColumnWidth('status')} onResize={(d) => handleColumnResize('status', d)} onSort={() => onHeaderSort('status')} isSorted={tableSortBy === 'status'} sortOrder={tableSortOrder} />
+                        {selectedAdditionalFields.map(f => <ResizableTableHeaderCell key={f} column={f} label={f === 'student_id' ? 'MSSV' : f === 'birth_date' ? 'Ngày sinh' : f === 'gender' ? 'Giới tính' : f === 'submitted_at' ? 'Thời gian nộp' : f} width={getColumnWidth(f)} onResize={(d) => handleColumnResize(f, d)} />)}
+                        <ResizableTableHeaderCell column="details" label="" width={getColumnWidth('details')} onResize={(d) => handleColumnResize('details', d)} className="sticky right-0 z-20 border-l border-blue-500/30 shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.5)]" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {excelRows.length > 0 ? excelRows.map((row, idx) => {
+                        const cfg = CANDIDATE_STATUS[getEffectiveStatus(row)];
+                        return (
+                          <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors text-center">
+                            <td className="px-2 py-3 text-xs text-slate-500 whitespace-nowrap">{idx + 1}</td>
+                            <td className="px-2 py-3 text-sm font-medium text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">{row.full_name || 'Unknown'}</td>
+                            <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.class_name || 'N/A'}</td>
+                            <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.department || 'Unknown'}</td>
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.circleColor}`} />
+                                <span className={`text-xs ${cfg.textColor}`}>{cfg.label}</span>
+                              </div>
+                            </td>
+                            {selectedAdditionalFields.includes('student_id') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.student_id || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('email') && <td className="px-2 py-3 text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{row.email || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('birth_date') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.birth_date || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('gender') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.gender || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('phone_number') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.phone_number || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('facebook_link') && (
+                              <td className="px-2 py-3 text-sm text-blue-600 underline whitespace-nowrap overflow-hidden text-ellipsis">
+                                {row.facebook_link ? <a href={row.facebook_link} target="_blank" rel="noreferrer">Link</a> : 'N/A'}
+                              </td>
+                            )}
+                            {selectedAdditionalFields.includes('current_address') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.current_address || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('transportation') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.transportation || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('health_note') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.health_note || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('strengths_weaknesses') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.strengths_weaknesses || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('special_skills') && <td className="px-2 py-3 text-sm text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis">{row.special_skills || 'N/A'}</td>}
+                            {selectedAdditionalFields.includes('submitted_at') && <td className="px-2 py-3 text-xs text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">{formatDateTime(row.submitted_at)}</td>}
+                            <td className="sticky right-0 z-10 border-b border-l border-slate-100 bg-white px-2 py-3 text-center shadow-[-10px_0_14px_-12px_rgba(15,23,42,0.35)]">
+                              <Button size="sm" variant="outline" onClick={() => openDetail(row)}>Chi tiết</Button>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {candidates.map((c, i) => (
-                            <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                              <td className="px-3 py-2 text-slate-500 text-xs">{i + 1}</td>
-                              <td className="px-3 py-2 font-medium text-slate-800">{c.full_name || 'N/A'}</td>
-                              <td className="px-3 py-2 text-slate-600">{c.student_id || 'N/A'}</td>
-                              <td className="px-3 py-2 text-slate-600">{c.class_name || 'N/A'}</td>
-                              <td className="px-3 py-2 text-slate-600">{c.email || 'N/A'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        );
+                      }) : (
+                        <tr>
+                          <td colSpan={6 + selectedAdditionalFields.length} className="text-center text-slate-500 py-8">Không có dữ liệu phù hợp</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Charts section */}
+      <Card className="mt-6">
+        <div id="candidate-stats-section" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Thống kê dữ liệu ứng viên</CardTitle>
+          <CardDescription className="text-xs">Phân tích đơn đăng ký theo ban, giới tính và lớp</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Số đăng ký theo ban</p>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={departmentStats} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="department" tick={false} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <RechartsTooltip formatter={(val) => [val, 'Số lượng']} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {departmentStats.map((_, i) => <Cell key={`dept-${i}`} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+                {departmentStats.map((entry, i) => (
+                  <div key={entry.department} className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: DEPT_COLORS[i % DEPT_COLORS.length] }} />
+                    <span className="text-xs text-slate-600">{entry.department}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-          </>
-        )}
-      </div>
-      )}
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Giới tính ứng viên</p>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={genderStats} cx="50%" cy="45%" outerRadius={72} dataKey="value" nameKey="name">
+                    {genderStats.map((_, i) => <Cell key={`gender-${i}`} fill={GENDER_PIE_COLORS[i % GENDER_PIE_COLORS.length]} />)}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Số đăng ký theo lớp</p>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={classStats.slice(0, 6)} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="className" tick={false} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <RechartsTooltip formatter={(val) => [val, 'Số lượng']} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {classStats.slice(0, 6).map((_, i) => <Cell key={`class-${i}`} fill={BAR_PALETTE[i % BAR_PALETTE.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+                {classStats.slice(0, 6).map((entry, i) => (
+                  <div key={entry.className} className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: BAR_PALETTE[i % BAR_PALETTE.length] }} />
+                    <span className="text-xs text-slate-600">{entry.className}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <div id="recruitment-results-section" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Thống kê kết quả tuyển Cộng tác viên</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-6">
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Trạng thái ứng viên</p>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={statusStats.filter(s => s.value > 0)} cx="50%" cy="42%" outerRadius={78} dataKey="value" nameKey="name">
+                    {statusStats.filter(s => s.value > 0).map((entry) => (
+                      <Cell key={`status-${entry.key}`} fill={STATUS_PIE_COLORS[entry.key as CandidateStatus]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3 text-center">Số lượng CTV trúng tuyển theo ban</p>
+              {acceptedByDepartment.length === 0 ? (
+                <div className="flex h-[260px] items-center justify-center text-sm text-slate-400 italic">Chưa có dữ liệu</div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={acceptedByDepartment} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="department" tick={false} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                      <RechartsTooltip formatter={(val) => [val, 'Đồng ý']} />
+                      <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                        {acceptedByDepartment.map((_, i) => <Cell key={`acc-${i}`} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+                    {acceptedByDepartment.map((entry, i) => (
+                      <div key={entry.department} className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: DEPT_COLORS[i % DEPT_COLORS.length] }} />
+                        <span className="text-xs text-slate-600">{entry.department}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 mb-2">
+        <div id="accepted-candidates-section" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Danh sách Tân cộng tác viên</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {acceptedCandidatesByDept.length === 0 ? (
+            <p className="text-sm text-slate-400 italic py-4 text-center">Chưa có dữ liệu.</p>
+          ) : (
+            <div className="space-y-6">
+              {acceptedCandidatesByDept.map(({ dept, candidates }) => (
+                <div key={dept}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" />
+                    <h3 className="font-semibold text-sm text-blue-500">Ban {dept}</h3>
+                    <Badge className="bg-green-100 text-green-700 border border-green-200 hover:bg-green-100 text-xs">{candidates.length} bạn</Badge>
+                  </div>
+                  <div className="overflow-x-auto rounded-lg border">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">#</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Họ tên</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">MSSV</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Lớp</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {candidates.map((c, i) => (
+                          <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td className="px-3 py-2 text-slate-500 text-xs">{i + 1}</td>
+                            <td className="px-3 py-2 font-medium text-slate-800">{c.full_name || 'N/A'}</td>
+                            <td className="px-3 py-2 text-slate-600">{c.student_id || 'N/A'}</td>
+                            <td className="px-3 py-2 text-slate-600">{c.class_name || 'N/A'}</td>
+                            <td className="px-3 py-2 text-slate-600">{c.email || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={!!detailSubmission} onOpenChange={(open) => { if (!open) { setDetailSubmission(null); setDetailTemplate(null); } }}>
         <DialogContent className="inset-0 left-0 top-0 translate-x-0 translate-y-0 m-auto w-[calc(100%-2rem)] max-w-5xl h-fit max-h-[90vh] overflow-y-auto rounded-2xl border-slate-200 bg-white shadow-2xl">
@@ -1634,26 +1386,19 @@ function OverviewPanel({
               </div>
               <div>
                 <DialogTitle className="flex items-center gap-2 text-lg">
-                  Hồ Sơ Ứng Viên
-                  {loadingTemplate && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                  Hồ Sơ Ứng Viên {loadingTemplate && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
                 </DialogTitle>
-                <DialogDescription className="text-xs">
-                  Xem chi tiết hồ sơ, câu trả lời và đánh giá
-                </DialogDescription>
+                <DialogDescription className="text-xs">Xem chi tiết hồ sơ, câu trả lời và đánh giá</DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
+          {/* Bọc toàn bộ phần nội dung bên trong Dialog bằng điều kiện detailSubmission có tồn tại */}
           {detailSubmission && (
             <div className="space-y-5 pt-2">
-              {/* ── Profile header ── */}
               <div className="grid md:grid-cols-[140px_1fr] gap-5 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
                 <div>
-                  <img
-                    src={detailSubmission.photo_url || 'https://placehold.co/140x170?text=Photo'}
-                    alt={detailSubmission.full_name || 'Candidate'}
-                    className="w-full h-[170px] rounded-lg object-cover border-2 border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 shadow-md"
-                  />
+                  <img src={detailSubmission.photo_url || 'https://placehold.co/140x170?text=Photo'} alt={detailSubmission.full_name || 'Candidate'} className="w-full h-[170px] rounded-lg object-cover border-2 border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 shadow-md" />
                 </div>
                 <div className="space-y-3">
                   <div>
@@ -1683,6 +1428,35 @@ function OverviewPanel({
                       <p className="text-xs font-semibold text-slate-500 uppercase">Email</p>
                       <p className="text-slate-800 font-medium break-all text-xs">{detailSubmission.email || '—'}</p>
                     </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Số điện thoại</p>
+                      <p className="text-slate-800 font-medium">{detailSubmission.phone_number || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Facebook</p>
+                      {detailSubmission.facebook_link ? <a href={detailSubmission.facebook_link} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs">Xem link</a> : '—'}
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Nơi ở hiện tại</p>
+                      <p className="text-slate-800 font-medium text-sm">{detailSubmission.current_address || '—'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Phương tiện</p>
+                      <p className="text-slate-800 font-medium text-sm">{detailSubmission.transportation || '—'}</p>
+                    </div>
+                    {/* KHẮC PHỤC LỖI DÒNG 1642 TẠI ĐÂY: Sửa "< div" thành "<div" */}
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Tiền sử bệnh nền</p>
+                      <p className="text-slate-800 font-medium text-sm">{detailSubmission.health_note || '—'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Điểm mạnh & Điểm yếu</p>
+                      <p className="text-slate-800 font-medium text-sm">{detailSubmission.strengths_weaknesses || '—'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase">Khả năng đặc biệt</p>
+                      <p className="text-slate-800 font-medium text-sm">{detailSubmission.special_skills || '—'}</p>
+                    </div>
                     <div className="col-span-2">
                       <p className="text-xs font-semibold text-slate-500 uppercase">Nộp lúc</p>
                       <p className="text-slate-800 font-medium text-xs">{formatDateTime(detailSubmission.submitted_at)}</p>
@@ -1691,10 +1465,9 @@ function OverviewPanel({
                 </div>
               </div>
 
-              {/* ── Divider ── */}
               <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
 
-              {/* ── Answers ── */}
+              {/* Phần phân tích Câu hỏi động */}
               {(() => {
                 const tmpl = detailTemplate;
                 const personalQs: string[] = Array.isArray(tmpl?.optional_personal_questions)
@@ -1705,6 +1478,7 @@ function OverviewPanel({
                   : [];
                 const personalCount = personalQs.length || detailSubmission.optional_personal_answers?.length || 0;
                 const deptCount = deptQs.length || detailSubmission.dept_optional_answers?.length || 0;
+                
                 return (
                   <>
                     {personalCount > 0 && (
@@ -1718,18 +1492,14 @@ function OverviewPanel({
                         <CardContent className="space-y-3 pt-4">
                           {Array.from({ length: personalCount }).map((_, i) => (
                             <div key={`p-${i}`} className="text-sm border-l-4 border-blue-300 pl-4 py-2">
-                              {personalQs[i] && (
-                                <p className="text-xs font-semibold text-blue-700 mb-2">Câu {i + 1}: {personalQs[i]}</p>
-                              )}
-                              {!personalQs[i] && (
-                                <p className="text-xs text-slate-400 mb-2">Câu {i + 1}</p>
-                              )}
+                              <p className="text-xs font-semibold text-blue-700 mb-2">Câu {i + 1}: {personalQs[i] || `Câu hỏi ${i + 1}`}</p>
                               <p className="rounded-lg bg-white border border-blue-200 px-3 py-3 text-slate-700 leading-relaxed">{detailSubmission.optional_personal_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
                             </div>
                           ))}
                         </CardContent>
                       </Card>
                     )}
+
                     {deptCount > 0 && (
                       <Card className="border-purple-100 bg-purple-50/40 shadow-sm">
                         <CardHeader className="pb-3 bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-t-lg">
@@ -1741,12 +1511,7 @@ function OverviewPanel({
                         <CardContent className="space-y-3 pt-4">
                           {Array.from({ length: deptCount }).map((_, i) => (
                             <div key={`d-${i}`} className="text-sm border-l-4 border-purple-300 pl-4 py-2">
-                              {deptQs[i] && (
-                                <p className="text-xs font-semibold text-purple-700 mb-2">Câu {i + 1}: {deptQs[i]}</p>
-                              )}
-                              {!deptQs[i] && (
-                                <p className="text-xs text-slate-400 mb-2">Câu {i + 1}</p>
-                              )}
+                              <p className="text-xs font-semibold text-purple-700 mb-2">Câu {i + 1}: {deptQs[i] || `Câu hỏi ${i + 1}`}</p>
                               <p className="rounded-lg bg-white border border-purple-200 px-3 py-3 text-slate-700 leading-relaxed">{detailSubmission.dept_optional_answers?.[i] || <span className="text-slate-400 italic">Chưa trả lời</span>}</p>
                             </div>
                           ))}
@@ -1757,7 +1522,7 @@ function OverviewPanel({
                 );
               })()}
 
-              {/* ── Comments Section ── */}
+              {/* Comments Section */}
               <div className="grid md:grid-cols-2 gap-4">
                 <Card className="border-green-100 bg-green-50/40 shadow-sm">
                   <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-green-100/50 rounded-t-lg">
@@ -1767,13 +1532,7 @@ function OverviewPanel({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <Textarea
-                      value={dialogStandingComment}
-                      onChange={(e) => setDialogStandingComment(e.target.value)}
-                      placeholder="Nhập nhận xét sau khi phỏng vấn..."
-                      rows={3}
-                      className="rounded-lg border-green-200 bg-white focus:border-green-400 focus:ring-green-200"
-                    />
+                    <Textarea value={dialogStandingComment} onChange={(e) => setDialogStandingComment(e.target.value)} placeholder="Nhập nhận xét sau khi phỏng vấn..." rows={3} className="rounded-lg border-green-200 bg-white focus:border-green-400 focus:ring-green-200" />
                   </CardContent>
                 </Card>
 
@@ -1785,18 +1544,12 @@ function OverviewPanel({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <Textarea
-                      value={dialogBoardComment}
-                      onChange={(e) => setDialogBoardComment(e.target.value)}
-                      placeholder="Nhập nhận xét sau khi phỏng vấn..."
-                      rows={3}
-                      className="rounded-lg border-amber-200 bg-white focus:border-amber-400 focus:ring-amber-200"
-                    />
+                    <Textarea value={dialogBoardComment} onChange={(e) => setDialogBoardComment(e.target.value)} placeholder="Nhập nhận xét sau khi phỏng vấn..." rows={3} className="rounded-lg border-amber-200 bg-white focus:border-amber-400 focus:ring-amber-200" />
                   </CardContent>
                 </Card>
               </div>
 
-              {/* ── Status picker ── */}
+              {/* Status picker */}
               <Card className="border-slate-100 shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold text-slate-900">Trạng thái ứng viên</CardTitle>
@@ -1804,16 +1557,7 @@ function OverviewPanel({
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {(Object.entries(CANDIDATE_STATUS) as [CandidateStatus, typeof CANDIDATE_STATUS[CandidateStatus]][]).map(([key, cfg]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setDialogStatus(key)}
-                        className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 text-xs font-semibold transition-all duration-200 ${
-                          dialogStatus === key
-                            ? `${cfg.btnActive} ring-2 ring-offset-2`
-                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
+                      <button key={key} type="button" onClick={() => setDialogStatus(key)} className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 text-xs font-semibold transition-all duration-200 ${dialogStatus === key ? `${cfg.btnActive} ring-2 ring-offset-2` : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100'}`}>
                         <span className={`w-3 h-3 rounded-full ${cfg.circleColor}`} />
                         {cfg.label}
                       </button>
@@ -1822,7 +1566,7 @@ function OverviewPanel({
                 </CardContent>
               </Card>
 
-              {/* ── Alerts ── */}
+              {/* Alerts */}
               {saveDetailError && (
                 <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 rounded-lg text-sm text-red-700 flex items-center gap-2">
                   <div className="w-2 h-2 bg-red-500 rounded-full mt-0.5" />
@@ -1836,31 +1580,11 @@ function OverviewPanel({
                 </div>
               )}
 
-              {/* ── Action ── */}
+              {/* Actions footer */}
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setDetailSubmission(null);
-                    setDetailTemplate(null);
-                  }}
-                  className="rounded-lg"
-                >
-                  Đóng
-                </Button>
-                <Button
-                  onClick={saveDetailChanges}
-                  disabled={savingDetail}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
-                >
-                  {savingDetail ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Đang lưu…
-                    </>
-                  ) : (
-                    'Lưu thay đổi'
-                  )}
+                <Button variant="outline" onClick={() => { setDetailSubmission(null); setDetailTemplate(null); }} className="rounded-lg">Đóng</Button>
+                <Button onClick={saveDetailChanges} disabled={savingDetail} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all">
+                  {savingDetail ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang lưu…</> : 'Lưu thay đổi'}
                 </Button>
               </div>
             </div>

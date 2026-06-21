@@ -4,7 +4,7 @@ import { assertAdminRequest } from "@/lib/adminAuth";
 import { serializeError } from "@/lib/utils";
 
 const SUBMISSION_SELECT =
-  "id, template_id, submitted_at, full_name, birth_date, class_name, student_id, email, gender, department, photo_url, optional_personal_answers, dept_optional_answers, status, standing_committee_comment, board_comment";
+  "id, template_id, submitted_at, full_name, birth_date, class_name, student_id, email, gender, department, photo_url, optional_personal_answers, dept_optional_answers, status, standing_committee_comment, board_comment, phone_number, facebook_link, current_address, transportation, health_note, strengths_weaknesses, special_skills";
 const BATCH_SIZE = 1000;
 
 async function fetchAllApplicationSubmissions() {
