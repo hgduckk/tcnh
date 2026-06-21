@@ -74,18 +74,24 @@ export const ApplicationFormSchema = z.object({
   optionalPersonal3: z.string().optional(),
   optionalPersonal4: z.string().optional(),
   optionalPersonal5: z.string().optional(),
+  optionalPersonal6: z.string().optional(),
+  optionalPersonal7: z.string().optional(),
+  optionalPersonal8: z.string().optional(),
 
   deptOptional1: z.string().optional(),
   deptOptional2: z.string().optional(),
   deptOptional3: z.string().optional(),
+  deptOptional4: z.string().optional(),
+  deptOptional5: z.string().optional(),
+  deptOptional6: z.string().optional(),
 
   // Legacy keys still present in the current UI (safe to keep optional)
   schoolEmail: z.string().email().optional(),
-  phone: z.string().optional(),
+  phoneNumber: z.string().optional(),
   facebookLink: z.string().url().optional(),
   currentAddress: z.string().optional(),
-  transport: z.string().optional(),
-  healthIssues: z.string().optional(),
+  transportation: z.string().optional(),
+  healthNote: z.string().optional(),
   strengthsWeaknesses: z.string().optional(),
   specialSkills: z.string().optional(),
   portraitPhoto: z.any().optional(),
@@ -100,7 +106,7 @@ export const ApplicationFormSchema = z.object({
 // Strict schema for the server action (only new template-driven submissions should pass).
 export const ApplicationFormSubmissionStrictSchema = z.object({
   templateId: z.string().min(1, "Missing templateId"),
-
+  phoneNumber: z.string().min(1, "Số điện thoại không hợp lệ."),
   fullName: z.string().min(2, "Tên phải có ít nhất 2 ký tự."),
   birthDate: z.string().min(1, "Ngày sinh không hợp lệ."),
   className: z.string().min(1, "Lớp không hợp lệ."),
@@ -108,7 +114,12 @@ export const ApplicationFormSubmissionStrictSchema = z.object({
   email: z.string().email("Email không hợp lệ."),
   gender: genderEnum,
   department: departmentEnum,
-
+  facebookLink: z.string().url("Link Facebook không hợp lệ."),
+  transportation: z.string().optional(),
+  healthNote: z.string().optional(),
+  strengthsWeaknesses: z.string().min(1, "Vui lòng nhập điểm mạnh/yếu."),
+  specialSkills: z.string().optional(),
+  currentAddress: z.string().min(1),
   // Photo is optional. If provided, it must be a File-like object with arrayBuffer().
   photo: z
     .any()
@@ -122,10 +133,15 @@ export const ApplicationFormSubmissionStrictSchema = z.object({
   optionalPersonal3: z.string().optional(),
   optionalPersonal4: z.string().optional(),
   optionalPersonal5: z.string().optional(),
-
+  optionalPersonal6: z.string().optional(),
+  optionalPersonal7: z.string().optional(),
+  optionalPersonal8: z.string().optional(), 
   deptOptional1: z.string().optional(),
   deptOptional2: z.string().optional(),
   deptOptional3: z.string().optional(),
+  deptOptional4: z.string().optional(), 
+  deptOptional5: z.string().optional(),
+  deptOptional6: z.string().optional(),
 });
 
 export type ApplicationFormState = {

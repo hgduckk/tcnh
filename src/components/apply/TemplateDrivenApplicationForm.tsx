@@ -52,9 +52,12 @@ const optionalPersonalKeys = [
   "optionalPersonal3",
   "optionalPersonal4",
   "optionalPersonal5",
+  "optionalPersonal6",
+  "optionalPersonal7",
+  "optionalPersonal8",
 ] as const;
 
-const deptOptionalKeys = ["deptOptional1", "deptOptional2", "deptOptional3"] as const;
+const deptOptionalKeys = ["deptOptional1", "deptOptional2", "deptOptional3", "deptOptional4", "deptOptional5", "deptOptional6"] as const;
 
 function formatCountdown(diffMs: number) {
   const diff = Math.max(0, diffMs);
@@ -143,6 +146,13 @@ export function TemplateDrivenApplicationForm() {
       className: "",
       studentId: "",
       email: "",
+      phoneNumber: "",
+      facebookLink: "",
+      currentAddress: "",
+      transportation: "",
+      healthNote: "",
+      strengthsWeaknesses: "",
+      specialSkills: "",
       gender: undefined,
       department: undefined,
       photo: undefined,
@@ -151,9 +161,15 @@ export function TemplateDrivenApplicationForm() {
       optionalPersonal3: "",
       optionalPersonal4: "",
       optionalPersonal5: "",
+      optionalPersonal6: "",
+      optionalPersonal7: "",
+      optionalPersonal8: "",
       deptOptional1: "",
       deptOptional2: "",
       deptOptional3: "",
+      deptOptional4: "",
+      deptOptional5: "",
+      deptOptional6: "",
     };
   }, [template?.id]);
 
@@ -220,9 +236,17 @@ export function TemplateDrivenApplicationForm() {
     formData.append("className", data.className);
     formData.append("studentId", data.studentId);
     formData.append("email", data.email);
+    formData.append("phoneNumber", data.phoneNumber);
+    formData.append("facebookLink", data.facebookLink);
+    formData.append("currentAddress", data.currentAddress || ""); 
+    formData.append("transportation", data.transportation || "");
+    formData.append("healthNote", data.healthNote || "");
+    formData.append("strengthsWeaknesses", data.strengthsWeaknesses || "");
+    formData.append("specialSkills", data.specialSkills || "");
     formData.append("gender", data.gender);
     formData.append("department", data.department);
 
+    
     if (data.photo && typeof (data.photo as any).arrayBuffer === "function") {
       formData.append("photo", data.photo as File);
     }
@@ -232,10 +256,16 @@ export function TemplateDrivenApplicationForm() {
     formData.append("optionalPersonal3", data.optionalPersonal3 || "");
     formData.append("optionalPersonal4", data.optionalPersonal4 || "");
     formData.append("optionalPersonal5", data.optionalPersonal5 || "");
+    formData.append("optionalPersonal6", data.optionalPersonal6 || "");
+    formData.append("optionalPersonal7", data.optionalPersonal7 || "");
+    formData.append("optionalPersonal8", data.optionalPersonal8 || "");
 
     formData.append("deptOptional1", data.deptOptional1 || "");
     formData.append("deptOptional2", data.deptOptional2 || "");
     formData.append("deptOptional3", data.deptOptional3 || "");
+    formData.append("deptOptional4", data.deptOptional4 || "");
+    formData.append("deptOptional5", data.deptOptional5 || "");
+    formData.append("deptOptional6", data.deptOptional6 || "");
 
     startTransition(() => {
       formAction(formData);
@@ -297,7 +327,7 @@ export function TemplateDrivenApplicationForm() {
                       name="fullName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Họ và Tên *</FormLabel>
+                          <FormLabel>Họ và tên *</FormLabel>
                           <FormControl>
                             <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
                           </FormControl>
@@ -311,7 +341,7 @@ export function TemplateDrivenApplicationForm() {
                       name="birthDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Ngày sinh *</FormLabel>
+                          <FormLabel>Ngày, tháng, năm sinh *</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
                           </FormControl>
@@ -320,6 +350,45 @@ export function TemplateDrivenApplicationForm() {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="gender"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Giới tính *</FormLabel>
+                          <FormControl>
+                            <Input
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              list="gender-options"
+                              placeholder="Nam/Nữ/Khác"
+                              className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]"
+                            />
+                          </FormControl>
+                          <datalist id="gender-options">
+                            <option value="Nam" />
+                            <option value="Nữ" />
+                            <option value="Khác" />
+                          </datalist>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="studentId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>MSSV *</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  
                     <FormField
                       control={form.control}
                       name="className"
@@ -361,26 +430,14 @@ export function TemplateDrivenApplicationForm() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="studentId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>MSSV *</FormLabel>
-                          <FormControl>
-                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+
 
                     <FormField
                       control={form.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email *</FormLabel>
+                          <FormLabel>Email trường cấp *</FormLabel>
                           <FormControl>
                             <Input type="email" {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
                           </FormControl>
@@ -391,24 +448,96 @@ export function TemplateDrivenApplicationForm() {
 
                     <FormField
                       control={form.control}
-                      name="gender"
+                      name="phoneNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Giới tính *</FormLabel>
+                          <FormLabel>Số điện thoại liên lạc *</FormLabel>
                           <FormControl>
-                            <Input
-                              value={field.value ?? ""}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              list="gender-options"
-                              placeholder="Nam/Nữ/Khác"
-                              className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]"
-                            />
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
                           </FormControl>
-                          <datalist id="gender-options">
-                            <option value="Nam" />
-                            <option value="Nữ" />
-                            <option value="Khác" />
-                          </datalist>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="facebookLink"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Link Facebook cá nhân *</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="currentAddress"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nơi ở hiện tại *</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="transportation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phương tiện di chuyển</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="healthNote"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel> Em có tiền sử bệnh nền/lưu ý về sức khỏe của bản thân không?</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="strengthsWeaknesses"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel> Bản thân em có những điểm mạnh và điểm yếu nào? *</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="specialSkills"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel> Em có khả năng gì đặc biệt không (viết email/quản trò/dự trù kinh phí/sáng tạo nội dung/viết bài/thiết kế hình ảnh/quay chụp/MC/…) ?</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -436,7 +565,7 @@ export function TemplateDrivenApplicationForm() {
 
                   {visiblePersonalQuestions.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Các câu hỏi cá nhân (tùy chọn)</h3>
+                    <h3 className="text-lg font-semibold">Tại sao bạn lại chọn Đoàn Khoa?</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {visiblePersonalQuestions.map(({ key, label }) => {
                         return (
@@ -500,7 +629,7 @@ export function TemplateDrivenApplicationForm() {
                   {selectedDepartment && deptQuestions && visibleDeptQuestions.length > 0 && (
                     <div className="space-y-4">
                       {deptIllustrations.length > 0 && <IllustrationList illustrations={deptIllustrations} />}
-                      <h3 className="text-lg font-semibold">Câu hỏi theo ban (tùy chọn)</h3>
+                      <h3 className="text-lg font-semibold">Liệu rằng bạn có phù hợp với ban {selectedDepartment}?</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {visibleDeptQuestions.map(({ key, label }) => {
                           return (
