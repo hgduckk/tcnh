@@ -300,11 +300,7 @@ export default function Home() {
       style={{ backgroundColor: '#00aeef', 
       color: '#ffffff', boxShadow: '0 4px 15px rgba(0, 174, 239, 0.5)' }}
     >
-<<<<<<< HEAD
-      Ứng tuyển ngay nào!
-=======
       Ứng tuyển ngay!
->>>>>>> 40e0a4b6b20338e90ee9dc8c964e5ac02bc5438f
     </Button>
   </Link>
 </div>
