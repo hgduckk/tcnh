@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>UEL Interactive Map Demo</title>
+    <style>
+        :root {
+            --primary-color: #003366; /* Màu xanh UEL */
+            --accent-color: #ffcc00;
+        }
+
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f4f4f4; }
+        
+        /* 1. Container giữ ảnh và hotspot */
+        .map-wrapper {
+            position: relative;
+            width: 800px;
+            max-width: 95%;
+            margin-top: 20px;
+            border: 5px solid #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        /* Ảnh nền */
+        .map-image {
+            width: 100%;
+            display: block;
+            background-color: #ddd; /* Giả lập ảnh nếu chưa có file */
+            min-height: 400px;
+        }
+
+        /* 2. Style cho Hotspot */
+        .hotspot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: var(--accent-color);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%); /* Căn giữa điểm */
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.5);
+            background-color: #ff0000;
+            z-index: 10;
+        }
+
+        /* Hiệu ứng nhấp nháy cho điểm nhấn */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 204, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0); }
+        }
+
+        /* 3. Tooltip hiện thông tin */
+        .tooltip {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            position: absolute;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .hotspot:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Panel thông tin bên cạnh */
+        #info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            width: 800px;
+            max-width: 95%;
+            min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>PHÁC THẢO MAP TƯƠNG TÁC: TÒA NHÀ A - TẦNG G</h2>
+    <p><i>Rê chuột vào các điểm vàng để xem phòng chức năng</i></p>
+
+    <div class="map-wrapper">
+        <img src="https://via.placeholder.com/800x400/003366/ffffff?text=MAT+BANG+TANG+G+TOA+NHA+A" class="map-image">
+
+        <div class="hotspot" style="top: 30%; left: 20%;" onclick="updateInfo('A001', 'Phòng Tuyển sinh & CTSV', 'Khu vực giải đáp thắc mắc học vụ')">
+            <span class="tooltip">A001: P. Tuyển sinh & CTSV</span>
+        </div>
+
+        <div class="hotspot" style="top: 30%; left: 40%;" onclick="updateInfo('A002', 'Viện Quốc tế', 'Văn phòng làm việc các chương trình quốc tế')">
+            <span class="tooltip">A002: Viện Quốc tế</span>
+        </div>
+
+        <div class="hotspot" style="top: 50%; left: 50%; background-color: #00ff00;" onclick="updateInfo('Sảnh', 'Sảnh chính Tòa A', 'Khu vực Sa bàn, Máy bán nước')">
+            <span class="tooltip">Sảnh Chính / Thang máy</span>
+        </div>
+
+        <div class="hotspot" style="top: 70%; left: 80%;" onclick="updateInfo('A008', 'PHÒNG ĐÀO TẠO', 'Nơi tiếp nhận hồ sơ, đăng ký môn học')">
+            <span class="tooltip">A008: PHÒNG ĐÀO TẠO</span>
+        </div>
+
+        <div class="hotspot" style="top: 70%; left: 65%;" onclick="updateInfo('A005', 'Phòng Tài chính', 'Đóng học phí, quyết toán kinh phí')">
+            <span class="tooltip">A005: Phòng Tài chính</span>
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <strong>Thông tin chi tiết:</strong>
+        <div id="detail">Click vào một điểm trên bản đồ để xem chi tiết...</div>
+    </div>
+
+    <script>
+        function updateInfo(code, name, desc) {
+            const panel = document.getElementById('detail');
+            panel.innerHTML = `
+                <h3 style="color:var(--primary-color); margin: 5px 0;">[${code}] ${name}</h3>
+                <p>${desc}</p>
+            `;
+        }
+    </script>
+
+</body>
+</html>
