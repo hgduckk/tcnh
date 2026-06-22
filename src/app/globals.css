@@ -338,14 +338,14 @@ body {
 }
   
   /* Simplify gradients on mobile */
-  .bg-gradient-to-b,
+/*  .bg-gradient-to-b,
   .bg-gradient-to-br,
   .bg-gradient-to-r {
     background-image: none !important;
   }
   
   /* Disable complex animations on mobile */
-  .animate-pulse {
+ /*  .animate-pulse {
     animation: none !important;
   }
   
