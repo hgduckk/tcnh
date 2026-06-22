@@ -481,9 +481,12 @@ export function TemplateDrivenApplicationForm() {
                         <FormItem>
                           <FormLabel>Nơi ở hiện tại *</FormLabel>
                           <FormControl>
-                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                            <Textarea
+                              rows={3}
+                              {...field}
+                              className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]"
+                            />
                           </FormControl>
-                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -493,7 +496,7 @@ export function TemplateDrivenApplicationForm() {
                       name="transportation"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phương tiện di chuyển</FormLabel>
+                          <FormLabel>Phương tiện di chuyển của em là gì?</FormLabel>
                           <FormControl>
                             <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
                           </FormControl>
@@ -509,7 +512,11 @@ export function TemplateDrivenApplicationForm() {
                         <FormItem>
                           <FormLabel> Em có tiền sử bệnh nền/lưu ý về sức khỏe của bản thân không?</FormLabel>
                           <FormControl>
-                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                            <Textarea
+                              rows={3}
+                              {...field}
+                              className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -523,7 +530,11 @@ export function TemplateDrivenApplicationForm() {
                         <FormItem>
                           <FormLabel> Bản thân em có những điểm mạnh và điểm yếu nào? *</FormLabel>
                           <FormControl>
-                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                            <Textarea
+                              rows={3}
+                              {...field}
+                              className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -534,9 +545,13 @@ export function TemplateDrivenApplicationForm() {
                       name="specialSkills"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel> Em có khả năng gì đặc biệt không (viết email/quản trò/dự trù kinh phí/sáng tạo nội dung/viết bài/thiết kế hình ảnh/quay chụp/MC/…) ?</FormLabel>
+                          <FormLabel> Em có khả năng gì đặc biệt không (viết email/quản trò/dự trù kinh phí/sáng tạo nội dung/viết bài/thiết kế hình ảnh/quay chụp/MC/…)?</FormLabel>
                           <FormControl>
-                            <Input {...field} className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]" />
+                            <Textarea
+                              rows={3}
+                              {...field}
+                              className="bg-[#45973c]/10 focus:bg-[#45973c]/20 border-gray-300 focus:border-[#45973c]"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
