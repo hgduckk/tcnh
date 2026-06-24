@@ -466,7 +466,7 @@ FOR EACH ROW
 EXECUTE FUNCTION set_structure_departments_updated_at();
 
 -- ------------------------------------------------------------
--- A80 submissions (managed in /youth/a80 and /admin-a80)
+-- rangrovietnam submissions (managed in /youth/rangrovietnam and /admin-rangrovietnam)
 -- ------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS submissions (
@@ -517,7 +517,7 @@ SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Storage policies for public A80 uploads (API uses anon client key)
+-- Storage policies for public rangrovietnam uploads (API uses anon client key)
 DROP POLICY IF EXISTS "Public can view submission images" ON storage.objects;
 CREATE POLICY "Public can view submission images" ON storage.objects
   FOR SELECT USING (bucket_id = 'submission-images');

@@ -137,11 +137,11 @@ export default function Home() {
       link: "/ai"
     },
     {
-      image: "/images/a80.png",
-      hint: "a80",
+      image: "/images/rangrovietnam.png",
+      hint: "rangrovietnam",
       title: "Coming soon",
       // description: "Nhấn để tìm hiểu thêm",
-      link: "/a80"
+      link: "/rangrovietnam"
     },
   ];
 

@@ -4,11 +4,11 @@
 
 This is a website for Finance and Banking Club, including:
 
-- Public pages (home, activities, achievements, A80, blog, apply)
+- Public pages (home, activities, achievements, rangrovietnam, blog, apply)
 - Admin page for settings, form template management, and submission review
 - Template-driven application form flow
-- A80 submission flow with image upload and Excel export
-- Supabase for submissions, comments, form images, and A80 data
+- rangrovietnam submission flow with image upload and Excel export
+- Supabase for submissions, comments, form images, and rangrovietnam data
 - Sanity for site configuration fallback
 - AI chat endpoint for advisor support
 
@@ -69,11 +69,11 @@ Sanity:
 - Optional image upload endpoint under `/api/admin/forms/upload-image`
 - Submissions listed from `/api/admin/application-form-submissions`
 
-### A80 Flow
+### rangrovietnam Flow
 
-- Public POST/GET: `/api/a80/submissions`
-- Delete by id: `/api/a80/submissions/[id]`
-- Export xlsx: `/api/a80/export`
+- Public POST/GET: `/api/rangrovietnam/submissions`
+- Delete by id: `/api/rangrovietnam/submissions/[id]`
+- Export xlsx: `/api/rangrovietnam/export`
 
 ### Blog Comment Flow
 

@@ -42,7 +42,7 @@ interface FloatingName {
   fontSize: number;
 }
 
-export default function A80Page() {
+export default function rangrovietnamPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -206,7 +206,7 @@ export default function A80Page() {
 
   const fetchSubmissions = async () => {
     try {
-      const response = await fetch('/api/a80/submissions?include_total=true');
+      const response = await fetch('/api/rangrovietnam/submissions?include_total=true');
       if (!response.ok) {
         console.error('Failed to fetch submissions, status', response.status);
         return;
@@ -338,7 +338,7 @@ export default function A80Page() {
       submitData.append('content', formData.content);
       submitData.append('isAnonymous', formData.isAnonymous.toString());
 
-      const response = await fetch('/api/a80/submissions', {
+      const response = await fetch('/api/rangrovietnam/submissions', {
         method: 'POST',
         body: submitData,
       });
@@ -582,7 +582,7 @@ export default function A80Page() {
       className="min-h-screen relative overflow-hidden backdrop-blur-sm"
       style={{
         backgroundColor: '#250608',
-        backgroundImage: "url('/images/background-a80.jpg')",
+        backgroundImage: "url('/images/background-rangrovietnam.jpg')",
         backgroundSize: isMobile ? '100% auto' : 'cover',
         backgroundPosition: isMobile ? 'top center' : 'center',
         backgroundRepeat: 'no-repeat',
@@ -625,8 +625,8 @@ export default function A80Page() {
         <div className="w-full relative">
           <div className="relative overflow-hidden">
             <img 
-              src="/images/banner-a80.png" 
-              alt="Banner A80" 
+              src="/images/banner-rangrovietnam.png" 
+              alt="Banner rangrovietnam" 
               className="w-full h-auto object-cover"
               loading="eager"
               decoding="async"
@@ -869,7 +869,7 @@ export default function A80Page() {
                       <div className="w-full md:w-1/2 order-2 md:order-1">
                         <div className="relative">
                           <img 
-                            src="/images/a80/1.jpg" 
+                            src="/images/rangrovietnam/1.jpg" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
                             loading="lazy"
@@ -890,7 +890,7 @@ export default function A80Page() {
                       <div className="w-full md:w-1/2 order-2 md:order-2">
                         <div className="relative">
                           <img 
-                            src="/images/a80/2.jpg" 
+                            src="/images/rangrovietnam/2.jpg" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
                             loading="lazy"
@@ -937,7 +937,7 @@ export default function A80Page() {
                       <div className="w-full md:w-1/2 order-2 md:order-1">
                         <div className="relative">
                           <img 
-                            src="/images/a80/3.png" 
+                            src="/images/rangrovietnam/3.png" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
                             loading="lazy"
@@ -958,7 +958,7 @@ export default function A80Page() {
                       <div className="w-full md:w-1/2 order-2 md:order-2">
                         <div className="relative">
                           <img 
-                            src="/images/a80/4.webp" 
+                            src="/images/rangrovietnam/4.webp" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
                             loading="lazy"
@@ -1003,7 +1003,7 @@ export default function A80Page() {
                       <div className="w-full md:w-1/2 order-2 md:order-1">
                         <div className="relative">
                           <img 
-                            src="/images/a80/5.jpg" 
+                            src="/images/rangrovietnam/5.jpg" 
                             alt="Lịch sử Việt Nam" 
                             className="w-full h-auto rounded-lg shadow-lg"
                             loading="lazy"
@@ -1047,7 +1047,7 @@ export default function A80Page() {
                             preload={isMobile ? "none" : "metadata"}
                             className="w-full h-auto object-cover rounded-lg shadow-lg"
                           >
-                            <source src="/images/a80/6.mp4" type="video/mp4" />
+                            <source src="/images/rangrovietnam/6.mp4" type="video/mp4" />
                             Trình duyệt của bạn không hỗ trợ video.
                           </video>
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg pointer-events-none"></div>

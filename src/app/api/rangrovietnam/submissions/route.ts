@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       submissions
     });
   } catch (error) {
-    console.error('Error in GET /api/a80/submissions:', error);
+    console.error('Error in GET /api/rangrovietnam/submissions:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(submission, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/a80/submissions:', error);
+    console.error('Error in POST /api/rangrovietnam/submissions:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -2,7 +2,7 @@
 
 This project uses Supabase for multiple features:
 1. **Blog Comment System** - Realtime comments with AI moderation
-2. **A80 Message System** - Vietnamese flag pixel display with student messages
+2. **rangrovietnam Message System** - Vietnamese flag pixel display with student messages
 3. **Content Management** - Achievements, activities, partners, and structure departments managed from `/admin`
 
 Follow these steps to set up the complete database system.
@@ -38,7 +38,7 @@ CREATE TABLE comments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Submissions table for A80 page (Vietnamese flag messages)
+-- Submissions table for rangrovietnam page (Vietnamese flag messages)
 CREATE TABLE submissions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -157,13 +157,13 @@ The current runtime no longer reads or writes any Google Drive or Google Sheets 
 4. Try replying to comments
 5. Open the page in multiple tabs to see realtime updates
 
-### A80 Message System:
-1. Go to the A80 page at `/a80`
+### rangrovietnam Message System:
+1. Go to the rangrovietnam page at `/rangrovietnam`
 2. Click the floating message button in the bottom-right
 3. Try submitting both anonymous and named messages
 4. Watch the Vietnamese flag display update with new pixels
 5. Test image uploads (optional feature)
-6. Visit `/admin-a80` to manage submissions and export data
+6. Visit `/admin-rangrovietnam` to manage submissions and export data
 
 ## Features
 
