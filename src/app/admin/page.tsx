@@ -26,6 +26,7 @@ import { BlogTestimonialsAdmin } from '@/components/admin/BlogTestimonialsAdmin'
 import { BlogDiscussionAdmin } from '@/components/admin/BlogDiscussionAdmin';
 import { SchoolMapAdmin } from '@/components/admin/SchoolMapAdmin';
 import { formatDateTime } from '@/lib/utils';
+import { RangRoVietNamAdmin } from '@/components/admin/RangRoVietNamAdmin';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
@@ -105,6 +106,7 @@ type AdminTab =
   | 'category-structure'
   | 'category-achievements'
   | 'category-activities'
+  | 'category-youth-rangrovietnam'
   | 'category-youth-activities'
   | 'category-youth-student-info'
   | 'category-youth-school-map'
@@ -514,6 +516,15 @@ export default function AdminPage() {
                         setSidebarOpen(false);
                       }}
                     />
+                    <SidebarBtn
+                      icon={MessageSquare} // Đảm bảo đã import MessageSquare
+                      label="Rạng rỡ Việt Nam"
+                      active={activeTab === 'category-youth-rangrovietnam'}
+                      onClick={() => {
+                        setActiveTab('category-youth-rangrovietnam');
+                        setSidebarOpen(false);
+                      }}
+                    />
                   </div>
                 )}
               </div>
@@ -637,6 +648,7 @@ export default function AdminPage() {
             {activeTab === 'category-youth-activities' && <CategoryYouthPanel adminPassword={password} />}
             {activeTab === 'category-youth-student-info' && <CategoryStudentInfoPanel />}
             {activeTab === 'category-youth-school-map' && <CategoryYouthSchoolMapPanel adminPassword={password} />}
+            {activeTab === 'category-youth-rangrovietnam' && <CategoryYouthRangRoVietNamPanel adminPassword={password} />}
             {activeTab === 'category-apply' && (
               <ApplicationFormsAdmin adminPassword={password} />
             )}
@@ -2843,7 +2855,23 @@ function CategoryYouthSchoolMapPanel({ adminPassword }: { adminPassword: string 
     </div>
   );
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Category — Rạng rỡ Việt Nam
+// ─────────────────────────────────────────────────────────────────────────────
 
+function CategoryYouthRangRoVietNamPanel({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb label="Tuổi trẻ / Rạng rỡ Việt Nam" />
+        <h1 className="text-2xl font-bold text-slate-800">Quản lý Lời chúc</h1>
+        <p className="text-sm text-slate-500 mt-1">Duyệt hoặc xóa các lời chúc gửi về sự kiện</p>
+      </div>
+
+      <RangRoVietNamAdmin />
+    </div>
+  );
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // Panel: Category Partners
 // ─────────────────────────────────────────────────────────────────────────────

@@ -3,10 +3,10 @@ import { supabase } from '@/lib/supabaseClient';
 import sharp from 'sharp';
 
 if (!supabase) {
-  console.warn('Supabase client is not configured. APIs depending on supabase will be disabled.');
+  console.warn('Supabase client is not configured.');
 }
 
-// GET - Fetch submissions with optional limit
+// GET - Fetch submissions
 export async function GET(request: NextRequest) {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
@@ -16,15 +16,21 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const limit = url.searchParams.get('limit');
     const includeTotal = url.searchParams.get('include_total');
+    // Chỉ lấy bài đã duyệt nếu client yêu cầu (dùng cho trang người dùng xem)
+    const approvedOnly = url.searchParams.get('approved') === 'true';
 
     let query = supabase
       .from('submissions')
       .select('*', { count: includeTotal ? 'exact' : 'estimated' })
-      .order('created_at', { ascending: false }); // Latest first for mobile
+      .order('created_at', { ascending: false });
+
+    // Lọc theo status nếu là trang hiển thị công khai
+    if (approvedOnly) {
+      query = query.eq('status', 'approved');
+    }
 
     if (limit) {
-      const limitNum = parseInt(limit, 10);
-      query = query.limit(limitNum);
+      query = query.limit(parseInt(limit, 10));
     } else {
       query = query.range(0, 4999);
     }
@@ -33,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching submissions:', error);
-      return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -70,42 +76,28 @@ export async function POST(request: NextRequest) {
 
     let imageUrl: string | null = null;
 
-    // Handle image upload if present
     if (image && image.size > 0) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
       const inputBuffer = Buffer.from(await image.arrayBuffer());
 
-      let webpBuffer: Buffer;
       try {
-        webpBuffer = await sharp(inputBuffer)
-          .webp({ quality: 82 })
-          .toBuffer();
-      } catch (error) {
-        console.error('Error converting image to webp:', error);
-        webpBuffer = Buffer.alloc(0);
-      }
-
-      if (webpBuffer.length > 0) {
+        const webpBuffer = await sharp(inputBuffer).webp({ quality: 82 }).toBuffer();
         const { error: uploadError } = await supabase.storage
           .from('submission-images')
-          .upload(fileName, webpBuffer, {
-            contentType: 'image/webp',
-            upsert: false,
-          });
+          .upload(fileName, webpBuffer, { contentType: 'image/webp' });
 
-        if (uploadError) {
-          console.error('Error uploading image:', uploadError);
-          // Continue without image rather than failing the entire submission
-        } else {
+        if (!uploadError) {
           const { data: { publicUrl } } = supabase.storage
             .from('submission-images')
             .getPublicUrl(fileName);
           imageUrl = publicUrl;
         }
+      } catch (error) {
+        console.error('Image processing error:', error);
       }
     }
 
-    // Insert submission into database
+    // Insert với status = 'pending' để Admin duyệt
     const { data: submission, error } = await supabase
       .from('submissions')
       .insert([
@@ -117,20 +109,19 @@ export async function POST(request: NextRequest) {
           email: isAnonymous ? null : email,
           content,
           image_url: imageUrl,
-          is_anonymous: isAnonymous
+          is_anonymous: isAnonymous,
+          status: 'pending' 
         }
       ])
       .select()
       .single();
 
     if (error) {
-      console.error('Error inserting submission:', error);
       return NextResponse.json({ error: 'Failed to create submission' }, { status: 500 });
     }
 
     return NextResponse.json(submission, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/rangrovietnam/submissions:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
