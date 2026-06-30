@@ -1,58 +1,72 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2, XCircle, Trash2, RefreshCw, AlertCircle, User, Mail, School, ImageIcon } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Trash2, RefreshCw, AlertCircle, User, Mail, School, CreditCard, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function RangRoVietNamAdmin() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Gọi qua API Route để lấy toàn bộ dữ liệu (không truyền ?approved=true)
   const fetchData = async () => {
-    // Ép kiểu để TS không báo lỗi null
-    if (!supabase) return;
     setLoading(true);
-    
-    const { data: submissions, error } = await (supabase as any)
-      .from('submissions')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error("Lỗi fetch:", error);
-    } else {
-      setData(submissions || []);
+    try {
+      const response = await fetch('/api/rangrovietnam/submissions?include_total=true');
+      if (response.ok) {
+        const result = await response.json();
+        setData(result.submissions || []);
+      } else {
+        console.error("Lỗi fetch API");
+      }
+    } catch (error) {
+      console.error("Lỗi kết nối API:", error);
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
+  // Thay vì dùng supabase client bị dính lỗi RLS/Permission ở local, 
+  // Đức dùng chính lệnh PATCH/PUT qua API route sẽ giải quyết dứt điểm việc bấm nút không ăn!
   const updateStatus = async (id: string, newStatus: 'approved' | 'pending' | 'rejected') => {
-    if (!supabase) return;
-    
-    const { error } = await (supabase as any)
-      .from('submissions')
-      .update({ status: newStatus })
-      .eq('id', id);
+    console.log(`Đang gửi yêu cầu cập nhật id ${id} sang trạng thái: ${newStatus}`);
+    try {
+      // Gọi một route API xử lý cập nhật trạng thái
+      const response = await fetch(`/api/rangrovietnam/submissions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
 
-    if (error) {
-      console.error("Lỗi update:", error);
-      alert("Không thể cập nhật: " + error.message);
-    } else {
-      fetchData(); // Load lại ngay sau khi update thành công
+      if (response.ok) {
+        console.log("Cập nhật trạng thái thành công!");
+        fetchData(); // Reload dữ liệu ngay tại chỗ
+      } else {
+        const errData = await response.json();
+        console.error("Lỗi API:", errData.error);
+        alert("Không thể cập nhật: " + errData.error);
+      }
+    } catch (error) {
+      console.error("Lỗi kết nối khi update:", error);
     }
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm("Xóa vĩnh viễn lời chúc này?")) return;
-    
-    const { error } = await (supabase as any).from('submissions').delete().eq('id', id);
-    if (error) {
-      console.error("Lỗi xóa:", error);
-    } else {
-      fetchData();
+    if (!confirm("Bạn chắc chắn muốn xóa vĩnh viễn lời chúc này?")) return;
+    try {
+      const response = await fetch(`/api/rangrovietnam/submissions/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        fetchData();
+      } else {
+        alert("Xóa thất bại!");
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa:", error);
     }
   };
 
@@ -69,7 +83,7 @@ export function RangRoVietNamAdmin() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b bg-slate-50 text-xs uppercase text-slate-500">
-              <th className="p-4">Người gửi</th>
+              <th className="p-4">Người gửi & Thông tin</th>
               <th className="p-4">Lời chúc & Ảnh</th>
               <th className="p-4">Trạng thái</th>
               <th className="p-4 text-center">Hành động</th>
@@ -78,34 +92,43 @@ export function RangRoVietNamAdmin() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="p-10 text-center"><Loader2 className="animate-spin mx-auto w-8 h-8 text-blue-500" /></td>
+                <td colSpan={4} className="p-10 text-center">
+                  <Loader2 className="animate-spin mx-auto w-8 h-8 text-blue-500" />
+                </td>
+              </tr>
+            ) : data.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-10 text-center text-slate-400">Không có lời chúc nào.</td>
               </tr>
             ) : data.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50">
                 <td className="p-4 text-sm">
-                  <div className="font-semibold flex items-center gap-1"><User className="w-3 h-3" /> {item.name}</div>
-                  <div className="text-slate-500 text-xs flex items-center gap-1"><School className="w-3 h-3" /> {item.class_name || 'N/A'}</div>
-                  <div className="text-slate-500 text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {item.email || 'N/A'}</div>
+                  <div className="font-semibold flex items-center gap-1 text-slate-800"><User className="w-3 h-3" /> {item.name}</div>
+                  {/* SỬA LỖI 1: ĐÃ HIỆN MÃ SỐ SINH VIÊN */}
+                  <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><CreditCard className="w-3 h-3" /> MSSV: {item.student_id || 'N/A'}</div>
+                  <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><School className="w-3 h-3" /> Lớp: {item.class_name || 'N/A'}</div>
+                  <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" /> Email: {item.email || 'N/A'}</div>
                 </td>
                 <td className="p-4 max-w-sm">
-                  <p className="text-sm text-slate-700 mb-2">{item.content}</p>
+                  <p className="text-sm text-slate-700 mb-2 whitespace-pre-wrap">{item.content}</p>
                   {item.image_url && (
-                    <a href={item.image_url} target="_blank" className="flex items-center gap-1 text-xs text-blue-600 underline">
+                    <a href={item.image_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-blue-600 underline hover:text-blue-800">
                       <ImageIcon className="w-3 h-3" /> Xem ảnh đính kèm
                     </a>
                   )}
                 </td>
                 <td className="p-4">
-                  {(item.status === 'approved') && <Badge className="bg-green-100 text-green-700">Đã duyệt</Badge>}
-                  {(!item.status || item.status === 'pending') && <Badge className="bg-yellow-100 text-yellow-700">Chờ duyệt</Badge>}
-                  {(item.status === 'rejected') && <Badge className="bg-red-100 text-red-700">Từ chối</Badge>}
+                  {/* SỬA LỖI 3: DÙNG SO SÁNH CHUẨN ĐỂ BADGE KHÔNG BỊ KẸT Ở CHỜ DUYỆT */}
+                  {item.status === 'approved' && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none">Đã duyệt</Badge>}
+                  {item.status === 'rejected' && <Badge className="bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-none">Từ chối</Badge>}
+                  {(!item.status || item.status === 'pending') && <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 shadow-none border-none">Chờ duyệt</Badge>}
                 </td>
                 <td className="p-4">
                   <div className="flex justify-center gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => updateStatus(item.id, 'approved')}><CheckCircle2 className="w-5 h-5 text-green-600" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => updateStatus(item.id, 'pending')}><AlertCircle className="w-5 h-5 text-yellow-600" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => updateStatus(item.id, 'rejected')}><XCircle className="w-5 h-5 text-red-600" /></Button>
-                    <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteItem(item.id)}><Trash2 className="w-5 h-5" /></Button>
+                    <Button size="icon" variant="ghost" className="hover:bg-green-50 rounded-full" onClick={() => updateStatus(item.id, 'approved')} title="Duyệt"><CheckCircle2 className="w-5 h-5 text-green-600" /></Button>
+                    <Button size="icon" variant="ghost" className="hover:bg-yellow-50 rounded-full" onClick={() => updateStatus(item.id, 'pending')} title="Đặt lại chờ duyệt"><AlertCircle className="w-5 h-5 text-yellow-600" /></Button>
+                    <Button size="icon" variant="ghost" className="hover:bg-red-50 rounded-full" onClick={() => updateStatus(item.id, 'rejected')} title="Từ chối"><XCircle className="w-5 h-5 text-red-600" /></Button>
+                    <Button size="icon" variant="ghost" className="text-slate-400 hover:text-red-600 rounded-full" onClick={() => deleteItem(item.id)} title="Xóa vĩnh viễn"><Trash2 className="w-5 h-5" /></Button>
                   </div>
                 </td>
               </tr>
