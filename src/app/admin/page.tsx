@@ -705,7 +705,41 @@ function OverviewPanel({
   const [detailTemplate, setDetailTemplate] = useState<FormTemplateSummary | null>(null);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [showFormsAnalytics, setShowFormsAnalytics] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
+  const handleExportExcelCTV = async () => {
+    if (selectedTemplateId === 'all') {
+      alert("Vui lòng chọn một đợt tuyển cụ thể để xuất báo cáo Excel!");
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const res = await fetch(`/api/admin/application-form-submissions/export?template_id=${selectedTemplateId}`, {
+        method: "GET",
+        headers: authHeaders, // Kế thừa token/mật khẩu bảo mật
+      });
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.message || "Có lỗi xảy ra khi trích xuất tệp tin Excel.");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Danh_sach_CTV_UEL_${selectedTemplateId}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || "Hệ thống không thể kết nối API xuất dữ liệu.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
   const selectedTemplate = useMemo(
     () => templates.find(t => t.id === selectedTemplateId) || null,
     [templates, selectedTemplateId]

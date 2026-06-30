@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download } from "lucide-react"; // Đã thêm icon Download
 import { formatDateTime } from "@/lib/utils";
 
 import {
@@ -27,7 +27,6 @@ type TemplateRow = {
 };
 
 function isoToDatetimeLocal(iso: string): string {
-  // datetime-local expects "YYYY-MM-DDTHH:mm"
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
@@ -36,7 +35,6 @@ function isoToDatetimeLocal(iso: string): string {
 }
 
 function datetimeLocalToIso(value: string): string {
-  // Interpret datetime-local as local time and convert to ISO.
   const d = new Date(value);
   return d.toISOString();
 }
@@ -45,6 +43,7 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null); // State theo dõi đợt đang xuất file
 
   // Builder fields
   const [templateId, setTemplateId] = useState<string | null>(null);
@@ -88,6 +87,42 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
     refreshTemplates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // HÀM XỬ LÝ GỌI API ĐỂ XUẤT VÀ DOWNLOAD FILE EXCEL
+  const handleExportExcel = async (id: string, formName: string) => {
+    try {
+      setExportingId(id);
+      setError(null);
+
+      // Gọi API kèm mật khẩu admin qua header truyền thống của Đức
+      const res = await fetch(`/api/admin/application-form-submissions/export?template_id=${id}`, {
+        method: "GET",
+        headers: authHeaders,
+      });
+
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.message || "Không thể xuất file hoặc không có dữ liệu ứng viên.");
+      }
+
+      // Nhận luồng nhị phân và tạo link download tự động
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Danh_sach_CTV_${formName.replace(/\s+/g, "_")}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup tài nguyên tạm
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e.message || String(e));
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   const loadTemplate = async (id: string) => {
     setError(null);
@@ -143,7 +178,6 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
 
   const saveTemplate = async () => {
     setError(null);
-    // basic check
     if (!name.trim()) return setError("Vui lòng nhập tên form.");
     if (!openAt || !closeAt) return setError("Vui lòng nhập thời gian mở/đóng đơn.");
 
@@ -225,37 +259,54 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
             ) : (
               <div className="space-y-3">
                 {templates.map((t) => (
-                  <div key={t.id} className="border rounded-lg p-3">
-                    <p className="font-semibold">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                  <div key={t.id} className="border rounded-lg p-3 bg-slate-50/50">
+                    <p className="font-semibold text-slate-800">{t.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       Thời gian mở: {formatDateTime(t.open_at)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Thời gian đóng: {formatDateTime(t.close_at)}
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="mt-2 w-full"
-                      onClick={() => loadTemplate(t.id)}
-                    >
-                      Edit
-                    </Button>
+                    
+                    {/* KHỐI HÀNH ĐỘNG: SỬA ĐƠN & XUẤT EXCEL */}
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={() => loadTemplate(t.id)}
+                      >
+                        Sửa Form
+                      </Button>
+                      
+                      {/* Nút xuất file Excel xịn tích hợp trực tiếp */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="border-green-600 text-green-700 hover:bg-green-50"
+                        disabled={exportingId === t.id}
+                        onClick={() => handleExportExcel(t.id, t.name)}
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        {exportingId === t.id ? "..." : "Excel"}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
 
             <Button type="button" variant="outline" className="w-full" onClick={resetBuilder}>
-              Tạo mới
+              Tạo mới đợt tuyển
             </Button>
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{templateId ? "Chỉnh sửa form" : "Thiết kế form mới"}</CardTitle>
+            <CardTitle>{templateId ? "Chỉnh sửa cấu trúc form" : "Thiết kế form tuyển dụng mới"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-3">
@@ -450,4 +501,3 @@ export function ApplicationFormsAdmin({ adminPassword }: { adminPassword: string
     </div>
   );
 }
-

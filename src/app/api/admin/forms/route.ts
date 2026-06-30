@@ -4,6 +4,9 @@ import { DEPARTMENTS, type Department } from "@/lib/applicationForms";
 import { assertAdminRequest } from "@/lib/adminAuth";
 import { serializeError } from "@/lib/utils";
 
+// ÉP NEXT.JS KHÔNG ĐƯỢC CACHE ENDPOINT NÀY (BẮT BUỘC ĐỂ LOAD DATA REALTIME NGOÀI LOCAL)
+export const dynamic = "force-dynamic";
+
 function normalizeDepartmentQuestions(input: any): Record<Department, string[]> {
   const out = {} as Record<Department, string[]>;
   for (const dept of DEPARTMENTS) {
@@ -14,6 +17,9 @@ function normalizeDepartmentQuestions(input: any): Record<Department, string[]> 
   return out;
 }
 
+// ==========================================
+// 1. GET - LẤY DANH SÁCH FORM ĐỢT TUYỂN
+// ==========================================
 export async function GET(req: Request) {
   try {
     const authError = assertAdminRequest(req);
@@ -25,7 +31,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabaseAdmin
       .from("application_form_templates")
-      .select("id, name, open_at, close_at, optional_personal_questions, department_questions")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -36,6 +42,9 @@ export async function GET(req: Request) {
   }
 }
 
+// ==========================================
+// 2. POST - TẠO MỚI HOẶC CẬP NHẬT FORM
+// ==========================================
 export async function POST(req: Request) {
   try {
     const authError = assertAdminRequest(req);
@@ -79,7 +88,7 @@ export async function POST(req: Request) {
       class_options: classOpts,
     };
 
-    // Upsert by id when provided (client uses same endpoint for create/edit)
+    // Trường hợp: Cập nhật form cũ (Edit)
     if (id) {
       const { data, error } = await supabaseAdmin
         .from("application_form_templates")
@@ -98,7 +107,7 @@ export async function POST(req: Request) {
 
       if (error) throw error;
 
-      // Record history snapshot (fire-and-forget; never block the response)
+      // Lưu snapshot lịch sử (fire-and-forget)
       supabaseAdmin
         .from("application_form_template_history")
         .insert({ template_id: data.id, action: "updated", snapshot: data })
@@ -109,6 +118,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, data });
     }
 
+    // Trường hợp: Tạo form hoàn toàn mới (Create)
     const { data, error } = await supabaseAdmin
       .from("application_form_templates")
       .insert({
@@ -125,7 +135,7 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
-    // Record history snapshot (fire-and-forget; never block the response)
+    // Lưu snapshot lịch sử (fire-and-forget)
     supabaseAdmin
       .from("application_form_template_history")
       .insert({ template_id: data.id, action: "created", snapshot: data })
@@ -138,4 +148,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
   }
 }
-
