@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import sharp from 'sharp';
+// 🌟 GỌI HÀM LỌC TỪ FILE FILTER.TS CỦA ĐỨC (Đức nhớ chỉnh lại đường dẫn file cho chuẩn nếu cần nha)
+import { containsSensitiveContent } from '@/lib/filter';
 
 if (!supabase) {
   console.warn('Supabase client is not configured.');
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest) {
 }
 
 // ==========================================
-// 2. POST - SINH VIÊN GỬI LỜI CHÚC MỚI
+// 2. POST - SINH VIÊN GỬI LỜI CHÚC MỚI (CÓ BỘ LỌC TỰ ĐỘNG)
 // ==========================================
 export async function POST(request: NextRequest) {
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
@@ -91,6 +93,12 @@ export async function POST(request: NextRequest) {
     if (!name || !content) {
       return NextResponse.json({ error: 'Name and content are required' }, { status: 400 });
     }
+
+    // 🌟 SỬ DỤNG HÀM LỌC TỪ FILTER.TS CỦA ĐỨC TẠI ĐÂY
+    // Nếu hàm trả về true -> Dính từ cấm -> Giữ trạng thái 'pending' để Admin kiểm tra tay
+    // Nếu hàm trả về false -> Lời chúc sạch -> Tự động chuyển thẳng lên 'approved' để xuất hiện trên Web luôn
+    const isViolated = containsSensitiveContent(content);
+    const autoStatus = isViolated ? 'pending' : 'approved';
 
     let imageUrl: string | null = null;
 
@@ -126,7 +134,7 @@ export async function POST(request: NextRequest) {
           content,
           image_url: imageUrl,
           is_anonymous: isAnonymous,
-          status: 'pending' // Lưu bài mới gửi luôn ở dạng chờ duyệt
+          status: autoStatus // 🌟 ĐÃ CẬP NHẬT: Ăn theo biến autoStatus đã được kiểm duyệt tự động
         }
       ])
       .select();
@@ -153,7 +161,6 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
     }
 
-    // Thực hiện lệnh UPDATE xuống DB (Đã gỡ .single() tránh crash định dạng mảng)
     const { data, error } = await supabase
       .from('submissions')
       .update({ status })
