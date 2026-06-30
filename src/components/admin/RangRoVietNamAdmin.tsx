@@ -1,14 +1,15 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2, XCircle, Trash2, RefreshCw, AlertCircle, User, Mail, School, CreditCard, ImageIcon } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Trash2, RefreshCw, AlertCircle, User, Mail, School, CreditCard, ImageIcon, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export function RangRoVietNamAdmin() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
-  // LẤY DANH SÁCH LỜI CHÚC (Ép thêm param approved=false để lấy cả bài pending/rejected)
+  // Lấy toàn bộ danh sách lời chúc (gửi kèm approved=false để lấy cả bài pending/rejected)
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -29,7 +30,20 @@ export function RangRoVietNamAdmin() {
     fetchData();
   }, []);
 
-  // Cập nhật trạng thái duyệt bài (?id=...)
+  // Hàm xử lý xuất và tải file file .xlsx chuẩn từ API export
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      // Gọi trực tiếp endpoint export để trình duyệt tự động nhận diện header và tải file về máy
+      window.location.href = '/api/rangrovietnam/submissions/export';
+    } catch (error) {
+      console.error("Lỗi khi tải file Excel:", error);
+      alert("Không thể xuất file lúc này, vui lòng kiểm tra lại hệ thống.");
+    }
+    setExporting(false);
+  };
+
+  // Cập nhật trạng thái duyệt bài
   const updateStatus = async (id: string, newStatus: 'approved' | 'pending' | 'rejected') => {
     console.log(`Đang yêu cầu cập nhật bài đăng ${id} sang: ${newStatus}`);
     try {
@@ -41,7 +55,7 @@ export function RangRoVietNamAdmin() {
 
       if (response.ok) {
         console.log("Cập nhật trạng thái thành công!");
-        fetchData(); // Reload UI ngay lập tức để cập nhật Badge màu sắc
+        fetchData(); // Tải lại dữ liệu ngay lập tức để làm mới giao diện
       } else {
         const errData = await response.json();
         console.error("Lỗi cập nhật từ API:", errData.error);
@@ -52,7 +66,7 @@ export function RangRoVietNamAdmin() {
     }
   };
 
-  // Xóa vĩnh viễn lời chúc khỏi hệ thống (?id=...)
+  // Xóa vĩnh viễn lời chúc ra khỏi Database
   const deleteItem = async (id: string) => {
     if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn lời chúc này?")) return;
     try {
@@ -61,7 +75,7 @@ export function RangRoVietNamAdmin() {
       });
       if (response.ok) {
         console.log("Xóa thành công!");
-        fetchData(); // Reload lại danh sách bảng
+        fetchData(); // Làm mới bảng sau khi xóa thành công
       } else {
         const errData = await response.json();
         alert("Xóa thất bại: " + errData.error);
@@ -73,13 +87,29 @@ export function RangRoVietNamAdmin() {
 
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-slate-800">Quản lý lời chúc - Rạng rỡ Việt Nam</h2>
-        <Button onClick={fetchData} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" /> Tải lại
-        </Button>
+      {/* Khối Header điều khiển bảng */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl font-bold text-slate-800">Quản lý lời chúc Rạng rỡ Việt Nam</h2>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Nút Xuất Excel xịn xò sử dụng thư viện xlsx */}
+          <Button 
+            onClick={handleExportExcel} 
+            variant="default" 
+            size="sm" 
+            className="bg-green-600 hover:bg-green-700 text-white shadow-none border-none flex items-center gap-1"
+            disabled={exporting}
+          >
+            <Download className="w-4 h-4" /> 
+            {exporting ? 'Đang xuất...' : 'Xuất Excel'}
+          </Button>
+          
+          <Button onClick={fetchData} variant="outline" size="sm" className="flex items-center gap-1">
+            <RefreshCw className="w-4 h-4" /> Tải lại
+          </Button>
+        </div>
       </div>
 
+      {/* Khối hiển thị bảng dữ liệu */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -103,12 +133,15 @@ export function RangRoVietNamAdmin() {
               </tr>
             ) : data.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50 transition-colors">
+                {/* Cột 1: Thông tin chi tiết người gửi */}
                 <td className="p-4 text-sm">
                   <div className="font-semibold flex items-center gap-1 text-slate-800"><User className="w-3 h-3" /> {item.name}</div>
                   <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><CreditCard className="w-3 h-3" /> MSSV: {item.student_id || 'N/A'}</div>
                   <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><School className="w-3 h-3" /> Lớp: {item.class_name || 'N/A'}</div>
                   <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" /> Email: {item.email || 'N/A'}</div>
                 </td>
+                
+                {/* Cột 2: Nội dung lời chúc và Preview link ảnh đính kèm */}
                 <td className="p-4 max-w-sm">
                   <p className="text-sm text-slate-700 mb-2 whitespace-pre-wrap">{item.content}</p>
                   {item.image_url && (
@@ -117,11 +150,15 @@ export function RangRoVietNamAdmin() {
                     </a>
                   )}
                 </td>
+                
+                {/* Cột 3: Badge trạng thái đồng bộ màu sắc */}
                 <td className="p-4">
                   {item.status === 'approved' && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none shadow-none">Đã duyệt</Badge>}
                   {item.status === 'rejected' && <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-none shadow-none">Từ chối</Badge>}
                   {(!item.status || item.status === 'pending') && <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-none shadow-none">Chờ duyệt</Badge>}
                 </td>
+                
+                {/* Cột 4: Tổ hợp các nút bấm thao tác Admin */}
                 <td className="p-4">
                   <div className="flex justify-center gap-1">
                     <Button size="icon" variant="ghost" className="hover:bg-green-50 rounded-full" onClick={() => updateStatus(item.id, 'approved')} title="Duyệt lời chúc"><CheckCircle2 className="w-5 h-5 text-green-600" /></Button>
