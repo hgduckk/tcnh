@@ -74,7 +74,7 @@ export function RangRoVietNamAdmin() {
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm w-full">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-slate-800">Quản lý lời chúc Rạng rỡ Việt Nam</h2>
+        <h2 className="text-xl font-bold text-slate-800">Quản lý lời chúc - Rạng rỡ Việt Nam</h2>
         <Button onClick={fetchData} variant="outline" size="sm">
           <RefreshCw className="w-4 h-4 mr-2" /> Tải lại
         </Button>
