@@ -4,7 +4,7 @@ import { assertAdminRequest } from "@/lib/adminAuth";
 import { serializeError } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
-// Ép đường dẫn luôn truy vấn dữ liệu động mới nhất
+// Ép đường dẫn luôn truy vấn dữ liệu động mới nhất, bẻ gãy bộ nhớ cache
 export const dynamic = 'force-dynamic';
 
 const SUBMISSION_SELECT =
@@ -14,6 +14,7 @@ const BATCH_SIZE = 1000;
 
 /**
  * HÀM GHÉP ĐÔI CÂU HỎI - CÂU TRẢ LỜI
+ * Tự động lọc và ẩn hoàn toàn những câu hỏi ứng viên bỏ trống không trả lời
  * @param jsonbAnswers Mảng câu trả lời của ứng viên (Dữ liệu từ bảng submissions)
  * @param questionList Mảng các câu hỏi gốc dạng string[] (Dữ liệu từ bảng templates)
  */
@@ -24,19 +25,25 @@ function parseAnswersWithQuestions(jsonbAnswers: any, questionList: string[] = [
     if (!Array.isArray(answersArr)) return "";
 
     return answersArr.map((item: any, index: number) => {
-      // 1. Lấy nội dung câu hỏi gốc từ mảng câu hỏi, nếu khuyết thì fallback về "Câu X"
-      const questionText = (questionList && questionList[index]) ? questionList[index] : `Câu ${index + 1}`;
-
-      // 2. Lấy nội dung câu trả lời (hỗ trợ cả text thuần lẫn object nếu có)
+      // 1. Lấy nội dung câu trả lời trước để kiểm tra dữ liệu trống
       let answerText = "";
       if (item && typeof item === "object") {
         answerText = item.answer || item.a || "";
       } else {
-        answerText = item ? String(item) : "";
+        answerText = item ? String(item).trim() : "";
       }
 
-      return `❓ ${questionText}\n➔ TL: ${answerText || "(Bỏ trống)"}`;
-    }).filter(Boolean).join("\n\n"); // Xuống dòng phân cách rõ ràng giữa các câu hỏi
+      // NẾU KHÔNG CÓ CÂU TRẢ LỜI -> BỎ QUA HOÀN TOÀN, KHÔNG IN RA EXCEL ĐỂ TRÁNH RÁC FILE
+      if (!answerText) return null;
+
+      // 2. Lấy nội dung câu hỏi gốc tương ứng từ cấu hình Template của Đức
+      const questionText = (questionList && questionList[index]) ? questionList[index].trim() : `Câu ${index + 1}`;
+      const finalQuestion = questionText || `Câu ${index + 1}`;
+
+      return `❓ ${finalQuestion}\n➔ TL: ${answerText}`;
+    })
+    .filter(Boolean) // Quét sạch sành sanh các phần tử null ra khỏi mảng
+    .join("\n\n");   // Gộp chuỗi xuống dòng sạch sẽ khi bật cụm Wrap Text trong Excel
   } catch (e) {
     return "";
   }
@@ -76,7 +83,7 @@ async function fetchAllSubmissionsByTemplate(templateId: string) {
 
 export async function GET(req: Request) {
   try {
-    // 1. Kiểm tra quyền xác thực Admin
+    // 1. Kiểm tra phân quyền Admin từ Header x-admin-password
     const authError = assertAdminRequest(req);
     if (authError) return authError;
 
@@ -91,7 +98,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, message: "Missing template_id param" }, { status: 400 });
     }
 
-    // 2. [CẬP NHẬT CHUẨN]: Lấy cấu trúc mảng câu hỏi gốc từ bảng public.application_form_templates của Đức
+    // 2. Kéo cấu trúc câu hỏi gốc từ bảng public.application_form_templates của Đức
     const { data: templateData } = await supabaseAdmin
       .from("application_form_templates")
       .select("optional_personal_questions, department_questions")
@@ -101,15 +108,16 @@ export async function GET(req: Request) {
     const globalPersonalQuestions: string[] = templateData?.optional_personal_questions || [];
     const rawDeptQuestions: Record<string, string[]> = templateData?.department_questions || {};
 
-    // 3. Kéo toàn bộ danh sách CTV của đợt tuyển này về
+    // 3. Quét toàn bộ danh sách đơn nộp của đợt tuyển cụ thể này về
     const submissions = await fetchAllSubmissionsByTemplate(templateId);
 
     if (!submissions || submissions.length === 0) {
       return NextResponse.json({ success: false, message: "Không có ứng viên nào trong đợt tuyển này." }, { status: 404 });
     }
 
-    // 4. Tiến hành map và bóc tách dữ liệu sang định dạng Excel
+    // 4. Mapping chuẩn hóa mảng dữ liệu sang cấu trúc cột Excel Tiếng Việt
     const excelData = submissions.map((item, index) => {
+      // Đồng bộ hóa trạng thái bất kể DB lưu chữ hoa hay chữ thường thô
       let statusText = "Chưa chọn";
       const currentStatus = String(item.status || "").toLowerCase().trim();
       
@@ -117,7 +125,7 @@ export async function GET(req: Request) {
       if (currentStatus === "rejected" || currentStatus === "failed") statusText = "Loại";
       if (currentStatus === "undecided" || currentStatus === "pending") statusText = "Xem xét";
 
-      // Trích xuất danh sách câu hỏi riêng biệt theo đúng Phân ban mà ứng viên đăng ký
+      // Trích xuất mảng câu hỏi riêng biệt của Phân ban mà ứng viên này ứng tuyển
       const currentDeptName = item.department ? String(item.department).trim() : "";
       const currentDeptQuestions: string[] = rawDeptQuestions[currentDeptName] || [];
 
@@ -139,7 +147,7 @@ export async function GET(req: Request) {
         "Kỹ Năng Đặc Biệt": item.special_skills || "",
         "Lưu Ý Sức Khỏe": item.health_note || "",
         
-        // Tiến hành ghép đôi hoàn hảo cặp Câu hỏi gốc - Câu trả lời thực tế của SV
+        // Gọi hàm bóc tách cặp Câu hỏi - Câu trả lời real-time đã được dọn dẹp dòng trống
         "Câu Hỏi & Trả Lời Chung": parseAnswersWithQuestions(item.optional_personal_answers, globalPersonalQuestions),
         "Câu Hỏi & Trả Lời Riêng Ban": parseAnswersWithQuestions(item.dept_optional_answers, currentDeptQuestions),
         
@@ -151,12 +159,12 @@ export async function GET(req: Request) {
       };
     });
 
-    // 5. Khởi tạo và ghi dữ liệu ra định dạng file Excel
+    // 5. Build cấu trúc file Excel bằng thư viện xlsx
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Ứng Viên CTV");
 
-    // Đặt chiều rộng cột (Cột câu hỏi/trả lời để rộng wch: 70 cho dễ bật Wrap Text đọc)
+    // Định dạng chiều rộng cố định cho 23 cột chống lỗi vỡ ô chữ
     worksheet["!cols"] = [
       { wch: 6 },  { wch: 10 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
       { wch: 10 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 15 },
@@ -164,8 +172,10 @@ export async function GET(req: Request) {
       { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 20 }
     ];
 
+    // 6. Chuyển đổi dữ liệu workbook sang mảng excel buffer
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
 
+    // 7. Bắn gói dữ liệu luồng byte kèm Header tải file tự động về máy tính admin
     return new NextResponse(excelBuffer, {
       status: 200,
       headers: {
@@ -175,6 +185,6 @@ export async function GET(req: Request) {
     });
 
   } catch (e) {
-    return NextResponse.json({ success: false, message: serializeError(e) }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Server gặp sự cố khi xử lý dữ liệu Excel: " + serializeError(e) }, { status: 500 });
   }
 }
