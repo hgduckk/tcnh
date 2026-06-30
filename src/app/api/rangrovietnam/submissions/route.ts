@@ -6,7 +6,9 @@ if (!supabase) {
   console.warn('Supabase client is not configured.');
 }
 
-// GET - Lấy danh sách lời chúc (Đã tối ưu hóa Map dữ liệu sạch)
+// ==========================================
+// 1. GET - LẤY DANH SÁCH LỜI CHÚC
+// ==========================================
 export async function GET(request: NextRequest) {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
@@ -16,14 +18,17 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const limit = url.searchParams.get('limit');
     const includeTotal = url.searchParams.get('include_total');
-    const approvedOnly = url.searchParams.get('approved') === 'true';
+    
+    // Mặc định nếu không truyền gì sẽ tự hiểu là APPROVED (ẩn bài pending/rejected ngoài trang chủ)
+    // Chỉ khi Admin gọi kèm tham số ?approved=false thì mới hiện hết
+    const approvedOnly = url.searchParams.get('approved') !== 'false';
 
     let query = supabase
       .from('submissions')
       .select('*', { count: includeTotal ? 'exact' : 'estimated' })
       .order('created_at', { ascending: false });
 
-    // Lọc bài đã duyệt cho trang chủ công khai của người dùng
+    // Khóa bảo mật: Lọc cứng dữ liệu theo status
     if (approvedOnly) {
       query = query.eq('status', 'approved');
     }
@@ -41,7 +46,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
     }
 
-    // Map dữ liệu chuẩn khớp 100% với Schema của Đức (dùng snake_case chuẩn DB)
+    // Đổi tên biến snake_case từ DB về đúng dữ liệu chuẩn trả về giao diện
     const mappedSubmissions = (submissions || []).map(item => ({
       id: item.id,
       name: item.name,
@@ -66,7 +71,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Sinh viên gửi lời chúc mới
+// ==========================================
+// 2. POST - SINH VIÊN GỬI LỜI CHÚC MỚI
+// ==========================================
 export async function POST(request: NextRequest) {
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
 
@@ -119,7 +126,7 @@ export async function POST(request: NextRequest) {
           content,
           image_url: imageUrl,
           is_anonymous: isAnonymous,
-          status: 'pending'
+          status: 'pending' // Lưu bài mới gửi luôn ở dạng chờ duyệt
         }
       ])
       .select();
@@ -131,20 +138,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH - Cập nhật trạng thái duyệt từ Admin (?id=...)
+// ==========================================
+// 3. PATCH - ADMIN CẬP NHẬT TRẠNG THÁI (?id=...)
+// ==========================================
 export async function PATCH(request: NextRequest) {
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
 
   try {
     const url = new URL(request.url);
-    const id = url.searchParams.get('id')?.trim(); // Loại bỏ khoảng trắng thừa nếu có
+    const id = url.searchParams.get('id')?.trim(); 
     const { status } = await request.json();
 
     if (!id || !status) {
       return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
     }
 
-    // Thực hiện cập nhật vào DB sau khi mở RLS UPDATE
+    // Thực hiện lệnh UPDATE xuống DB (Đã gỡ .single() tránh crash định dạng mảng)
     const { data, error } = await supabase
       .from('submissions')
       .update({ status })
@@ -157,10 +166,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!data || data.length === 0) {
-      return NextResponse.json({ error: 'Không tìm thấy dòng nào được cập nhật.' }, { status: 404 });
+      return NextResponse.json({ error: 'Không tìm thấy dòng dữ liệu nào phù hợp với ID.' }, { status: 404 });
     }
 
-    // Trả về dữ liệu sạch cho frontend xử lý cập nhật badge tức thì
     const updatedItem = {
       id: data[0].id,
       name: data[0].name,
@@ -182,7 +190,9 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE - Xóa vĩnh viễn lời chúc từ Admin (?id=...)
+// ==========================================
+// 4. DELETE - ADMIN XÓA VĨNH VIỄN LỜI CHÚC (?id=...)
+// ==========================================
 export async function DELETE(request: NextRequest) {
   if (!supabase) return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
 

@@ -8,11 +8,11 @@ export function RangRoVietNamAdmin() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Lấy toàn bộ danh sách lời chúc (không lọc approved để admin thấy hết)
+  // LẤY DANH SÁCH LỜI CHÚC (Ép thêm param approved=false để lấy cả bài pending/rejected)
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/rangrovietnam/submissions?include_total=true');
+      const response = await fetch('/api/rangrovietnam/submissions?include_total=true&approved=false');
       if (response.ok) {
         const result = await response.json();
         setData(result.submissions || []);
@@ -29,7 +29,7 @@ export function RangRoVietNamAdmin() {
     fetchData();
   }, []);
 
-  // Cập nhật trạng thái - Đã sửa truyền tham số qua ?id=${id}
+  // Cập nhật trạng thái duyệt bài (?id=...)
   const updateStatus = async (id: string, newStatus: 'approved' | 'pending' | 'rejected') => {
     console.log(`Đang yêu cầu cập nhật bài đăng ${id} sang: ${newStatus}`);
     try {
@@ -41,7 +41,7 @@ export function RangRoVietNamAdmin() {
 
       if (response.ok) {
         console.log("Cập nhật trạng thái thành công!");
-        fetchData(); // Reload UI ngay lập tức
+        fetchData(); // Reload UI ngay lập tức để cập nhật Badge màu sắc
       } else {
         const errData = await response.json();
         console.error("Lỗi cập nhật từ API:", errData.error);
@@ -52,7 +52,7 @@ export function RangRoVietNamAdmin() {
     }
   };
 
-  // Xóa lời chúc - Đã sửa truyền tham số qua ?id=${id}
+  // Xóa vĩnh viễn lời chúc khỏi hệ thống (?id=...)
   const deleteItem = async (id: string) => {
     if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn lời chúc này?")) return;
     try {
@@ -61,7 +61,7 @@ export function RangRoVietNamAdmin() {
       });
       if (response.ok) {
         console.log("Xóa thành công!");
-        fetchData(); // Reload danh sách
+        fetchData(); // Reload lại danh sách bảng
       } else {
         const errData = await response.json();
         alert("Xóa thất bại: " + errData.error);
