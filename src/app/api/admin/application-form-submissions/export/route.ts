@@ -4,31 +4,39 @@ import { assertAdminRequest } from "@/lib/adminAuth";
 import { serializeError } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
+// Ép đường dẫn luôn truy vấn dữ liệu động mới nhất
+export const dynamic = 'force-dynamic';
+
 const SUBMISSION_SELECT =
   "id, template_id, submitted_at, full_name, birth_date, class_name, student_id, email, gender, photo_url, department, optional_personal_answers, dept_optional_answers, status, standing_committee_comment, board_comment, phone_number, facebook_link, current_address, transportation, health_note, strengths_weaknesses, special_skills";
 
 const BATCH_SIZE = 1000;
 
-// HÀM PARSE ĐA NĂNG: Cân hết mọi kiểu mảng lưu từ Supabase (Mảng Object lẫn mảng Chuỗi thuần)
-function parseJsonbAnswers(jsonbData: any): string {
-  if (!jsonbData) return "";
+/**
+ * HÀM GHÉP ĐÔI CÂU HỎI - CÂU TRẢ LỜI
+ * @param jsonbAnswers Mảng câu trả lời của ứng viên (Dữ liệu từ bảng submissions)
+ * @param questionList Mảng các câu hỏi gốc dạng string[] (Dữ liệu từ bảng templates)
+ */
+function parseAnswersWithQuestions(jsonbAnswers: any, questionList: string[] = []): string {
+  if (!jsonbAnswers) return "";
   try {
-    const arr = typeof jsonbData === "string" ? JSON.parse(jsonbData) : jsonbData;
-    if (!Array.isArray(arr)) return "";
-    
-    return arr.map((item: any, index: number) => {
-      if (!item) return "";
-      
-      // Trường hợp 1: Nếu lưu dạng mảng Object [{question: "...", answer: "..."}]
-      if (typeof item === "object") {
-        const q = item.question || item.q || `Câu ${index + 1}`;
-        const a = item.answer || item.a || "";
-        return `${q}: ${a}`;
+    const answersArr = typeof jsonbAnswers === "string" ? JSON.parse(jsonbAnswers) : jsonbAnswers;
+    if (!Array.isArray(answersArr)) return "";
+
+    return answersArr.map((item: any, index: number) => {
+      // 1. Lấy nội dung câu hỏi gốc từ mảng câu hỏi, nếu khuyết thì fallback về "Câu X"
+      const questionText = (questionList && questionList[index]) ? questionList[index] : `Câu ${index + 1}`;
+
+      // 2. Lấy nội dung câu trả lời (hỗ trợ cả text thuần lẫn object nếu có)
+      let answerText = "";
+      if (item && typeof item === "object") {
+        answerText = item.answer || item.a || "";
+      } else {
+        answerText = item ? String(item) : "";
       }
-      
-      // Trường hợp 2: Nếu chỉ lưu mảng chuỗi thuần ["Trả lời 1", "Trả lời 2"]
-      return `Câu ${index + 1}: ${String(item)}`;
-    }).filter(Boolean).join(" \n "); // Phân dòng sạch đẹp trong ô Excel
+
+      return `❓ ${questionText}\n➔ TL: ${answerText || "(Bỏ trống)"}`;
+    }).filter(Boolean).join("\n\n"); // Xuống dòng phân cách rõ ràng giữa các câu hỏi
   } catch (e) {
     return "";
   }
@@ -68,6 +76,7 @@ async function fetchAllSubmissionsByTemplate(templateId: string) {
 
 export async function GET(req: Request) {
   try {
+    // 1. Kiểm tra quyền xác thực Admin
     const authError = assertAdminRequest(req);
     if (authError) return authError;
 
@@ -82,20 +91,35 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, message: "Missing template_id param" }, { status: 400 });
     }
 
+    // 2. [CẬP NHẬT CHUẨN]: Lấy cấu trúc mảng câu hỏi gốc từ bảng public.application_form_templates của Đức
+    const { data: templateData } = await supabaseAdmin
+      .from("application_form_templates")
+      .select("optional_personal_questions, department_questions")
+      .eq("id", templateId)
+      .single();
+
+    const globalPersonalQuestions: string[] = templateData?.optional_personal_questions || [];
+    const rawDeptQuestions: Record<string, string[]> = templateData?.department_questions || {};
+
+    // 3. Kéo toàn bộ danh sách CTV của đợt tuyển này về
     const submissions = await fetchAllSubmissionsByTemplate(templateId);
 
     if (!submissions || submissions.length === 0) {
       return NextResponse.json({ success: false, message: "Không có ứng viên nào trong đợt tuyển này." }, { status: 404 });
     }
 
+    // 4. Tiến hành map và bóc tách dữ liệu sang định dạng Excel
     const excelData = submissions.map((item, index) => {
-      // ĐỒNG BỘ TRẠNG THÁI: Check phủ đầu hết các kiểu chữ hoa/thường hoặc giá trị thô lưu trong DB
       let statusText = "Chưa chọn";
       const currentStatus = String(item.status || "").toLowerCase().trim();
       
       if (currentStatus === "accepted" || currentStatus === "passed") statusText = "Đồng ý";
       if (currentStatus === "rejected" || currentStatus === "failed") statusText = "Loại";
       if (currentStatus === "undecided" || currentStatus === "pending") statusText = "Xem xét";
+
+      // Trích xuất danh sách câu hỏi riêng biệt theo đúng Phân ban mà ứng viên đăng ký
+      const currentDeptName = item.department ? String(item.department).trim() : "";
+      const currentDeptQuestions: string[] = rawDeptQuestions[currentDeptName] || [];
 
       return {
         "STT": index + 1,
@@ -115,8 +139,9 @@ export async function GET(req: Request) {
         "Kỹ Năng Đặc Biệt": item.special_skills || "",
         "Lưu Ý Sức Khỏe": item.health_note || "",
         
-        "Câu Trả Lời Chung (Form)": parseJsonbAnswers(item.optional_personal_answers),
-        "Câu Trả Lời Riêng (Theo Ban)": parseJsonbAnswers(item.dept_optional_answers),
+        // Tiến hành ghép đôi hoàn hảo cặp Câu hỏi gốc - Câu trả lời thực tế của SV
+        "Câu Hỏi & Trả Lời Chung": parseAnswersWithQuestions(item.optional_personal_answers, globalPersonalQuestions),
+        "Câu Hỏi & Trả Lời Riêng Ban": parseAnswersWithQuestions(item.dept_optional_answers, currentDeptQuestions),
         
         "Ý Kiến Ban Thường vụ": item.standing_committee_comment || "",
         "Ý Kiến Ban Chuyên môn": item.board_comment || "",
@@ -126,14 +151,16 @@ export async function GET(req: Request) {
       };
     });
 
+    // 5. Khởi tạo và ghi dữ liệu ra định dạng file Excel
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Ứng Viên CTV");
 
+    // Đặt chiều rộng cột (Cột câu hỏi/trả lời để rộng wch: 70 cho dễ bật Wrap Text đọc)
     worksheet["!cols"] = [
       { wch: 6 },  { wch: 10 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
       { wch: 10 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 15 },
-      { wch: 20 }, { wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 50 }, { wch: 50 },
+      { wch: 20 }, { wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 70 }, { wch: 70 },
       { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 20 }
     ];
 
