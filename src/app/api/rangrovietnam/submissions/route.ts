@@ -6,7 +6,7 @@ if (!supabase) {
   console.warn('Supabase client is not configured.');
 }
 
-// GET - Lấy danh sách lời chúc
+// GET - Lấy danh sách lời chúc (Đã tối ưu hóa Map dữ liệu sạch)
 export async function GET(request: NextRequest) {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
       .select('*', { count: includeTotal ? 'exact' : 'estimated' })
       .order('created_at', { ascending: false });
 
+    // Lọc bài đã duyệt cho trang chủ công khai của người dùng
     if (approvedOnly) {
       query = query.eq('status', 'approved');
     }
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
     }
 
+    // Map dữ liệu chuẩn khớp 100% với Schema của Đức (dùng snake_case chuẩn DB)
     const mappedSubmissions = (submissions || []).map(item => ({
       id: item.id,
       name: item.name,
@@ -105,7 +107,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ĐÃ BỎ .single() ĐỂ TRÁNH LỖI ĐỊNH DẠNG JSON
     const { data, error } = await supabase
       .from('submissions')
       .insert([
@@ -136,14 +137,14 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const url = new URL(request.url);
-    const id = url.searchParams.get('id');
+    const id = url.searchParams.get('id')?.trim(); // Loại bỏ khoảng trắng thừa nếu có
     const { status } = await request.json();
 
     if (!id || !status) {
       return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
     }
 
-    // ĐÃ FIX: Bỏ .single(), lấy phần tử đầu tiên của mảng kết quả trả về
+    // Thực hiện cập nhật vào DB sau khi mở RLS UPDATE
     const { data, error } = await supabase
       .from('submissions')
       .update({ status })
@@ -156,10 +157,25 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!data || data.length === 0) {
-      return NextResponse.json({ error: 'Không tìm thấy lời chúc với ID này hoặc chưa cập nhật được dữ liệu.' }, { status: 404 });
+      return NextResponse.json({ error: 'Không tìm thấy dòng nào được cập nhật.' }, { status: 404 });
     }
 
-    return NextResponse.json(data[0], { status: 200 });
+    // Trả về dữ liệu sạch cho frontend xử lý cập nhật badge tức thì
+    const updatedItem = {
+      id: data[0].id,
+      name: data[0].name,
+      student_id: data[0].student_id,
+      class_name: data[0].class_name,
+      faculty: data[0].faculty,
+      email: data[0].email,
+      content: data[0].content,
+      image_url: data[0].image_url,
+      is_anonymous: data[0].is_anonymous,
+      status: data[0].status || 'pending',
+      created_at: data[0].created_at
+    };
+
+    return NextResponse.json(updatedItem, { status: 200 });
   } catch (error) {
     console.error('Lỗi server PATCH:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
