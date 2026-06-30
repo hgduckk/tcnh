@@ -32,7 +32,7 @@ import {
   LayoutDashboard, Wrench, FolderOpen, Home, Trophy, Activity, FileText,
   ChevronDown, ChevronRight, ExternalLink, CheckCircle2, Loader2,
   Database, Bot, ShieldCheck, GraduationCap,
-  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X, Upload, MapPinned,
+  LogOut, Eye, ClipboardList, Users, MessageSquare, Quote, Menu, X, Upload, MapPinned, Download,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -709,19 +709,19 @@ function OverviewPanel({
 
   const handleExportExcelCTV = async () => {
     if (selectedTemplateId === 'all') {
-      alert("Vui lòng chọn một đợt tuyển cụ thể để xuất báo cáo Excel!");
+      alert("Vui lòng chọn một đợt tuyển cụ thể từ danh sách để xuất báo cáo Excel!");
       return;
     }
     try {
       setIsExporting(true);
       const res = await fetch(`/api/admin/application-form-submissions/export?template_id=${selectedTemplateId}`, {
         method: "GET",
-        headers: authHeaders, // Kế thừa token/mật khẩu bảo mật
+        headers: authHeaders, // Tự động đính mật khẩu xác thực từ trang tổng quan
       });
 
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.message || "Có lỗi xảy ra khi trích xuất tệp tin Excel.");
+        throw new Error(payload?.message || "Có lỗi xảy ra khi trích xuất dữ liệu Excel.");
       }
 
       const blob = await res.blob();
@@ -734,7 +734,7 @@ function OverviewPanel({
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert(err.message || "Hệ thống không thể kết nối API xuất dữ liệu.");
+      alert(err.message || "Hệ thống không thể kết nối đến API xuất dữ liệu.");
     } finally {
       setIsExporting(false);
     }
@@ -1119,7 +1119,7 @@ const ALL_ADDITIONAL_FIELDS = [
           <h2 className="text-base font-semibold text-slate-700 mb-3">Dữ liệu đơn đăng ký</h2>
           <Card className="mb-4">
             <CardContent className="pt-5">
-              <div className="grid md:grid-cols-[1.2fr_1fr_1fr] gap-3">
+              <div className="grid md:grid-cols-[1.2fr_1fr_1fr_auto] gap-3">
                 <div>
                   <label className="text-xs text-slate-500">Đơn đăng ký</label>
                   <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
@@ -1128,6 +1128,17 @@ const ALL_ADDITIONAL_FIELDS = [
                       <option key={template.id} value={template.id}>{template.name}</option>
                     ))}
                   </select>
+                </div>
+                {/* NÚT XUẤT EXCEL: */}
+                <div className="flex items-end">
+                  <Button 
+                    onClick={handleExportExcelCTV} 
+                    disabled={isExporting}
+                    className="h-10 px-4 bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2 font-medium shadow-sm transition-all"
+                  >
+                    {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    Xuất Excel
+                  </Button>
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Sắp xếp theo</label>
