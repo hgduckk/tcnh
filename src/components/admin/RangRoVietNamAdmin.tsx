@@ -8,7 +8,7 @@ export function RangRoVietNamAdmin() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Lấy toàn bộ danh sách lời chúc thông qua API Route công khai (không filter approved)
+  // Lấy toàn bộ danh sách lời chúc (không lọc approved để admin thấy hết)
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -29,7 +29,7 @@ export function RangRoVietNamAdmin() {
     fetchData();
   }, []);
 
-  // Cập nhật trạng thái thông qua phương thức PATCH của API tích hợp
+  // Cập nhật trạng thái - Đã sửa truyền tham số qua ?id=${id}
   const updateStatus = async (id: string, newStatus: 'approved' | 'pending' | 'rejected') => {
     console.log(`Đang yêu cầu cập nhật bài đăng ${id} sang: ${newStatus}`);
     try {
@@ -41,7 +41,7 @@ export function RangRoVietNamAdmin() {
 
       if (response.ok) {
         console.log("Cập nhật trạng thái thành công!");
-        fetchData(); // Reload dữ liệu ngay lập tức để đồng bộ UI
+        fetchData(); // Reload UI ngay lập tức
       } else {
         const errData = await response.json();
         console.error("Lỗi cập nhật từ API:", errData.error);
@@ -52,7 +52,7 @@ export function RangRoVietNamAdmin() {
     }
   };
 
-  // Xóa lời chúc thông qua phương thức DELETE của API tích hợp
+  // Xóa lời chúc - Đã sửa truyền tham số qua ?id=${id}
   const deleteItem = async (id: string) => {
     if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn lời chúc này?")) return;
     try {
@@ -105,7 +105,6 @@ export function RangRoVietNamAdmin() {
               <tr key={item.id} className="border-b hover:bg-slate-50 transition-colors">
                 <td className="p-4 text-sm">
                   <div className="font-semibold flex items-center gap-1 text-slate-800"><User className="w-3 h-3" /> {item.name}</div>
-                  {/* Hiển thị chi tiết MSSV, Lớp, Email */}
                   <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><CreditCard className="w-3 h-3" /> MSSV: {item.student_id || 'N/A'}</div>
                   <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><School className="w-3 h-3" /> Lớp: {item.class_name || 'N/A'}</div>
                   <div className="text-slate-500 text-xs flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" /> Email: {item.email || 'N/A'}</div>
@@ -119,7 +118,6 @@ export function RangRoVietNamAdmin() {
                   )}
                 </td>
                 <td className="p-4">
-                  {/* So sánh chính xác các chuỗi trạng thái */}
                   {item.status === 'approved' && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none shadow-none">Đã duyệt</Badge>}
                   {item.status === 'rejected' && <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-none shadow-none">Từ chối</Badge>}
                   {(!item.status || item.status === 'pending') && <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-none shadow-none">Chờ duyệt</Badge>}
