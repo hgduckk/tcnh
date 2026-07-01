@@ -320,17 +320,17 @@ export async function submitApplication(
           from: "Hệ thống Quản trị ĐK-TCNH <hethong@dktcnh.id.vn>", // Chuẩn hethong@ mượt mà không dính alert no-reply
           to: [validatedFields.data.email], // Bắn thẳng về mail sinh viên nộp đơn
           replyTo: "ducthk25414@st.uel.edu.vn", // Các bạn phản hồi sẽ tự bay về mail Đoàn Khoa
-          subject: `[ĐK-TCNH] XÁC NHẬN NỘP HỒ SƠ THÀNH CÔNG - ${validatedFields.data.fullName}`,
+          subject: `[ĐK-TCNH] XÁC NHẬN NỘP ĐƠN ỨNG TUYỂN THÀNH CÔNG - ${validatedFields.data.fullName.toUpperCase()}`,          
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
               
               <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px;">
-                <h2 style="color: #1e3a8a; margin: 0; font-size: 22px;">XÁC NHẬN NỘP HỒ SƠ THÀNH CÔNG</h2>
-                <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">Chiến dịch Tuyển Cộng tác viên Đoàn - Hội Khoa Tài chính - Ngân hàng</p>
+                <h2 style="color: #1e3a8a; margin: 0; font-size: 22px;">XÁC NHẬN NỘP ĐƠN ỨNG TUYỂN THÀNH CÔNG</h2>
+                <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">Chương trình Tuyển Cộng tác viên Đoàn khoa Tài chính - Ngân hàng năm học 2026 - 2027</p>
               </div>
 
               <p style="font-size: 15px; color: #334155; line-height: 1.6;">Chào <strong>${validatedFields.data.fullName}</strong>,</p>
-              <p style="font-size: 15px; color: #334155; line-height: 1.6;">Hệ thống Quản trị Đoàn khoa Tài chính - Ngân hàng đã ghi nhận biểu mẫu đăng ký ứng tuyển Cộng tác viên của bạn thành công. Cảm ơn bạn đã quan tâm và mong muốn đồng hành cùng các hoạt động phong trào sắp tới.</p>
+              <p style="font-size: 15px; color: #334155; line-height: 1.6;">Hệ thống Quản trị Đoàn khoa Tài chính - Ngân hàng đã ghi nhận biểu mẫu đăng ký ứng tuyển Cộng tác viên của bạn thành công. Cảm ơn bạn đã quan tâm và mong muốn đồng hành cùng các hoạt động sắp tới.</p>
               
               <div style="background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 20px; border-radius: 6px; margin: 25px 0;">
                 <h4 style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 15px;">THÔNG TIN HỒ SƠ ĐÃ GHI NHẬN:</h4>
@@ -345,7 +345,7 @@ export async function submitApplication(
 
               <div style="margin-top: 35px; border-top: 1px dashed #cbd5e1; padding-top: 15px; text-align: center;">
                 <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-                  * Đây là email gửi tự động từ hệ thống quản lý, vui lòng không trả lời trực tiếp (Reply) vào địa chỉ này.
+                  * Đây là email gửi tự động từ hệ thống quản lý, mọi thắc mắc xin vui lòng liên hệ với Ban tổ chức thông qua địa chỉ email: dktaichinhnganhang@st.uel.edu.vn
                 </p>
               </div>
 
