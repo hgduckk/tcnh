@@ -3,10 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdminClient";
 import { DEPARTMENTS, type Department } from "@/lib/applicationForms";
 import { assertAdminRequest } from "@/lib/adminAuth";
 import { serializeError } from "@/lib/utils";
-import { Resend } from "resend"; // 🌟 Import Resend
-
-// Khởi tạo Resend bằng Key tối mật
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { Resend } from "resend"; 
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +43,7 @@ export async function GET(req: Request) {
 }
 
 // ==========================================
-// 2. POST - TẠO MỚI HOẶC CẬP NHẬT FORM (CÓ BẮN MAIL BÁO ADMIN)
+// 2. POST - TẠO MỚI HOẶC CẬP NHẬT FORM
 // ==========================================
 export async function POST(req: Request) {
   try {
@@ -94,7 +91,6 @@ export async function POST(req: Request) {
     let isEdit = !!id;
     let finalData: any = null;
 
-    // Trường hợp: Cập nhật form cũ (Edit)
     if (id) {
       const { data, error } = await supabaseAdmin
         .from("application_form_templates")
@@ -114,7 +110,6 @@ export async function POST(req: Request) {
       if (error) throw error;
       finalData = data;
 
-      // Lưu snapshot lịch sử
       supabaseAdmin
         .from("application_form_template_history")
         .insert({ template_id: data.id, action: "updated", snapshot: data })
@@ -122,7 +117,6 @@ export async function POST(req: Request) {
           if (histErr) console.warn("History insert failed:", histErr.message);
         });
     } else {
-      // Trường hợp: Tạo form hoàn toàn mới (Create)
       const { data, error } = await supabaseAdmin
         .from("application_form_templates")
         .insert({
@@ -140,7 +134,6 @@ export async function POST(req: Request) {
       if (error) throw error;
       finalData = data;
 
-      // Lưu snapshot lịch sử
       supabaseAdmin
         .from("application_form_template_history")
         .insert({ template_id: data.id, action: "created", snapshot: data })
@@ -149,31 +142,32 @@ export async function POST(req: Request) {
         });
     }
 
-    // 🌟 3. TỰ ĐỘNG GỬI MAIL NO-REPLY BÁO CÁO CHO BAN TỔ CHỨC ĐOÀN KHOA
-    try {
-      await resend.emails.send({
-        from: 'Hệ thống Quản trị <no-reply@dktcnh.id.vn>',
-        to: ['hoangduc100307@gmail.com'], // Gửi về hòm thư tổng điều hành của BTC
-        subject: `[Hệ thống] ${isEdit ? 'Cập nhật' : 'Khởi tạo'} thành công form đợt tuyển: ${payload.name}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px;">
-            <h3 style="color: #1e3a8a;">THÔNG BÁO CẬP NHẬT BIỂU MẪU</h3>
-            <p>Xin chào Ban Dự án,</p>
-            <p>Hệ thống vừa ghi nhận một thao tác thay đổi cấu trúc đợt tuyển dụng từ trang Admin:</p>
-            <ul>
-              <li><strong>Tên đợt tuyển:</strong> ${payload.name}</li>
-              <li><strong>Hành động:</strong> ${isEdit ? 'Cập nhật nội dung form' : 'Tạo mới form hoàn toàn'}</li>
-              <li><strong>Thời gian mở đơn:</strong> ${new Date(payload.open_at).toLocaleString('vi-VN')}</li>
-              <li><strong>Thời gian đóng đơn:</strong> ${new Date(payload.close_at).toLocaleString('vi-VN')}</li>
-            </ul>
-            <p style="color: #64748b; font-size: 12px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-              * Thao tác được ghi nhận realtime trên hệ thống dktcnh.id.vn.
-            </p>
-          </div>
-        `
-      });
-    } catch (mailErr) {
-      console.error("Lỗi gửi mail thông báo Admin:", mailErr);
+    // 🌟 KHỞI TẠO VÀ BẮN MAIL AN TOÀN TUYỆT ĐỐI TRONG VÒNG POST RUNTIME
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      try {
+        const resend = new Resend(apiKey);
+        await resend.emails.send({
+          from: 'Hệ thống Quản trị <no-reply@dktcnh.id.vn>',
+          to: ['hoangduc100307@gmail.com'], // Điền email Đức muốn nhận test trực tiếp tại đây
+          subject: `[Hệ thống] ${isEdit ? 'Cập nhật' : 'Khởi tạo'} thành công form đợt tuyển: ${payload.name}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px;">
+              <h3 style="color: #1e3a8a;">🔔 THÔNG BÁO TIẾN ĐỘ BIỂU MẪU</h3>
+              <p>Hệ thống vừa ghi nhận một thao tác thay đổi cấu trúc đợt tuyển từ trang Admin:</p>
+              <ul>
+                <li><strong>Tên đợt tuyển:</strong> ${payload.name}</li>
+                <li><strong>Hành động:</strong> ${isEdit ? 'Cập nhật cấu trúc' : 'Tạo mới form hoàn toàn'}</li>
+              </ul>
+            </div>
+          `
+        });
+        console.log(`🚀 [TEST BTC] Mail thông báo form đã được gửi đi thành công.`);
+      } catch (mailErr) {
+        console.error("❌ Lỗi trong quá trình bắn mail qua Resend:", mailErr);
+      }
+    } else {
+      console.warn("⚠️ Bỏ qua gửi mail test vì thiếu cấu hình RESEND_API_KEY trong môi trường chạy.");
     }
 
     return NextResponse.json({ success: true, data: finalData });
