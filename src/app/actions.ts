@@ -359,11 +359,45 @@ export async function submitApplication(
     } else {
       console.warn("⚠️ Bỏ qua gửi mail vì thiếu cấu hình RESEND_API_KEY trong môi trường chạy.");
     }
-    return {
+        // =========================================================================
+    // =========================================================================
+    // 🔔 TỰ ĐỘNG BẮN THÔNG BÁO REALTIME QUA TELEGRAM BOT (ĐÃ FIX LỖI TYPESCRIPT)
+    // =========================================================================
+    const teleToken = process.env.TELEGRAM_BOT_TOKEN;
+    const teleChatId = process.env.TELEGRAM_CHAT_ID;
+
+    // 🌟 Thêm && validatedFields.data vào đây để ép kiểu an toàn cho TypeScript
+    if (teleToken && teleChatId && validatedFields.data) {
+      try {
+        const teleMessage = 
+          `🎉 **[ADMIN] CÓ HỒ SƠ ỨNG TUYỂN CTV MỚI!**\n\n` +
+          `👤 **Họ và tên:** ${validatedFields.data.fullName.toUpperCase()}\n` +
+          `🆔 **MSSV:** ${validatedFields.data.studentId}\n` +
+          `🏫 **Lớp:** ${validatedFields.data.className || "N/A"}\n` +
+          `🎯 **Nguyện vọng ban:** ✨ ${validatedFields.data.department.toUpperCase()} ✨\n\n` +
+          `👉 *BTC vào trang Admin xem đơn ngay nhé!*`;
+
+        await fetch(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: teleChatId,
+            text: teleMessage,
+            parse_mode: "Markdown",
+          }),
+        });
+        console.log(`🚀 [Telegram Bot] Đã thông báo thành công về Group chat!`);
+      } catch (teleError) {
+        console.error("❌ [Telegram Error] Lỗi gửi thông báo về Group:", teleError);
+      }
+    } else {
+      console.warn("⚠️ Bỏ qua thông báo Telegram vì thiếu cấu hình hoặc dữ liệu validate bị lỗi.");
+    }
+    // =========================================================================
+  return {
       message: `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`,
       issues: undefined,
     };
-    // =========================================================================
   } catch (error) {
     console.error("Error submitting application:", error);
     return {
