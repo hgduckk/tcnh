@@ -124,7 +124,7 @@ export function Header() {
               <span className="font-headline text-xl font-bold text-foreground">ĐK TCNH</span>
             </div>
 
-            {/* Danh sách các nút chuyển trang */}
+            {/* Danh sách các nút chuyển trang*/}
             <div className="w-full overflow-y-auto pr-2 flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <NavLinks 
                 className="flex flex-col items-start gap-6 w-full text-left" 
