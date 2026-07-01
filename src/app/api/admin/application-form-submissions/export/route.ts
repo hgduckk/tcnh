@@ -40,7 +40,7 @@ function parseAnswersWithQuestions(jsonbAnswers: any, questionList: string[] = [
       const questionText = (questionList && questionList[index]) ? questionList[index].trim() : `Câu ${index + 1}`;
       const finalQuestion = questionText || `Câu ${index + 1}`;
 
-      return `❓ ${finalQuestion}\n➔ TL: ${answerText}`;
+      return `❓ ${finalQuestion}\n➔ Trả lời: ${answerText}`;
     })
     .filter(Boolean) // Quét sạch sành sanh các phần tử null ra khỏi mảng
     .join("\n\n");   // Gộp chuỗi xuống dòng sạch sẽ khi bật cụm Wrap Text trong Excel
@@ -98,7 +98,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, message: "Missing template_id param" }, { status: 400 });
     }
 
-    // 2. Kéo cấu trúc câu hỏi gốc từ bảng public.application_form_templates của Đức
+    // 2. Kéo cấu trúc câu hỏi gốc từ bảng public.application_form_templates
     const { data: templateData } = await supabaseAdmin
       .from("application_form_templates")
       .select("optional_personal_questions, department_questions")
