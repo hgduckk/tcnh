@@ -4,10 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, XCircle, Trash2, RefreshCw, AlertCircle, User, Mail, School, CreditCard, ImageIcon, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+// Định nghĩa kiểu dữ liệu trạng thái để tránh gõ nhầm
+type StatusType = 'all' | 'pending' | 'approved' | 'rejected';
+
 export function RangRoVietNamAdmin() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  
+  // 🌟 Biến state quản lý Tab trạng thái đang được chọn (Mặc định hiển thị 'all' hoặc 'pending' tùy Đức)
+  const [activeTab, setActiveTab] = useState<StatusType>('all');
 
   // Lấy toàn bộ danh sách lời chúc (gửi kèm approved=false để lấy cả bài pending/rejected)
   const fetchData = async () => {
@@ -34,7 +40,6 @@ export function RangRoVietNamAdmin() {
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      // Gọi trực tiếp endpoint export để trình duyệt tự động nhận diện header và tải file về máy
       window.location.href = '/api/rangrovietnam/submissions/export';
     } catch (error) {
       console.error("Lỗi khi tải file Excel:", error);
@@ -85,13 +90,29 @@ export function RangRoVietNamAdmin() {
     }
   };
 
+  // 🌟 LOGIC BỘ LỌC ĐIỀU KIỆN: Lọc mảng dữ liệu dựa trên Tab đang active
+  const filteredData = data.filter((item) => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'pending') return !item.status || item.status === 'pending';
+    return item.status === activeTab;
+  });
+
+  // 🌟 ĐẾM SỐ LƯỢNG LỜI CHÚC CHO MỖI PHÂN LOẠI (Hiển thị con số bên cạnh mỗi tab trực quan)
+  const countStatus = (status: StatusType) => {
+    if (status === 'all') return data.length;
+    if (status === 'pending') return data.filter(i => !i.status || i.status === 'pending').length;
+    return data.filter(i => i.status === status).length;
+  };
+
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm w-full">
       {/* Khối Header điều khiển bảng */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h2 className="text-xl font-bold text-slate-800">Quản lý lời chúc Rạng rỡ Việt Nam</h2>
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Quản lý lời chúc Rạng rỡ Việt Nam</h2>
+          <p className="text-xs text-slate-500 mt-1">Tổng cộng: {data.length} bài nộp</p>
+        </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Nút Xuất Excel xịn xò sử dụng thư viện xlsx */}
           <Button 
             onClick={handleExportExcel} 
             variant="default" 
@@ -107,6 +128,42 @@ export function RangRoVietNamAdmin() {
             <RefreshCw className="w-4 h-4" /> Tải lại
           </Button>
         </div>
+      </div>
+
+      {/* 🌟 KHỐI THANH TÌM KIẾM/TABS BỘ LỌC TRẠNG THÁI MỚI THÊM 🌟 */}
+      <div className="flex flex-wrap items-center gap-1 mb-4 p-1 bg-slate-100 rounded-lg w-fit">
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+            activeTab === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Tất cả ({countStatus('all')})
+        </button>
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+            activeTab === 'pending' ? 'bg-yellow-500 text-white shadow-sm' : 'text-yellow-600 hover:bg-yellow-50'
+          }`}
+        >
+          Chờ duyệt ({countStatus('pending')})
+        </button>
+        <button
+          onClick={() => setActiveTab('approved')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+            activeTab === 'approved' ? 'bg-green-600 text-white shadow-sm' : 'text-green-600 hover:bg-green-50'
+          }`}
+        >
+          Đã duyệt ({countStatus('approved')})
+        </button>
+        <button
+          onClick={() => setActiveTab('rejected')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+            activeTab === 'rejected' ? 'bg-red-600 text-white shadow-sm' : 'text-red-600 hover:bg-red-50'
+          }`}
+        >
+          Từ chối ({countStatus('rejected')})
+        </button>
       </div>
 
       {/* Khối hiển thị bảng dữ liệu */}
@@ -127,11 +184,13 @@ export function RangRoVietNamAdmin() {
                   <Loader2 className="animate-spin mx-auto w-8 h-8 text-blue-500" />
                 </td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-10 text-center text-slate-400">Không có lời chúc nào trong danh sách.</td>
+                <td colSpan={4} className="p-10 text-center text-slate-400">
+                  Không có lời chúc nào thuộc trạng thái này.
+                </td>
               </tr>
-            ) : data.map((item) => (
+            ) : filteredData.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50 transition-colors">
                 {/* Cột 1: Thông tin chi tiết người gửi */}
                 <td className="p-4 text-sm">
