@@ -18,9 +18,9 @@ export const metadata: Metadata = {
     siteName: 'Đoàn khoa Tài chính - Ngân hàng',
     images: [
       {
-        url: '/images/backkipu.jpg',
-        width: 1200,
-        height: 630,
+        url: '/images/banner.jpg',
+        width: 3301,
+        height: 1269,
         alt: 'Đoàn khoa Tài chính - Ngân hàng',
       },
     ],
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Đoàn khoa Tài chính - Ngân hàng',
     description: 'Trang web chính thức của Đoàn khoa Tài chính - Ngân hàng',
-    images: ['/images/backkipu.jpg'], 
+    images: ['/images/banner.jpg'], 
   },
 };
 
