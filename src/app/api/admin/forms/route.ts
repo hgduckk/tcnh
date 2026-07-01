@@ -149,7 +149,8 @@ export async function POST(req: Request) {
         const resend = new Resend(apiKey);
         await resend.emails.send({
           from: 'Hệ thống Quản trị ĐK-TCNH <hethong@dktcnh.id.vn>',
-          to: ['hoangduc100307@gmail.com', 'ducthk25414@st.uel.edu.vn'], // Điền email Đức muốn nhận test trực tiếp tại đây
+          to: ['ducthk25414@st.uel.edu.vn'], // Điền email Đức muốn nhận test trực tiếp tại đây
+          replyTo: 'ducthk25414@st.uel.edu.vn', // Sinh viên bấm trả lời vẫn sẽ về Gmail này của Ban Tổ chức nhe
           subject: `[Hệ thống] ${isEdit ? 'Cập nhật' : 'Khởi tạo'} thành công form đợt tuyển: ${payload.name}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px;">
