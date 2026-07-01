@@ -7,6 +7,7 @@ import { ContactFormSchema, CommentFormSchema, ApplicationFormSubmissionStrictSc
 import { supabase } from "@/lib/supabaseClient";
 import { supabaseAdmin } from '@/lib/supabaseAdminClient';
 import { randomUUID } from 'crypto';
+import { Resend } from 'resend';
 
 const APPLICATION_PHOTOS_BUCKET = 'application-form-photos';
 
@@ -308,12 +309,61 @@ export async function submitApplication(
         issues: [insertError.message],
       };
     }
+    // =========================================================================
+    // 🔥 HÀM GỬI MAIL CTV NỘP ĐƠN
+    // =========================================================================
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      try {
+        const resend = new Resend(apiKey);
+        await resend.emails.send({
+          from: "Hệ thống Quản trị ĐK-TCNH <hethong@dktcnh.id.vn>", // Chuẩn hethong@ mượt mà không dính alert no-reply
+          to: [validatedFields.data.email], // Bắn thẳng về mail sinh viên nộp đơn
+          replyTo: "ducthk25414@st.uel.edu.vn", // Các bạn phản hồi sẽ tự bay về mail Đoàn Khoa
+          subject: `[ĐK-TCNH] XÁC NHẬN NỘP HỒ SƠ THÀNH CÔNG - ${validatedFields.data.fullName}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+              
+              <div style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px;">
+                <h2 style="color: #1e3a8a; margin: 0; font-size: 22px;">XÁC NHẬN NỘP HỒ SƠ THÀNH CÔNG</h2>
+                <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">Chiến dịch Tuyển Cộng tác viên Đoàn - Hội Khoa Tài chính - Ngân hàng</p>
+              </div>
 
+              <p style="font-size: 15px; color: #334155; line-height: 1.6;">Chào <strong>${validatedFields.data.fullName}</strong>,</p>
+              <p style="font-size: 15px; color: #334155; line-height: 1.6;">Hệ thống Quản trị Đoàn khoa Tài chính - Ngân hàng đã ghi nhận biểu mẫu đăng ký ứng tuyển Cộng tác viên của bạn thành công. Cảm ơn bạn đã quan tâm và mong muốn đồng hành cùng các hoạt động phong trào sắp tới.</p>
+              
+              <div style="background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 20px; border-radius: 6px; margin: 25px 0;">
+                <h4 style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 15px;">THÔNG TIN HỒ SƠ ĐÃ GHI NHẬN:</h4>
+                <p style="margin: 6px 0; font-size: 14px; color: #475569;"><strong>• Họ và tên:</strong> ${validatedFields.data.fullName}</p>
+                <p style="margin: 6px 0; font-size: 14px; color: #475569;"><strong>• Mã số sinh viên:</strong> ${validatedFields.data.studentId}</p>
+                <p style="margin: 6px 0; font-size: 14px; color: #475569;"><strong>• Lớp:</strong> ${validatedFields.data.className || "N/A"}</p>
+                <p style="margin: 6px 0; font-size: 14px; color: #475569;"><strong>• Ban ứng tuyển:</strong> <span style="color: #dc2626; font-weight: bold;">${validatedFields.data.department}</span></p>
+              </div>
+
+              <p style="font-size: 15px; color: #334155; line-height: 1.6;">Hồ sơ của bạn hiện đã được chuyển giao cho Ban chuyên môn phụ trách tiến hành xem xét vòng đơn. Kết quả vòng đơn cũng như lịch trình chi tiết vòng phỏng vấn (nếu có) sẽ được gửi đến bạn sớm nhất qua địa chỉ email này.</p>
+              <p style="font-size: 15px; color: #334155; line-height: 1.6;">Chúc bạn có một trải nghiệm thật rạng rỡ cùng Đoàn khoa Tài chính - Ngân hàng nhé!</p>
+
+              <div style="margin-top: 35px; border-top: 1px dashed #cbd5e1; padding-top: 15px; text-align: center;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                  * Đây là email gửi tự động từ hệ thống quản lý, vui lòng không trả lời trực tiếp (Reply) vào địa chỉ này.
+                </p>
+              </div>
+
+            </div>
+          `,
+        });
+        console.log(`🚀 [Server Action] Email xác nhận nộp đơn thành công đã được gửi đến: ${validatedFields.data.email}`);
+      } catch (mailError) {
+        console.error("❌ Lỗi trong quá trình bắn mail qua Resend:", mailError);
+      }
+    } else {
+      console.warn("⚠️ Bỏ qua gửi mail vì thiếu cấu hình RESEND_API_KEY trong môi trường chạy.");
+    }
     return {
       message: `Cảm ơn bạn ${validatedFields.data.fullName}! Đơn ứng tuyển của bạn đã được gửi thành công.`,
       issues: undefined,
     };
-
+    // =========================================================================
   } catch (error) {
     console.error("Error submitting application:", error);
     return {
